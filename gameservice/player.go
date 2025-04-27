@@ -1,0 +1,358 @@
+package GameService
+
+import (
+	"fmt"
+	GwPacket "gw1/server/gwpacket"
+	"math/rand"
+
+	"github.com/rs/zerolog"
+)
+
+type Item struct {
+}
+
+type Bag struct {
+	id       int
+	capacity int
+	items    []Item
+}
+
+type Player struct {
+	bags                []Bag
+	agentId             int
+	client              *Client
+	username            string
+	uuid                uint64
+	posX                float32
+	posY                float32
+	plane               int
+	questBytes          []byte
+	primaryProfession   int
+	secondaryProfession int
+	connectedInstance   *Instance
+	log                 zerolog.Logger
+	readyForAgentTicks  bool
+}
+
+func NewPlayer(client *Client, logCtx zerolog.Logger) Player {
+	p := Player{
+		bags:               make([]Bag, 0),
+		client:             client,
+		uuid:               rand.Uint64(),
+		questBytes:         make([]byte, 0),
+		plane:              0,
+		readyForAgentTicks: false,
+	}
+	// TODO: from db
+	p.primaryProfession = 2
+	p.secondaryProfession = 0
+	p.log = logCtx.With().Uint64("uuid", p.uuid).Logger()
+	return p
+}
+
+func (p *Player) EnqueuePacket(out GwPacket.Out) {
+	p.client.EnqueuePacket(out)
+}
+
+func (p *Player) OnUserDisconnected() {
+
+}
+
+func (p *Player) OnC2SUpdateProfessionChoice(payload updateProfessionChoice) {
+	p.log.Info().
+		Int("profession", payload.professionId).
+		Bool("isPvE", payload.isPvE).
+		Msg("UpdateProfessionChoice")
+
+	p.EnqueuePacket(newPvpItemEnd())
+	p.EnqueuePacket(newPlayerUpdateProfession(1, payload.professionId, 0))
+}
+
+func (p *Player) OnC2SDyeEquipment(payload dyeEquipment) {
+	p.EnqueuePacket(newItemSetProfession(1, 1))
+	resp := GwPacket.NewOut(0x15A)
+	resp.Uint32(1)
+	resp.Uint32(1)
+	p.EnqueuePacket(resp)
+}
+
+func (p *Player) sendInstanceLoadSpawnPoint() {
+	p.log.Info().Msg("InstanceLoadRequestSpawnPoint")
+	inst := *p.connectedInstance
+	p.EnqueuePacket(newInstanceLoadSpawnPoint(inst.definition.MapFileId, p.posX, p.posY, p.plane, false))
+}
+
+func (p *Player) sendInstanceLoadSync(payload instanceLoadRequestSync) {
+	p.log.Info().Hex("unkBlob", payload.unkBytes[:]).Msg("InstanceLoadRequestSync")
+	// Sync skill info
+	p.sendUnlockedSkills()
+	p.sendSkillbar()
+	// Sync attribute points
+	p.sendAttributePointsRemaining()
+	// Sync profession info
+	p.sendProfession()
+	p.sendUnlockedProfessions()
+
+	p.sendUnlockedPvpHeroes()
+	p.EnqueuePacket(GwPacket.NewOut(0x001b))
+	// Sync quest info
+	p.sendQuestInfoSync()
+	// Sync unlocked maps / cartography data
+	p.sendMapsUnlockedSync()
+	p.sendCartographyData()
+	// Sync vanquish info
+	//p.sendVanquishUpdate()
+	p.EnqueuePacket(newInstanceLoaded(1886151033))
+	//p.sendDialogStuff()
+	p.sendAttributeUpdateInt(41)
+	p.sendAttributeUpdateInt(42)
+	p.sendAttributeUpdateInt(36)
+
+	// REVERSE THIS MORE:
+	// GAME_SMSG_AGENT_something
+	resp := GwPacket.NewOut(0x009b)
+	resp.Uint32(p.agentId)
+	resp.Uint32(100)
+	p.EnqueuePacket(resp)
+
+	// REVERSE THIS MORE:
+	resp = GwPacket.NewOut(0x00b4)
+	resp.Bytes([]byte{
+		0x32, 0x00, 0x05, 0x00, 0x66, 0x11, 0x00, 0x08, 0xc0,
+		0x3c, 0x00, 0x00, 0x10, 0x00, 0x00, 0x04, 0x40, 0x3c, 0x00, 0x00, 0x10, 0x00, 0x00, 0x04, 0x73,
+		0x00, 0x00, 0x76, 0x01, 0x00, 0x00, 0x77, 0x12, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x60, 0x00, 0x00, 0x00, 0x00,
+	})
+	p.EnqueuePacket(resp)
+
+	// GAME_SMSG_PLAYER_ATTR_SET
+	p.EnqueuePacket(newPlayerAttrSet())
+
+	// REVERSE THIS MORE:
+	resp = GwPacket.NewOut(0x00ee)
+	resp.Uint32(255)
+	resp.Uint32(255)
+	p.EnqueuePacket(resp)
+
+	p.sendAttributeUpdateFloat(43)
+
+	// REVERSE THIS MORE:
+	resp = GwPacket.NewOut(0x114)
+	resp.Uint32(1)
+	resp.Uint32(0)
+	p.EnqueuePacket(resp)
+	p.EnqueuePacket(newAgentCreatePlayer(1, p.agentId, 103153665, 0, 0, 3435973836, "Scout Char"))
+
+	// party info
+
+	p.EnqueuePacket(newUpdateAgentPartySize(1, 1))
+
+	resp = GwPacket.NewOut(0x00b0)
+	resp.Uint16(1)
+	resp.Uint16(1)
+	p.EnqueuePacket(resp)
+
+	// GAME_SMSG_UPDATE_AGENT_PARTYSIZE - Duplicate!
+	p.EnqueuePacket(newUpdateAgentPartySize(1, 1))
+
+	// GAME_SMSG_PARTY_CREATE
+	p.EnqueuePacket(newPartyCreate(1))
+
+	// GAME_SMSG_PARTY_PLAYER_ADD
+	p.EnqueuePacket(newPartyPlayerAdd(1))
+
+	// GAME_SMSG_PARTY_MEMBER_STREAM_END
+	p.EnqueuePacket(newPartyMemberStreamEnd(1))
+
+	// GAME_SMSG_PARTY_SEARCH_SEEK
+	p.EnqueuePacket(newPartySearchSeek(false))
+
+	// GAME_SMSG_PARTY_SET_DIFFICULTY
+	p.EnqueuePacket(newPartySetDifficulty(false))
+
+	// REVERSE THIS MORE:
+	resp = GwPacket.NewOut(0x00b0)
+	resp.Uint16(1)
+	resp.Uint16(1)
+	p.EnqueuePacket(resp)
+
+	// GAME_SMSG_AGENT_INITIAL_EFFECTS
+	// 0x200 enables GM effect (0010 0000 0000)
+	p.EnqueuePacket(newAgentInitialEffects(p.agentId, 0x200))
+
+	// GAME_SMSG_AGENT_SPAWNED - player
+	modelId := 0x30000001
+	agentType := 1
+	plane := 0
+	facingX := float32(0)
+	facingY := float32(0)
+	speed := float32(288 * 3) // 3x speed
+	p.EnqueuePacket(newAgentSpawned(
+		p.agentId,
+		modelId,
+		agentType,
+		p.posX,
+		p.posY,
+		plane,
+		facingX,
+		facingY,
+		speed,
+	))
+	// GAME_SMSG_AGENT_SET_PLAYER
+	p.EnqueuePacket(newAgentSetPlayer(p.agentId, 3))
+
+	p.EnqueuePacket(newAgentUpdateVisualEquipment(p.agentId))
+
+	// GAME_SMSG_AGENT_DISPLAY_CAPE
+	p.EnqueuePacket(newAgentDisplayCape(p.agentId, true))
+
+	// GAME_SMSG_POST_PROCESS
+	p.EnqueuePacket(newPostProcess(0, 0))
+
+	resp = GwPacket.NewOut(0x00b0)
+	resp.Uint16(1)
+	resp.Uint16(1)
+	p.EnqueuePacket(resp)
+
+	// instance something
+	resp = GwPacket.NewOut(0x1b1)
+	resp.Uint16(1)
+	resp.Uint8(1)
+	p.EnqueuePacket(resp)
+
+	resp = GwPacket.NewOut(0x01bc)
+	resp.Uint32(0)
+	p.EnqueuePacket(resp)
+
+	resp = GwPacket.NewOut(0x016d)
+	resp.Uint8(0)
+	p.EnqueuePacket(resp)
+
+	// GAME_SMSG_INSTANCE_LOAD_FINISH
+	p.EnqueuePacket(newInstanceLoadFinish())
+
+}
+
+func (p *Player) sendUnlockedSkills() {
+	resp := GwPacket.NewOut(0x001D)
+	resp.Bytes([]byte{
+		0x45, 0x00,
+		0x06, 0x44, 0x80, 0xd6, 0xd0, 0x89, 0x14, 0x22, 0x38, 0x18, 0x31, 0x10,
+		0x61, 0x63, 0xcc, 0x09, 0x88, 0x88, 0x00, 0x22, 0x24, 0x02, 0x13, 0x00, 0x24, 0x01, 0x08, 0x50,
+		0x22, 0x08, 0x2c, 0x45, 0x00, 0x10, 0x20, 0x02, 0x21, 0x21, 0x2a, 0x02, 0x04, 0x04, 0x81, 0xb4,
+		0x00, 0x08, 0x00, 0x40, 0x43, 0x1c, 0x80, 0x08, 0x00, 0x85, 0x13, 0x40, 0x04, 0x08, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x30, 0x91, 0x80, 0x03, 0x00, 0x40, 0x20, 0x04, 0x09, 0x00, 0x00, 0x1c,
+		0x80, 0x00, 0x02, 0x00, 0x00, 0xc0, 0x48, 0x20, 0x40, 0x01, 0x00, 0x01, 0x15, 0x00, 0x68, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x90, 0x21, 0x18, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0c, 0x42, 0xe7, 0xc1,
+		0x2a, 0x04, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x01, 0x00, 0x00, 0x20, 0x10,
+		0x40, 0x00, 0x90, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x30, 0x25, 0x94,
+		0x6c, 0x1c, 0xc0, 0x88, 0x88, 0x85, 0x20, 0x00, 0x00, 0x04, 0x23, 0x58, 0x01, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x04, 0x80, 0x80,
+		0x0c, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00,
+	})
+	p.EnqueuePacket(resp)
+	// GAME_SMSG_SKILLS_UNLOCKED
+	p.EnqueuePacket(newSkillsUnlocked())
+}
+
+func (p *Player) sendUnlockedPvpHeroes() {
+	resp := GwPacket.NewOut(0x0018)
+	resp.Uint16(1)
+	resp.Bytes([]byte{0xda, 0xde, 0xad, 0x0f})
+	p.EnqueuePacket(resp)
+}
+
+func (p *Player) sendQuestInfoSync() {
+	p.EnqueuePacket(newQuestInfo(p.questBytes))
+}
+
+func (p *Player) sendMapsUnlockedSync() {
+	p.EnqueuePacket(newMapsUnlocked([]byte{
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1b,
+		0x00, 0x70, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x14, 0x00, 0xf6, 0xfd, 0xdf, 0x17, 0x00, 0x00, 0x01, 0x00, 0xb0, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x18, 0x00, 0x00, 0x18, 0x10, 0x04, 0x00, 0xff, 0x07, 0x00, 0xff, 0x41, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x01, 0x00, 0x00, 0xe6, 0x67, 0xc8, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x07, 0x3c, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x08, 0x10, 0x00, 0x00, 0x80, 0xff, 0x1f, 0x00, 0x00, 0x00,
+	}))
+}
+
+func (p *Player) sendVanquishUpdate() {
+	p.EnqueuePacket(newVanquishProgress(0))
+}
+
+func (p *Player) sendDialogStuff() {
+	// Maybe dialog related
+	resp := GwPacket.NewOut(0x007b)
+	resp.Uint32(1)
+	p.EnqueuePacket(resp)
+
+	// Maybe dialog related
+	resp = GwPacket.NewOut(0x007c)
+	resp.Uint32(1)
+	p.EnqueuePacket(resp)
+}
+
+func (p *Player) sendAttributePointsRemaining() {
+	p.EnqueuePacket(newAgentUpdateAttributePoints(p.agentId, 0, 0))
+}
+
+func (p *Player) sendProfession() {
+	p.EnqueuePacket(newPlayerUpdateProfession(p.agentId, p.primaryProfession, p.secondaryProfession))
+}
+
+func (p *Player) sendUnlockedProfessions() {
+	p.EnqueuePacket(newPlayerUnlockedProfessions(p.agentId))
+}
+
+func (p *Player) sendSkillbar() {
+	p.EnqueuePacket(newSkillbarUpdate(p.agentId))
+}
+
+func (p *Player) sendAttributeUpdateInt(attributeId int) {
+	val := 1
+	if attributeId == 41 {
+		val = 25
+	} else if attributeId == 42 {
+		val = 0x3FFF
+	}
+	p.EnqueuePacket(newAgentAttrUpdateInt(p.agentId, attributeId, val))
+}
+
+func (p *Player) sendAttributeUpdateFloat(attributeId int) {
+	p.EnqueuePacket(newAgentAttrUpdateFloat(p.agentId, attributeId, 1025651612))
+}
+
+func (p *Player) sendCartographyData() {
+	resp := GwPacket.NewOut(0x008a)
+	resp.Uint32(64)
+	resp.Uint32(1280)
+	resp.Uint32(73)
+	p.EnqueuePacket(resp)
+
+	p.EnqueuePacket(newCartographyData([]byte{
+		0x13, 0x00, 0x00, 0x00, 0x1e, 0x00, 0xff, 0x21, 0x02,
+		0x3a, 0x04, 0x3a, 0x04, 0x39, 0x05, 0x35, 0x09, 0x34, 0x0a, 0x34, 0x07, 0x37, 0x06, 0x38, 0x07,
+		0x36, 0x0a, 0x34, 0x0b, 0x32, 0x05, 0x00, 0x07, 0x05, 0x02, 0x11, 0x1b, 0x00, 0x14, 0x05, 0x04,
+		0x07, 0x03, 0x02, 0x25, 0x05, 0x05, 0x08, 0x01, 0x02, 0x25, 0x04, 0x08, 0x0b, 0x25, 0x03, 0x0b,
+		0x09, 0x37, 0x07, 0x3a, 0x03, 0xff, 0xff, 0x94, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0xcc, 0xcc, 0xcc,
+	}))
+}
+
+func (p *Player) OnC2SChatMessage(payload chatMessage) {
+
+	p.log.Info().Int("ag", payload.agentId).Str("msg", payload.message).Msg("ChatMessage")
+	//for i := range 15 {
+	//	p.EnqueuePacket(newChatMessageFromServer(fmt.Sprintf("Chat color = %d", i), i))
+	//}
+	p.EnqueuePacket(newChatMessageFromServer(fmt.Sprintf("received chat message ' %s '", payload.message), 5))
+}
