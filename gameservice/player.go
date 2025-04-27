@@ -181,16 +181,17 @@ func (p *Player) sendInstanceLoadSync(payload instanceLoadRequestSync) {
 	p.EnqueuePacket(newAgentInitialEffects(p.agentId, 0x200))
 
 	// GAME_SMSG_AGENT_SPAWNED - player
-	modelId := 0x30000001
-	agentType := 1
+	agentType := 0x30000001
 	plane := 0
 	facingX := float32(0)
 	facingY := float32(0)
 	speed := float32(288 * 3) // 3x speed
 	p.EnqueuePacket(newAgentSpawned(
 		p.agentId,
-		modelId,
 		agentType,
+		1,
+		5,
+		0x706c6179,
 		p.posX,
 		p.posY,
 		plane,
@@ -230,6 +231,7 @@ func (p *Player) sendInstanceLoadSync(payload instanceLoadRequestSync) {
 
 	// GAME_SMSG_INSTANCE_LOAD_FINISH
 	p.EnqueuePacket(newInstanceLoadFinish())
+	p.connectedInstance.SendActiveAgents(p)
 
 }
 

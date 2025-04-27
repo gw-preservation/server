@@ -20,6 +20,7 @@ const (
 	opcodePlayerUpdateProfession     = 0x00b6
 	opcodeSkillbarUpdate             = 0x00d9
 	opcodeAgentAttrUpdateInt         = 0x009e
+	opcodeAgentUpdateNPCName         = 0x009a
 	opcodeAgentAttrUpdateFloat       = 0x00a1
 	opcodePlayerAttrSet              = 0x00e8
 	opcodePartySearchSeek            = 0x01dd
@@ -67,6 +68,14 @@ const (
 	opcodeMoveToPoint                = 0x0029
 	opcodeAgentMovementTick          = 0x001e
 )
+
+func newAgentUpdateNPCName(agentId int, encName []byte) (resp GwPacket.Out) {
+	resp = GwPacket.NewOut(opcodeAgentUpdateNPCName)
+	resp.Uint32(agentId)
+	resp.Uint16(len(encName) / 2)
+	resp.Bytes(encName)
+	return resp
+}
 
 func newPingRequest(unk1, unk2 int) (resp GwPacket.Out) {
 	resp = GwPacket.NewOut(opcodePingRequest)
@@ -127,12 +136,36 @@ func newAgentUpdateVisualEquipment(agentId int) (resp GwPacket.Out) {
 	return
 }
 
-func newAgentSpawned(agentId, modelId, agentType int, positionX, positionY float32, plane int, facingX, facingY float32, speed float32) (resp GwPacket.Out) {
+func newAgentUpdateNPCProperties(npcId int, fileId int, profession int, level int, unkBytes []byte) (resp GwPacket.Out) {
+	resp = GwPacket.NewOut(0x55)
+	resp.Uint32(npcId)
+	resp.Uint32(fileId)
+	resp.Uint32(0)
+	resp.Uint32(0x64000000) // scale
+	resp.Uint32(0)
+	resp.Uint32(0x20C) // flags
+	resp.Uint8(profession)
+	resp.Uint8(level)
+	resp.Uint16(len(unkBytes) / 2)
+	resp.Bytes(unkBytes)
+	return
+}
+
+func newAgentUpdateNPCModel(npcId int, modelId int) (resp GwPacket.Out) {
+	resp = GwPacket.NewOut(0x56)
+	resp.Uint32(npcId)
+	resp.Uint16(1)
+	//resp.Bytes([]byte{0xE8, 0xC7, 0x01, 0x00})
+	resp.Uint32(modelId)
+	return
+}
+
+func newAgentSpawned(agentId, agentType int, unk1, unk2 int, modelType int, positionX, positionY float32, plane int, facingX, facingY float32, speed float32) (resp GwPacket.Out) {
 	resp = GwPacket.NewOut(opcodeAgentSpawned)
 	resp.Uint32(agentId)
-	resp.Uint32(modelId)
-	resp.Uint8(agentType)
-	resp.Uint8(5)
+	resp.Uint32(agentType)
+	resp.Uint8(unk1)
+	resp.Uint8(unk2)
 	resp.Float32(positionX)
 	resp.Float32(positionY)
 	resp.Uint16(plane)
@@ -142,7 +175,7 @@ func newAgentSpawned(agentId, modelId, agentType int, positionX, positionY float
 	resp.Float32(speed)
 	resp.Float32(1.0)
 	resp.Uint32(0x41400000)
-	resp.Uint32(0x706c6179) // modelType
+	resp.Uint32(modelType) // modelType  (or allegianceBits?)
 	resp.Uint32(0)
 	resp.Uint32(0)
 	resp.Uint32(0)

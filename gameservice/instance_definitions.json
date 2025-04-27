@@ -1,5 +1,5 @@
 {
-    "definitions": {
+    "instances": {
         "0": {
             "debug_name": "char_creation",
             "explorable": true,
@@ -11,8 +11,12 @@
             "debug_name": "foibles_fair",
             "explorable": false,
             "map_file_id": 113355,
-            "agents": [],
-            "party_size": 4,
+            "agents": [
+                "ralena_stormbringer",
+                "vassar",
+                "laren"
+            ],
+            "party_size": 1,
             "spawn_points": [
                 [-473, 9089, 0]
             ]
@@ -21,11 +25,55 @@
             "debug_name": "fort_ranik",
             "explorable": false,
             "map_file_id": 113437,
-            "party_size": 4,
+            "party_size": 1,
             "agents": [],
             "spawn_points": [
                 [22218, 11409, 0]
             ]
+        }
+    },
+    "agents": {
+        "ralena_stormbringer": {
+            "__reference_agent_id": 3,
+            "__reference_packet_capture": "packets_foibles_fair.txt",
+            "enc_name": "32f0 8841 9a09 33f7",
+            "agent_type": 536872383,
+            "model_type": 1886151033,
+            "speed": 288,
+            "spawn_point": [-659, 11180, 0],
+            "profession": 6,
+            "level": 2,
+            "file_id": 16258,
+            "unk_properties_bytes": "0f5a dbd6 d257 691d",
+            "model_id": 116712
+        },
+        "vassar": {
+            "__reference_agent_id": 4,
+            "__reference_packet_capture": "packets_foibles_fair.txt",
+            "enc_name": "32cf 93ba fa50 3899",
+            "agent_type": 536872378,
+            "model_type": 1886151033,
+            "speed": 288,
+            "spawn_point": [-326, 11072, 0],
+            "profession": 5,
+            "level": 2,
+            "file_id": 16377,
+            "unk_properties_bytes": "0000 0000 0000 0000",
+            "model_id": 116691
+        },
+        "laren": {
+            "__reference_agent_id": 5,
+            "__reference_packet_capture": "packets_foibles_fair.txt",
+            "enc_name": "2d9e f878 bdbf 12e7",
+            "agent_type": 536872379,
+            "model_type": 1852796515,
+            "speed": 200,
+            "spawn_point": [-973, 10754, 0],
+            "profession": 3,
+            "level": 2,
+            "file_id": 116227,
+            "unk_properties_bytes": "0f67 9ad6 8f16 76f0",
+            "model_id": 116698
         }
     }
 }

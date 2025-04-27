@@ -7,7 +7,9 @@ import (
 	"os"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
+	"unicode/utf16"
 
 	"github.com/rs/zerolog"
 )
@@ -21,16 +23,34 @@ func init() {
 }
 
 type instanceDefinition struct {
-	DebugName   string  `json:"debug_name"`
-	Explorable  bool    `json:"explorable"`
-	MapFileId   int     `json:"map_file_id"`
-	PartySize   int     `json:"party_size"`
-	SpawnPoints [][]int `json:"spawn_points,omitempty"`
+	DebugName   string   `json:"debug_name"`
+	Explorable  bool     `json:"explorable"`
+	MapFileId   int      `json:"map_file_id"`
+	PartySize   int      `json:"party_size"`
+	AgentNames  []string `json:"agents"`
+	SpawnPoints [][]int  `json:"spawn_points,omitempty"`
+}
+
+type agentDefinition struct {
+	EncName            string  `json:"enc_name"`
+	ModelId            int     `json:"model_id"`
+	AgentType          int     `json:"agent_type"`
+	ModelType          int     `json:"model_type"`
+	Speed              float32 `json:"speed"`
+	SpawnPoint         [3]int  `json:"spawn_point"`
+	Profession         int     `json:"profession"`
+	Level              int     `json:"level"`
+	FileId             int     `json:"file_id"`
+	UnkPropertiesBytes string  `json:"unk_properties_bytes"`
 }
 
 var instanceDefinitions = struct {
-	Definitions map[string]instanceDefinition
-}{Definitions: make(map[string]instanceDefinition, 0)}
+	Instances map[string]instanceDefinition `json:"instances"`
+	Agents    map[string]agentDefinition    `json:"agents"`
+}{
+	Instances: make(map[string]instanceDefinition, 0),
+	Agents:    make(map[string]agentDefinition, 0),
+}
 
 func LoadInstanceDefinitionsFromDisk() {
 	file, err := os.Open("gameservice/instance_definitions.json")
@@ -42,10 +62,11 @@ func LoadInstanceDefinitionsFromDisk() {
 	if err := json.NewDecoder(file).Decode(&instanceDefinitions); err != nil {
 		panic(fmt.Sprintf("failed to load instance definitions: %v", err))
 	}
-	log.Info().Int("count", len(instanceDefinitions.Definitions)).Msg("loaded instance definitions from disk")
+	log.Info().Int("count", len(instanceDefinitions.Instances)).Msg("loaded instance definitions from disk")
+	log.Info().Int("count", len(instanceDefinitions.Agents)).Msg("loaded agent definitions from disk")
 
 	// Now start up all persistent instances:
-	for mapIdStr, definition := range instanceDefinitions.Definitions {
+	for mapIdStr, definition := range instanceDefinitions.Instances {
 		mapId, err := strconv.Atoi(mapIdStr)
 		if err != nil {
 			panic(fmt.Errorf("bad map id %s: %w", mapIdStr, err))
@@ -70,7 +91,7 @@ var InstanceManager = instanceManager{
 
 func (im *instanceManager) GetOrCreateInstanceByMapId(mapId int) *Instance {
 	// Check definition for mapId
-	definition, ok := instanceDefinitions.Definitions[strconv.Itoa(mapId)]
+	definition, ok := instanceDefinitions.Instances[strconv.Itoa(mapId)]
 	if !ok {
 		log.Error().Int("mapId", mapId).Msg("missing instance definition")
 		return nil
@@ -146,6 +167,32 @@ func NewInstance(mapId int, definition instanceDefinition) (i Instance) {
 	if i.definition.Explorable {
 		i.log.Debug().Msg("created a new explorable instance")
 	}
+	// Set up agents!
+	for _, agentName := range i.definition.AgentNames {
+		agentDefinition, ok := instanceDefinitions.Agents[agentName]
+		if !ok {
+			log.Error().Str("name", agentName).Msg("missing definition for agent")
+		}
+		ag := Agent{
+			id:                 i.NextFreeAgentId(),
+			posX:               float32(agentDefinition.SpawnPoint[0]),
+			posY:               float32(agentDefinition.SpawnPoint[1]),
+			plane:              agentDefinition.SpawnPoint[2],
+			facingX:            1.0,
+			facingY:            0.0,
+			speed:              agentDefinition.Speed,
+			modelId:            agentDefinition.ModelId,
+			agentType:          agentDefinition.AgentType,
+			modelType:          agentDefinition.ModelType,
+			encName:            agentDefinition.EncName,
+			profession:         agentDefinition.Profession,
+			level:              agentDefinition.Level,
+			fileId:             agentDefinition.FileId,
+			unkPropertiesBytes: agentDefinition.UnkPropertiesBytes, // Really what is this? you can set to all 0 and it seems the same?
+		}
+		i.agents = append(i.agents, ag)
+		log.Info().Str("name", agentName).Msg("added agent!")
+	}
 	return
 }
 
@@ -203,9 +250,53 @@ func (i *Instance) NextSpawnPoint() (x, y float32, plane int) {
 	return
 }
 
+func parseUTF16HexString(s string) (string, error) {
+	// Split the input string by space
+	parts := strings.Fields(s)
+
+	// Create a slice of uint16 to store code units
+	var codeUnits []uint16
+	for _, part := range parts {
+		val, err := strconv.ParseUint(part, 16, 16)
+		if err != nil {
+			return "", fmt.Errorf("invalid hex code unit %q: %w", part, err)
+		}
+		codeUnits = append(codeUnits, uint16(val))
+	}
+
+	// Decode UTF-16 code units into runes
+	runes := utf16.Decode(codeUnits)
+
+	return string(runes), nil
+}
+
+func convertEncName(in string) []byte {
+	// "2d9e f878 bdbf 12e7"
+	conv := []byte{}
+	fields := strings.Fields(in)
+	for _, word := range fields {
+		// Parse the 4-digit hex word into a uint16
+		val, err := strconv.ParseUint(word, 16, 16)
+		if err != nil {
+			panic(fmt.Errorf("invalid hex word %q: %w", word, err))
+		}
+		// Append high byte then low byte (big-endian)
+		conv = append(conv, byte(val&0xff), byte(val>>8))
+	}
+	return conv
+	//s := string([]byte{0x2d, 0x9e, 0xf8, 0x78, 0xbd, 0xbf, 0x12, 0xe7})
+	/*converted, err := parseUTF16HexString(in)
+	if err != nil {
+		panic(err)
+	}
+	return converted*/
+	//return s
+}
+
 func (i *Instance) AddPlayer(player *Player) {
 	i.players = append(i.players, *player)
 	player.agentId = i.NextFreeAgentId()
+	i.log.Info().Int("agentId", player.agentId).Msg("assigned player agent id")
 	i.log.Debug().Uint64("playerUuid", player.uuid).Msg("player added to instance")
 	player.EnqueuePacket(newInstanceLoadHead())
 	if i.IsCharCreationInstance() {
@@ -218,5 +309,17 @@ func (i *Instance) AddPlayer(player *Player) {
 		player.EnqueuePacket(newUpdateMapId(i.mapId))
 		player.EnqueuePacket(newReadyForMapSpawn())
 		player.EnqueuePacket(newInstanceManifestDone(0, 1, 0))
+	}
+}
+
+func (i *Instance) SendActiveAgents(to *Player) {
+	// Let's send agent info now.
+	for _, ag := range i.agents {
+		npcId := ag.agentType & 0xffff
+		to.EnqueuePacket(newAgentUpdateNPCProperties(npcId, ag.fileId, ag.profession, ag.level, convertEncName(ag.unkPropertiesBytes)))
+		to.EnqueuePacket(newAgentUpdateNPCModel(npcId, ag.modelId))
+		to.EnqueuePacket(newAgentUpdateNPCName(ag.id, convertEncName(ag.encName)))
+		to.EnqueuePacket(newAgentInitialEffects(ag.id, 0))
+		to.EnqueuePacket(newAgentSpawned(ag.id, ag.agentType, 1, 9, ag.modelType, ag.posX, ag.posY, ag.plane, ag.facingX, ag.facingY, ag.speed))
 	}
 }
