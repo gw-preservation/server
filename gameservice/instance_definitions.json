@@ -12,9 +12,21 @@
             "explorable": false,
             "map_file_id": 113355,
             "agents": [
-                "ralena_stormbringer",
-                "vassar",
-                "laren"
+                {
+                    "name": "ralena_stormbringer",
+                    "level": 2,
+                    "spawn_point": [-659, 11180, 0]
+                },
+                {
+                    "name": "vassar",
+                    "level": 2,
+                    "spawn_point": [-326, 11072, 0]
+                },
+                {
+                    "name": "laren_merchant",
+                    "level": 2,
+                    "spawn_point": [-973, 10754, 0]
+                }
             ],
             "party_size": 1,
             "spawn_points": [
@@ -26,7 +38,48 @@
             "explorable": false,
             "map_file_id": 113437,
             "party_size": 1,
-            "agents": [],
+            "agents": [
+                {
+                    "name": "lord_darrin",
+                    "level": 7,
+                    "spawn_point": [21647, 12613, 0]
+                },
+                {
+                    "name": "gram_merchant",
+                    "level": 2,
+                    "spawn_point": [24562, 10317, 0]
+                },
+                {
+                    "name": "hatcher_collector",
+                    "level": 2,
+                    "spawn_point": [24594, 15032]
+                },
+                {
+                    "name": "ascalon_guard",
+                    "level": 2,
+                    "spawn_point": [23681, 10442, 0]
+                },
+                {
+                    "name": "ascalon_guard",
+                    "level": 2,
+                    "spawn_point": [24286, 14174, 0]
+                },
+                {
+                    "name": "ascalon_guard",
+                    "level": 2,
+                    "spawn_point": [22523, 9612, 0]
+                },
+                {
+                    "name": "ascalon_guard",
+                    "level": 2,
+                    "spawn_point": [20695, 13021, 0]
+                },
+                {
+                    "name": "ascalon_guard",
+                    "level": 2,
+                    "spawn_point": [20695, 10754, 0]
+                }
+            ],
             "spawn_points": [
                 [22218, 11409, 0]
             ]
@@ -34,46 +87,74 @@
     },
     "agents": {
         "ralena_stormbringer": {
-            "__reference_agent_id": 3,
-            "__reference_packet_capture": "packets_foibles_fair.txt",
+            "type": "npc",
             "enc_name": "32f0 8841 9a09 33f7",
-            "agent_type": 536872383,
-            "model_type": 1886151033,
+            "allegiance_flags": 1886151033,
             "speed": 288,
-            "spawn_point": [-659, 11180, 0],
             "profession": 6,
-            "level": 2,
             "file_id": 16258,
             "unk_properties_bytes": "0f5a dbd6 d257 691d",
             "model_id": 116712
         },
         "vassar": {
-            "__reference_agent_id": 4,
-            "__reference_packet_capture": "packets_foibles_fair.txt",
             "enc_name": "32cf 93ba fa50 3899",
-            "agent_type": 536872378,
-            "model_type": 1886151033,
+            "type": "npc",
+            "allegiance_flags": 1886151033,
             "speed": 288,
-            "spawn_point": [-326, 11072, 0],
             "profession": 5,
-            "level": 2,
             "file_id": 16377,
             "unk_properties_bytes": "0000 0000 0000 0000",
             "model_id": 116691
         },
-        "laren": {
-            "__reference_agent_id": 5,
-            "__reference_packet_capture": "packets_foibles_fair.txt",
+        "laren_merchant": {
             "enc_name": "2d9e f878 bdbf 12e7",
-            "agent_type": 536872379,
-            "model_type": 1852796515,
+            "type": "npc",
+            "allegiance_flags": 1852796515,
             "speed": 200,
-            "spawn_point": [-973, 10754, 0],
             "profession": 3,
-            "level": 2,
             "file_id": 116227,
             "unk_properties_bytes": "0f67 9ad6 8f16 76f0",
             "model_id": 116698
+        },
+        "lord_darrin": {
+            "enc_name": "3494 c84e d433 48d7",
+            "type": "npc",
+            "allegiance_flags": 1852796515,
+            "speed": 288,
+            "profession": 1,
+            "file_id": 116227,
+            "unk_properties_bytes": "11b6 cb06 984b 23cd",
+            "model_id": 76594
+        },
+        "gram_merchant": {
+            "enc_name": "2da7 f0d6 d159 6765",
+            "type": "npc",
+            "allegiance_flags": 1852796515,
+            "speed": 200,
+            "profession": 3,
+            "file_id": 116227,
+            "unk_properties_bytes": "0f67 9ad6 8f16 76f0",
+            "model_id": 116698
+        },
+        "hatcher_collector": {
+            "enc_name": "328a e3b9 aa36 2e69",
+            "type": "npc",
+            "allegiance_flags": 1852796515,
+            "speed": 200,
+            "profession": 3,
+            "file_id": 116228,
+            "unk_properties_bytes": "0f57 9dcb ed5f 4007",
+            "model_id": 116703
+        },
+        "ascalon_guard": {
+            "enc_name": "2b5e 9f0f b437 7153",
+            "type": "npc",
+            "allegiance_flags": 1852796515,
+            "speed": 250,
+            "profession": 1,
+            "file_id": 141285,
+            "unk_properties_bytes": "0f5d c416 af26 167b",
+            "model_id": 116727
         }
     }
 }

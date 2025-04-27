@@ -160,7 +160,7 @@ func newAgentUpdateNPCModel(npcId int, modelId int) (resp GwPacket.Out) {
 	return
 }
 
-func newAgentSpawned(agentId, agentType int, unk1, unk2 int, modelType int, positionX, positionY float32, plane int, facingX, facingY float32, speed float32) (resp GwPacket.Out) {
+func newAgentSpawned(agentId, agentType int, unk1, unk2 int, allegianceFlags int, positionX, positionY float32, plane int, facingX, facingY float32, speed float32) (resp GwPacket.Out) {
 	resp = GwPacket.NewOut(opcodeAgentSpawned)
 	resp.Uint32(agentId)
 	resp.Uint32(agentType)
@@ -175,7 +175,7 @@ func newAgentSpawned(agentId, agentType int, unk1, unk2 int, modelType int, posi
 	resp.Float32(speed)
 	resp.Float32(1.0)
 	resp.Uint32(0x41400000)
-	resp.Uint32(modelType) // modelType  (or allegianceBits?)
+	resp.Uint32(allegianceFlags)
 	resp.Uint32(0)
 	resp.Uint32(0)
 	resp.Uint32(0)

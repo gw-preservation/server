@@ -178,20 +178,21 @@ func (p *Player) sendInstanceLoadSync(payload instanceLoadRequestSync) {
 
 	// GAME_SMSG_AGENT_INITIAL_EFFECTS
 	// 0x200 enables GM effect (0010 0000 0000)
-	p.EnqueuePacket(newAgentInitialEffects(p.agentId, 0x200))
+	p.EnqueuePacket(newAgentInitialEffects(p.agentId, 0))
 
 	// GAME_SMSG_AGENT_SPAWNED - player
 	agentType := 0x30000001
+	allegianceFlags := 0x706c6179
 	plane := 0
 	facingX := float32(0)
 	facingY := float32(0)
-	speed := float32(288 * 3) // 3x speed
+	speed := float32(288) // 1x speed
 	p.EnqueuePacket(newAgentSpawned(
 		p.agentId,
 		agentType,
 		1,
 		5,
-		0x706c6179,
+		allegianceFlags,
 		p.posX,
 		p.posY,
 		plane,
