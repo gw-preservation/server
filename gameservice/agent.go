@@ -1,8 +1,9 @@
 package GameService
 
 type Agent struct {
-	id                  int
+	agentId             int
 	definitionIndex     int
+	isPlayer            bool
 	name                string
 	posX                float32
 	posY                float32

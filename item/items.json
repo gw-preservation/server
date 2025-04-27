@@ -1,0 +1,59 @@
+{
+    "items": {
+        "32": {
+            "name": "backpack",
+            "type": "bag",
+            "merchant_value": 5,
+            "model_file_id": "0x1B536",
+            "enc_name": "21a8 d157 b58f 166f",
+            "inherent_modifiers": [
+                {
+                    "name": "holds_items",
+                    "val1": 20,
+                    "val2": 0
+                }
+            ]
+        },
+        "447": {
+            "name": "starter_bow",
+            "type": "longbow",
+            "merchant_value": 1000,
+            "model_file_id": "0x24A4",
+            "enc_name": "223f 87c0 c25c 378e",
+            "inherent_modifiers": [
+                {
+                    "name": "two_handed_bow",
+                    "val1": 3,
+                    "val2": 0
+                }
+            ]
+        },
+        "30847": {
+            "name": "summoning_stone",
+            "type": "consumable",
+            "merchant_value": 0,
+            "model_file_id": "0x54992",
+            "enc_name": "8102 4674 F109 F330 2937",
+            "inherent_modifiers": [
+                {
+                    "name": "unk",
+                    "val1": 0,
+                    "val2": 136
+                }
+            ]
+        },
+        "1085": {
+            "name": "shining_blade_costume",
+            "type": "costume",
+            "merchant_value": 0,
+            "model_file_id": "0xA60",
+            "enc_name":"8102 5F16",
+            "inherent_modifiers": []
+        }
+    },
+    "modifiers": {
+        "holds_items": "0x2448",
+        "two_handed_bow": "0x2618",
+        "unk": "0x2788"
+    }
+}

@@ -2,6 +2,9 @@ package db
 
 import (
 	"crypto/rand"
+	"database/sql/driver"
+	"encoding/json"
+	"errors"
 	"fmt"
 )
 
@@ -26,11 +29,49 @@ type Character struct {
 	Account             Account `gorm:"foreignKey:AccountID"` // ForeignKey relation
 	Name                string
 	XP                  uint32 `gorm:"default:0"`
+	Bags                []Bag  `gorm:"foreignKey:CharacterID"` // One-to-many relationship with Bag
+}
+
+type Bag struct {
+	ID          uint64 `gorm:"primaryKey"`
+	Capacity    uint8
+	CharacterID uint64 // Foreign key to Character
+	Type        uint8  // Bag=1, Equipped=2
+	Slots       []Slot `gorm:"foreignKey:BagID"` // One-to-many relationship with Slot
+}
+
+type Slot struct {
+	ID            uint64 `gorm:"primaryKey"`
+	ItemID        uint32 // Set to 0 for unused slot!
+	BagID         uint64 // Foreign key to Bag
+	ItemType      uint8
+	ItemQuantity  uint32         `gorm:"default:1"` // Just in case!
+	ItemModifiers ModifiersArray `gorm:"type:json"`
+}
+
+type ModifiersArray []uint32
+
+// Scan implements the Scanner interface for reading from the database
+func (u *ModifiersArray) Scan(value interface{}) error {
+	// Try to convert the value to a JSON string
+	b, ok := value.([]byte)
+	if !ok {
+		return errors.New("failed to scan Uint32Array")
+	}
+
+	// Unmarshal the JSON into the slice
+	return json.Unmarshal(b, &u)
+}
+
+// Value implements the Valuer interface for writing to the database
+func (u ModifiersArray) Value() (driver.Value, error) {
+	// Marshal the slice to JSON before storing in the database
+	return json.Marshal(u)
 }
 
 func autoMigrate() (err error) {
 	// AutoMigrate models to create tables (including foreign key)
-	err = database.AutoMigrate(&Account{}, &Character{})
+	err = database.AutoMigrate(&Account{}, &Character{}, &Bag{}, &Slot{})
 	return err
 }
 
@@ -64,6 +105,12 @@ func randUuid() []byte {
 	return res
 }
 
+func marshalAppearanceBits(primaryProfession uint8) (out []byte) {
+	out = []byte{0x11, 0x18, 0x11, 0x06, 0x00, 0x00, 0x00, 0x00}
+	out[2] = primaryProfession << 4
+	return
+}
+
 func maybeBootstrap() (err error) {
 	var count int64
 	database.Model(&Account{}).Count(&count)
@@ -78,11 +125,13 @@ func maybeBootstrap() (err error) {
 	}
 	database.Create(&rootAccount)
 	// One character
-	rootChar := Character{
-		AccountID:  rootAccount.ID,
-		UUID:       randUuid(),
-		Name:       "Default Char",
-		Appearance: []byte{0x11, 0x18, 0x21, 0x06, 0x00, 0x00, 0x00, 0x00},
+	primaryProfession := uint8(2)
+	/*rootChar := Character{
+		AccountID:         rootAccount.ID,
+		UUID:              randUuid(),
+		Name:              "Default Char",
+		ProfessionPrimary: primaryProfession,
+		Appearance:        marshalAppearanceBits(primaryProfession),
 		// 0xff = 15
 		// 0xf1 = 15 (proph)
 
@@ -93,7 +142,21 @@ func maybeBootstrap() (err error) {
 			0x11, 0x40, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x8f, 0x00, 0x02, 0x00, 0x07, 0x95, 0x00,
 			0x02, 0x00, 0x07, 0x96, 0x00, 0x02, 0x00, 0x07, 0x97, 0x00, 0x02, 0x00, 0x07, 0x94, 0x00, 0x02,
 			0x00, 0x07},
-	}
+	}*/
+
+	rootChar := NewDbChar(rootAccount.ID, "Default Char", int(primaryProfession), marshalAppearanceBits(primaryProfession))
 	database.Create(&rootChar)
+
+	// Make an alt account
+	altAccount := Account{
+		Email:    "alt@localhost",
+		Password: "p",
+		UUID:     randUuid(),
+	}
+	database.Create(&altAccount)
+	primaryProfession = uint8(1)
+
+	altChar := NewDbChar(altAccount.ID, "Alt Char", int(primaryProfession), marshalAppearanceBits(primaryProfession))
+	database.Create(&altChar)
 	return
 }

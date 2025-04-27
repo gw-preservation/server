@@ -10,18 +10,10 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type Item struct {
-}
-
-type Bag struct {
-	id       int
-	capacity int
-	items    []Item
-}
-
 type Player struct {
 	Agent
-	bags               []Bag
+	playerId           int
+	bags               []db.Bag
 	conn               *GSConn
 	questBytes         []byte
 	connectedInstance  *Instance
@@ -35,13 +27,13 @@ type Player struct {
 
 func NewPlayer(conn *GSConn, logCtx zerolog.Logger) Player {
 	p := Player{
-		bags:               make([]Bag, 0),
 		conn:               conn,
 		questBytes:         make([]byte, 0),
 		readyForAgentTicks: false,
 	}
 	p.uuid = rand.Uint64()
 	p.log = logCtx.With().Uint64("uuid", p.uuid).Logger()
+	p.isPlayer = true
 	return p
 }
 
@@ -79,9 +71,15 @@ func (p *Player) OnC2SVerifyConnection(payload VerifyClientConnection) {
 	// Merge from DB data:
 	p.name = p.dbChar.Name
 	p.primaryProfession = int(p.dbChar.ProfessionPrimary)
-	p.secondaryProfession = int(p.dbChar.ProfessionPrimary)
+	p.secondaryProfession = int(p.dbChar.ProfessionSecondary)
 	p.level = int(p.dbChar.Level)
 	p.xp = int(p.dbChar.XP)
+	// Bags
+	bags, ok := db.GetBagsForCharacterByID(p.dbChar.ID)
+	if !ok {
+		p.log.Error().Uint64("id", p.dbChar.ID).Msg("failed to get bags for character")
+	}
+	p.bags = bags
 
 	// TODO: Here we should verify the map is adjacent to the LastOutpostID if its explorable!
 
@@ -148,14 +146,14 @@ func (p *Player) sendInstanceLoadSync(payload InstanceLoadRequestSync) {
 	//p.sendVanquishUpdate()
 	p.EnqueuePacket(MarshalInstanceLoaded())
 	//p.sendDialogStuff()
-	p.EnqueuePacket(MarshalAgentAttrUpdateInt(41, p.id, 25))      // energy
-	p.EnqueuePacket(MarshalAgentAttrUpdateInt(42, p.id, 100))     // health
-	p.EnqueuePacket(MarshalAgentAttrUpdateInt(36, p.id, p.level)) // level
+	p.EnqueuePacket(MarshalAgentAttrUpdateInt(41, p.agentId, 25))      // energy
+	p.EnqueuePacket(MarshalAgentAttrUpdateInt(42, p.agentId, 100))     // health
+	p.EnqueuePacket(MarshalAgentAttrUpdateInt(36, p.agentId, p.level)) // level
 
 	// REVERSE THIS MORE:
 	// GAME_SMSG_AGENT_something
 	resp := GwPacket.NewOut(0x009b)
-	resp.Uint32(p.id)
+	resp.Uint32(p.agentId)
 	resp.Uint32(100)
 	p.EnqueuePacket(resp)
 
@@ -185,25 +183,22 @@ func (p *Player) sendInstanceLoadSync(payload InstanceLoadRequestSync) {
 	resp.Uint32(1)
 	resp.Uint32(0)
 	p.EnqueuePacket(resp)
-	p.EnqueuePacket(MarshalAgentCreatePlayer(p.id, p.name))
+	p.EnqueuePacket(MarshalAgentCreatePlayer(p.playerId, p.agentId, p.name))
 
 	// party info
 
-	p.EnqueuePacket(MarshalUpdatePartySize(1, 1))
+	p.EnqueuePacket(MarshalUpdatePartySize(p.playerId, 1))
 
-	resp = GwPacket.NewOut(0x00b0)
-	resp.Uint16(1)
-	resp.Uint16(1)
-	p.EnqueuePacket(resp)
+	p.EnqueuePacket(MarshalUnknown00b0(p.playerId, p.playerId))
 
 	// GAME_SMSG_UPDATE_AGENT_PARTYSIZE - Duplicate!
-	p.EnqueuePacket(MarshalUpdatePartySize(1, 1))
+	p.EnqueuePacket(MarshalUpdatePartySize(p.playerId, 1))
 
 	// GAME_SMSG_PARTY_CREATE
 	p.EnqueuePacket(MarshalPartyCreate(1))
 
 	// GAME_SMSG_PARTY_PLAYER_ADD
-	p.EnqueuePacket(MarshalPartyPlayerAdd(1))
+	p.EnqueuePacket(MarshalPartyPlayerAdd(1, p.playerId))
 
 	// GAME_SMSG_PARTY_MEMBER_STREAM_END
 	p.EnqueuePacket(MarshalPartyMemberStreamEnd(1))
@@ -215,14 +210,13 @@ func (p *Player) sendInstanceLoadSync(payload InstanceLoadRequestSync) {
 	p.EnqueuePacket(MarshalPartySetDifficulty(false))
 
 	// REVERSE THIS MORE:
-	resp = GwPacket.NewOut(0x00b0)
-	resp.Uint16(1)
-	resp.Uint16(1)
-	p.EnqueuePacket(resp)
+	p.EnqueuePacket(MarshalUnknown00b0(p.playerId, p.playerId))
 
 	// GAME_SMSG_AGENT_INITIAL_EFFECTS
 	// 0x200 enables GM effect (0010 0000 0000)
-	p.EnqueuePacket(MarshalAgentInitialEffects(p.id, 0))
+	p.EnqueuePacket(MarshalAgentInitialEffects(p.agentId, 0))
+
+	p.EnqueuePacket(MarshalAgentUpdateProfession(p.agentId, p.primaryProfession, p.secondaryProfession))
 
 	// GAME_SMSG_AGENT_SPAWNED - player
 	agentType := 0x30000001
@@ -232,7 +226,7 @@ func (p *Player) sendInstanceLoadSync(payload InstanceLoadRequestSync) {
 	facingY := float32(0)
 	speed := float32(288) // 1x speed
 	p.EnqueuePacket(MarshalAgentSpawned(
-		p.id,
+		p.agentId,
 		agentType,
 		1,
 		5,
@@ -245,22 +239,19 @@ func (p *Player) sendInstanceLoadSync(payload InstanceLoadRequestSync) {
 		allegianceFlags,
 	))
 	// GAME_SMSG_AGENT_SET_PLAYER
-	p.EnqueuePacket(MarshalAgentSetPlayer(p.id, 3))
+	p.EnqueuePacket(MarshalAgentSetPlayer(p.agentId))
 
-	p.EnqueuePacket(MarshalAgentUpdateVisualEquipment(p.id))
+	p.EnqueuePacket(MarshalAgentUpdateVisualEquipment(p.agentId))
 
 	// GAME_SMSG_AGENT_DISPLAY_CAPE
-	p.EnqueuePacket(MarshalAgentDisplayCape(p.id, true))
+	p.EnqueuePacket(MarshalAgentDisplayCape(p.agentId, true))
 
 	// GAME_SMSG_POST_PROCESS
 	p.EnqueuePacket(MarshalPostProcess())
 
-	resp = GwPacket.NewOut(0x00b0)
-	resp.Uint16(1)
-	resp.Uint16(1)
-	p.EnqueuePacket(resp)
+	p.EnqueuePacket(MarshalUnknown00b0(p.playerId, p.playerId))
 
-	// instance something
+	// party something
 	resp = GwPacket.NewOut(0x1b1)
 	resp.Uint16(1)
 	resp.Uint8(1)
@@ -274,9 +265,10 @@ func (p *Player) sendInstanceLoadSync(payload InstanceLoadRequestSync) {
 	resp.Uint8(0)
 	p.EnqueuePacket(resp)
 
+	p.connectedInstance.SendActiveAgents(p)
+
 	// GAME_SMSG_INSTANCE_LOAD_FINISH
 	p.EnqueuePacket(MarshalInstanceLoadFinish())
-	p.connectedInstance.SendActiveAgents(p)
 
 }
 
@@ -353,36 +345,26 @@ func (p *Player) sendDialogStuff() {
 }
 
 func (p *Player) sendAttributePointsRemaining() {
-	p.EnqueuePacket(MarshalAgentUpdateAttributePoints(p.id, 0, 0))
+	p.EnqueuePacket(MarshalAgentUpdateAttributePoints(p.agentId, 0, 0))
 }
 
 func (p *Player) sendProfession() {
-	p.EnqueuePacket(MarshalPlayerUpdateProfession(p.id, int(p.dbChar.ProfessionPrimary), int(p.dbChar.ProfessionSecondary)))
+	p.log.Info().Int("primary", int(p.dbChar.ProfessionPrimary)).Msg("sendProfession")
+	p.EnqueuePacket(MarshalPlayerUpdateProfession(p.agentId, int(p.dbChar.ProfessionPrimary), int(p.dbChar.ProfessionSecondary)))
 }
 
 func (p *Player) sendUnlockedProfessions() {
-	p.EnqueuePacket(MarshalPlayerUnlockedProfessions(p.id, 0))
+	p.EnqueuePacket(MarshalPlayerUnlockedProfessions(p.agentId, 0))
 }
 
 func (p *Player) sendSkillbar() {
-	part1 := make(VarUint32, 8)
-	part2 := make(VarUint32, 8)
-	p.EnqueuePacket(MarshalSkillbarUpdate(p.id, part1, part2))
-}
-
-func (p *Player) sendAttributeUpdateInt(attributeId int) {
-	val := 1
-	if attributeId == 41 {
-		val = 25
-	} else if attributeId == 42 {
-		val = 200
-	}
-	p.log.Warn().Int("val", val).Int("id", attributeId).Msg("AttributeInt")
-	p.EnqueuePacket(MarshalAgentAttrUpdateInt(attributeId, p.id, val))
+	part1 := make([]uint32, 8)
+	part2 := make([]uint32, 8)
+	p.EnqueuePacket(MarshalSkillbarUpdate(p.agentId, part1, part2))
 }
 
 func (p *Player) sendAttributeUpdateFloat(attributeId int) {
-	p.EnqueuePacket(MarshalAgentAttrUpdateFloat(attributeId, p.id, 0.039600))
+	p.EnqueuePacket(MarshalAgentAttrUpdateFloat(attributeId, p.agentId, 0.039600))
 }
 
 func (p *Player) sendCartographyData() {

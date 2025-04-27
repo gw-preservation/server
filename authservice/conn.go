@@ -75,7 +75,7 @@ func (conn *ASConn) onClientHashInfo(in *GwPacket.In) (int, error) {
 	if err != nil {
 		return 0, fmt.Errorf("UnmarshalClientHashInfo: %w", err)
 	}
-	if payload.clientVersion != 37578 {
+	if payload.clientVersion != 37587 {
 		// Wrong client version
 		return 0, fmt.Errorf("bad client version %d", payload.clientVersion)
 	}

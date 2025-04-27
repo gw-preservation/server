@@ -6,7 +6,8 @@ package GameService
 
 import GwPacket "gw1/server/gwpacket"
 
-type VarUint32 []int
+type NestedUint32 []uint32
+type VarUint32 []uint32
 
 // opcode: 0x009a
 type AgentUpdateNPCName struct {
@@ -165,7 +166,7 @@ type HeroInfo struct {
 
 // opcode: 0x0198
 type InstanceLoadInfo struct {
-	agentId      int //wire:uint32
+	playerId     int //wire:uint32
 	mapId        int //wire:uint16
 	isExplorable bool
 	district     int //wire:uint32
@@ -238,13 +239,13 @@ type VanquishProgress struct {
 
 // opcode: 0x0058
 type AgentCreatePlayer struct {
-	unk1    int //wire:uint32,val:1
-	agentId int //wire:uint32
-	unk2    int //wire:uint32,val:103153665
-	unk3    int //wire:uint8,val:0
-	unk4    int //wire:uint32,val:0
-	unk5    int //wire:uint32:val:3435973836
-	name    string
+	playerId int //wire:uint32
+	agentId  int //wire:uint32
+	unk2     int //wire:uint32,val:103153665
+	unk3     int //wire:uint8,val:0
+	unk4     int //wire:uint32,val:0
+	unk5     int //wire:uint32:val:3435973836
+	name     string
 }
 
 // opcode: 0x00ef
@@ -261,14 +262,21 @@ type AgentDisplayCape struct {
 
 // opcode: 0x0022
 type AgentSetPlayer struct {
-	agentId  int //wire:uint32
-	playerId int //wire:uint32
+	agentId int //wire:uint32
+	unk1    int //wire:uint32,val:3
 }
 
 // opcode: 0x006a
 type PostProcess struct {
 	unk1 int //wire:uint8,val:0
 	unk2 int //wire:uint32,val:0
+}
+
+// opcode: 0x00a5
+type AgentUpdateProfession struct {
+	agentId             int //wire:uint32
+	primaryProfession   int //wire:uint8
+	secondaryProfession int //wire:uint8
 }
 
 // opcode: 0x01d2
@@ -278,8 +286,8 @@ type PartyMemberStreamEnd struct {
 
 // opcode: 0x00af
 type UpdatePartySize struct {
-	unk1 int //wire:uint16
-	unk2 int //wire:uint8
+	playerId int //wire:uint16
+	unk2     int //wire:uint8
 }
 
 // opcode: 0x01d1
@@ -289,9 +297,9 @@ type PartyCreate struct {
 
 // opcode: 0x1ca
 type PartyPlayerAdd struct {
-	partyId int //wire:uint16
-	unk1    int //wire:uint16,val:1
-	unk2    int //wire:uint8,val:1
+	partyId  int //wire:uint16
+	playerId int //wire:uint16
+	unk2     int //wire:uint8,val:1
 }
 
 // opcode: 0x018d
@@ -318,8 +326,8 @@ type ItemStreamCreate struct {
 type ItemMovedToLocation struct {
 	itemStreamId int //wire:uint16
 	itemLocalId  int //wire:uint32
-	pageId       int //wire:uint16
-	slow         int //wire:uint8
+	bagId        int //wire:uint16
+	slot         int //wire:uint8
 }
 
 // opcode: 0x0147
@@ -338,12 +346,12 @@ type ItemWeaponSet struct {
 
 // opcode: 0x013e
 type InventoryCreateBag struct {
-	itemStreamId int //wire:uint16
-	bagId        int //wire:uint8
-	unk1         int //wire:uint8
-	unk2         int //wire:uint16
-	capacity     int //wire:uint8
-	unk3         int //wire:uint32
+	itemStreamId     int //wire:uint16
+	bagType          int //wire:uint8
+	bagModelId       int //wire:uint8
+	bagId            int //wire:uint16
+	capacity         int //wire:uint8
+	associatedItemId int //wire:uint32
 }
 
 // opcode: 0x0160
@@ -360,14 +368,25 @@ type ItemGeneralInfo struct {
 	itemId        int //wire:uint32
 	quantity      int //wire:uint32
 	encName       VarUTF16
-	unk3          int //wire:uint8,val:1
-	unk4          int //wire:uint32
+	modifiers     NestedUint32
+}
+
+// opcode: 0x0139
+type ItemUpdateName struct {
+	itemId int //wire:uint32
+	name   string
 }
 
 // opcode: 0x00b5
 type PlayerUnlockedProfessions struct {
 	agentId  int //wire:uint32
 	unlocked int //wire:uint32
+}
+
+// opcode: 0x00b0
+type Unknown00b0 struct {
+	playerId1 int //wire:uint16
+	playerId2 int //wire:uint16
 }
 
 // opcode: 0x00d9

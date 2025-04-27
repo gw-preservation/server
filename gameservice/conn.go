@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"gw1/server/crypt"
 	GwPacket "gw1/server/gwpacket"
+	Item "gw1/server/item"
 	"net"
 	"time"
 
@@ -147,7 +148,7 @@ func (conn *GSConn) sendCreateCharacterInstanceInfo() {
 		32,
 		1,
 		[]byte{0xa8, 0x21, 0x57, 0xd1, 0x8f, 0xb5, 0x6f, 0x16},
-		608703488,
+		[]uint32{608703488},
 	))
 
 	conn.EnqueuePacket(MarshalAgentUpdateAttributePoints(1, 0, 0))
@@ -164,8 +165,7 @@ func (conn *GSConn) sendWorldInstanceHead() {
 	conn.EnqueuePacket(MarshalInstancePlayerDataStart())
 
 	conn.EnqueuePacket(MarshalInstanceLoadPlayerName(conn.player.name))
-
-	conn.EnqueuePacket(MarshalInstanceLoadInfo(1, int(conn.player.dbChar.LastOutpostID), false, 1, 0, false))
+	conn.EnqueuePacket(MarshalInstanceLoadInfo(conn.player.playerId, int(conn.player.dbChar.LastOutpostID), false, 1, 0, false))
 }
 
 func (conn *GSConn) sendWorldInstanceBody() {
@@ -174,16 +174,63 @@ func (conn *GSConn) sendWorldInstanceBody() {
 
 	conn.EnqueuePacket(MarshalActivateWeaponSet(1))
 
-	conn.EnqueuePacket(MarshalInventoryCreateBag(1, 1, 0, 2, 20, 8))
-	conn.EnqueuePacket(MarshalInventoryCreateBag(1, 2, 21, 3, 9, 0))
-	// skipping lots of 160/other item opcodes
-	conn.EnqueuePacket(MarshalInventoryCreateBag(1, 3, 6, 4, 12, 0))
-	conn.EnqueuePacket(MarshalInventoryCreateBag(1, 4, 7, 5, 25, 0))
-	conn.EnqueuePacket(MarshalInventoryCreateBag(1, 4, 8, 6, 25, 0))
-	conn.EnqueuePacket(MarshalInventoryCreateBag(1, 4, 9, 7, 25, 0))
-	conn.EnqueuePacket(MarshalInventoryCreateBag(1, 4, 10, 8, 25, 0))
-	conn.EnqueuePacket(MarshalInventoryCreateBag(1, 4, 11, 9, 25, 0))
-	conn.EnqueuePacket(MarshalInventoryCreateBag(1, 5, 5, 10, 41, 0))
+	// Send bags:
+	for bagIndex, bag := range conn.player.bags {
+		// 1. Create bag
+		if bag.Type == uint8(1) {
+			// Inventory
+			// Send the bag item itself now:
+			backpack := Item.GetItemDefinitionById(32)
+			conn.EnqueuePacket(MarshalItemGeneralInfo(
+				1,
+				int(backpack.ModelFileId),
+				3,
+				1,
+				0,
+				0,
+				0,
+				0x20001000,
+				backpack.BaseMerchantValue,
+				32,
+				1,
+				convertEncName(backpack.EncName),
+				backpack.MarshalModifiers(),
+			))
+			conn.EnqueuePacket(MarshalItemUpdateName(1, conn.player.name))
+			conn.EnqueuePacket(MarshalInventoryCreateBag(1, int(bag.Type), 0, bagIndex, int(bag.Capacity), 1))
+
+		} else if bag.Type == uint8(2) {
+			// Equipped
+			conn.EnqueuePacket(MarshalItemUpdateName(1, conn.player.name))
+			conn.EnqueuePacket(MarshalInventoryCreateBag(1, int(bag.Type), 21, bagIndex, int(bag.Capacity), 0))
+		}
+
+		// 2. Tell client about each item in that bag (GeneralInfo+Moved)
+		for slotIndex, slot := range bag.Slots {
+			if slot.ItemID == 0 || slot.ItemQuantity == 0 {
+				continue
+			}
+			item := Item.GetItemDefinitionById(int(slot.ItemID))
+			conn.EnqueuePacket(MarshalItemGeneralInfo(
+				2+slotIndex,
+				int(item.ModelFileId),
+				int(slot.ItemType),
+				0,
+				8,
+				0,
+				0,
+				0x22201000,
+				item.BaseMerchantValue,
+				int(slot.ItemID),
+				1,
+				convertEncName(item.EncName),
+				item.MarshalModifiers(),
+			))
+			conn.EnqueuePacket(MarshalItemMovedToLocation(1, 2+slotIndex, bagIndex, slotIndex))
+
+			conn.log.Info().Msg("Transmitting item in slot!")
+		}
+	}
 
 	conn.EnqueuePacket(MarshalItemWeaponSet(1))
 	conn.EnqueuePacket(MarshalItemWeaponSet(2))
@@ -211,7 +258,6 @@ func (conn *GSConn) on8090(pkt *GwPacket.In) (int, error) {
 		return 0, nil
 	}
 	pkt.Skip(2)
-	conn.log.Info().Msg("8090")
 
 	return pkt.Position(), nil
 }

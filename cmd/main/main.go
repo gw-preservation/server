@@ -4,6 +4,7 @@ import (
 	gw1 "gw1/server"
 	"gw1/server/db"
 	GameService "gw1/server/gameservice"
+	Item "gw1/server/item"
 	"log"
 	"os"
 	"os/signal"
@@ -12,6 +13,9 @@ import (
 
 func main() {
 	if err := db.Initialize(); err != nil {
+		panic(err)
+	}
+	if err := Item.LoadItemDefinitionsFromDisk(); err != nil {
 		panic(err)
 	}
 	if err := GameService.LoadInstanceDefinitionsFromDisk(); err != nil {

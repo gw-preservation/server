@@ -70,3 +70,69 @@ func GetFullAccountByUUID(accountUUID []byte) (acc Account, ok bool) {
 	ok = true
 	return
 }
+
+func GetBagsForCharacterByID(characterId uint64) (bags []Bag, ok bool) {
+	err := database.Where("character_id = ?", characterId).Preload("Slots").Find(&bags).Error
+	if err != nil {
+		ok = false
+	}
+	ok = true
+	return
+}
+
+func NewDbSlot(forBagId uint64) (slot Slot) {
+	slot.BagID = forBagId
+	slot.ItemModifiers = make([]uint32, 0)
+	return
+}
+
+func NewDbBag(forCharacterId uint64, capacity int, bagType int) (bag Bag) {
+	bag.CharacterID = forCharacterId
+	bag.Capacity = uint8(capacity)
+	bag.Type = uint8(bagType)
+	for range capacity {
+		bag.Slots = append(bag.Slots, NewDbSlot(bag.ID))
+	}
+	return
+}
+
+func NewDbChar(forAccountId uint64, name string, primaryProfession int, appearanceBits []byte) (char Character) {
+	char.AccountID = forAccountId
+	char.UUID = randUuid()
+	char.Name = name
+	char.ProfessionPrimary = uint8(primaryProfession)
+	char.ProfessionSecondary = 0
+	char.Appearance = appearanceBits
+	char.EquipmentData = []byte{
+		0x11, 0x40, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x8f, 0x00, 0x02, 0x00, 0x07, 0x95, 0x00,
+		0x02, 0x00, 0x07, 0x96, 0x00, 0x02, 0x00, 0x07, 0x97, 0x00, 0x02, 0x00, 0x07, 0x94, 0x00, 0x02,
+		0x00, 0x07,
+	}
+	// Give it an inventory bag
+	inventory := NewDbBag(char.ID, 20, 1)
+	equipment := NewDbBag(char.ID, 9, 2) // TODO: why 9 and not 8?
+	char.Bags = append(char.Bags, inventory, equipment)
+
+	// give some test items
+	inventory.Slots[0] = Slot{
+		BagID:        inventory.ID,
+		ItemID:       447,
+		ItemType:     3,
+		ItemQuantity: 1,
+	}
+	inventory.Slots[1] = Slot{
+		BagID:        inventory.ID,
+		ItemID:       30847,
+		ItemType:     9,
+		ItemQuantity: 1,
+	}
+
+	// give costume
+	equipment.Slots[7] = Slot{
+		BagID:        equipment.ID,
+		ItemID:       1085,
+		ItemType:     44,
+		ItemQuantity: 1,
+	}
+	return
+}

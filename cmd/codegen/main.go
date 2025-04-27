@@ -298,8 +298,19 @@ func WriteMarshalFunction(name string, structType *ast.StructType, docs []*ast.C
 		case "VarUTF16":
 			out += fmt.Sprintf("resp.Uint16(len(%s) / 2)\n", valToWrite)
 			out += fmt.Sprintf("resp.Bytes(%s)\n", valToWrite)
-		case "VarUint32":
+		case "NestedUint32":
+			length, ok := GetWireLength(structType, fd.name)
+			if ok {
+				out += fmt.Sprintf("if len(%s) != %d {\n", fd.name, length)
+				out += fmt.Sprintf("panic(fmt.Errorf(\"length check failed for field '%s' of struct '%s': %%d vs %%d\",  len(%s), %d))\n", fd.name, name, fd.name, length)
+				out += "}\n"
+			}
 
+			out += fmt.Sprintf("resp.Uint8(len(%s))\n", valToWrite)
+			out += fmt.Sprintf("for _, i := range %s {\n", valToWrite)
+			out += "resp.Uint32(int(i))\n"
+			out += "}\n"
+		case "VarUint32":
 			length, ok := GetWireLength(structType, fd.name)
 			if ok {
 				out += fmt.Sprintf("if len(%s) != %d {\n", fd.name, length)
@@ -309,9 +320,8 @@ func WriteMarshalFunction(name string, structType *ast.StructType, docs []*ast.C
 
 			out += fmt.Sprintf("resp.Uint16(len(%s))\n", valToWrite)
 			out += fmt.Sprintf("for _, i := range %s {\n", valToWrite)
-			out += "resp.Uint32(i)\n"
+			out += "resp.Uint32(int(i))\n"
 			out += "}\n"
-
 		case "[]byte":
 			if !isFixedVal {
 				length, ok := GetWireLength(structType, fd.name)

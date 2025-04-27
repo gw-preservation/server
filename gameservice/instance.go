@@ -22,22 +22,6 @@ func init() {
 	log = log.With().Timestamp().Logger()
 }
 
-type HexInt int
-
-func (h *HexInt) UnmarshalJSON(data []byte) error {
-	// Remove quotes from the string (JSON string is quoted)
-	s := strings.Trim(string(data), "\"")
-
-	// Use strconv to parse hex (0x prefix is allowed)
-	val, err := strconv.ParseUint(s, 0, 64)
-	if err != nil {
-		return err
-	}
-
-	*h = HexInt(val)
-	return nil
-}
-
 type agentSpawnInfo struct {
 	Name       string     `json:"name"`
 	Level      int        `json:"level"`
@@ -76,12 +60,12 @@ var instanceDefinitions = struct {
 func LoadInstanceDefinitionsFromDisk() error {
 	file, err := os.Open("gameservice/instance_definitions.json")
 	if err != nil {
-		return fmt.Errorf("failed to load instance definitions: %w", err)
+		return fmt.Errorf("failed to load instance definitions file: %w", err)
 	}
 	defer file.Close()
 
 	if err := json.NewDecoder(file).Decode(&instanceDefinitions); err != nil {
-		return fmt.Errorf("failed to load instance definitions: %w", err)
+		return fmt.Errorf("failed to parse instance definitions: %w", err)
 	}
 	log.Info().Int("count", len(instanceDefinitions.Instances)).Msg("loaded instance definitions from disk")
 	log.Info().Int("count", len(instanceDefinitions.Agents)).Msg("loaded agent definitions from disk")
@@ -172,6 +156,9 @@ type Instance struct {
 
 func (inst *Instance) RemovePlayer(player *Player) {
 	for i, v := range inst.players {
+		if v == nil {
+			continue
+		}
 		if player.uuid == v.uuid {
 			// Remove the element by re-slicing
 			inst.players = slices.Delete(inst.players, i, i+1)
@@ -198,6 +185,7 @@ func NewInstance(mapId int, definition instanceDefinition) (i Instance) {
 	if i.definition.Explorable {
 		i.log.Debug().Msg("created a new explorable instance")
 	}
+
 	// Set up agents!
 	for _, agentToSpawn := range i.definition.Agents {
 		agentDefinition, ok := instanceDefinitions.Agents[agentToSpawn.Name]
@@ -205,7 +193,7 @@ func NewInstance(mapId int, definition instanceDefinition) (i Instance) {
 			log.Error().Str("name", agentToSpawn.Name).Msg("missing definition for agent")
 		}
 		ag := Agent{
-			id:                  i.NextFreeAgentId(),
+			agentId:             i.NextFreeAgentId(),
 			definitionIndex:     agentDefinition.DefinitionIndex,
 			name:                agentDefinition.Name,
 			posX:                agentToSpawn.SpawnPoint[0],
@@ -270,6 +258,9 @@ func (i *Instance) MovementTickLoop() {
 func (i *Instance) NextFreeAgentId() int {
 	return len(i.agents) + 1
 }
+func (i *Instance) NextFreePlayerId() int {
+	return len(i.players) + 1
+}
 
 func (i *Instance) NextSpawnPoint() (x, y float32, plane int) {
 	nSpawnPoints := len(i.definition.SpawnPoints)
@@ -319,9 +310,10 @@ func convertEncName(in string) []byte {
 }
 
 func (i *Instance) AddPlayer(player *Player) {
+	player.agentId = i.NextFreeAgentId()
+	player.playerId = i.NextFreePlayerId()
 	i.players = append(i.players, player)
-	player.id = i.NextFreeAgentId()
-	i.log.Info().Int("agentId", player.id).Msg("assigned player agent id")
+	i.agents = append(i.agents, player.Agent)
 	i.log.Debug().Uint64("playerUuid", player.uuid).Msg("player added to instance")
 	player.EnqueuePacket(MarshalInstanceLoadHead())
 	if i.IsCharCreationInstance() {
@@ -352,9 +344,13 @@ func randomFloatAround(start, rangeVal float32) float32 {
 }
 
 func (i *Instance) SendActiveAgents(to *Player) {
+
 	// Let's send agent info now.
 	transmittedDefinitions := make([]int, 0)
 	for _, ag := range i.agents {
+		if ag.isPlayer {
+			continue
+		}
 
 		// NOTE: UpdateNPCProperties and UpdateNPCModel are only transmitted for the first instance of that NPC definition
 		// It doesn't look like the client cares what goes into the NpcID property?
@@ -366,15 +362,15 @@ func (i *Instance) SendActiveAgents(to *Player) {
 			transmittedDefinitions = append(transmittedDefinitions, ag.definitionIndex)
 		}
 
-		to.EnqueuePacket(MarshalAgentUpdateNPCName(ag.id, convertEncName(ag.encName)))
-		to.EnqueuePacket(MarshalAgentInitialEffects(ag.id, 0))
+		to.EnqueuePacket(MarshalAgentUpdateNPCName(ag.agentId, convertEncName(ag.encName)))
+		to.EnqueuePacket(MarshalAgentInitialEffects(ag.agentId, 0))
 		// for allegiance:
 		// Player has       0x706c6179
 		// normal NPC has   0x706C6179
 		// blocking NPC has 0x6e6f6e63
 		agentType := (0x2000 << 16) | ag.definitionIndex
 		to.EnqueuePacket(MarshalAgentSpawned(
-			ag.id,
+			ag.agentId,
 			agentType,
 			1,
 			9,
@@ -383,5 +379,32 @@ func (i *Instance) SendActiveAgents(to *Player) {
 			ag.speed,
 			ag.allegianceFlags,
 		))
+		i.log.Info().Int("agentId", ag.agentId).Int("ToAgId", to.agentId).Int("ToPlayerId", to.playerId).Msg("Transmitted Agent")
+	}
+
+	for _, other := range i.players {
+		if other.playerId == to.playerId {
+			continue
+		}
+		i.log.Info().Str("OtherName", other.name).Str("ToName", to.name).Msg("Transmitting agent spawn")
+		to.EnqueuePacket(MarshalAgentCreatePlayer(other.playerId, other.agentId, other.name))
+		to.EnqueuePacket(MarshalAgentUpdateProfession(other.agentId, other.primaryProfession, other.secondaryProfession))
+		to.EnqueuePacket(MarshalAgentAttrUpdateInt(36, other.agentId, other.level))
+		to.EnqueuePacket(MarshalAgentInitialEffects(other.agentId, 0))
+		to.EnqueuePacket(MarshalAgentSpawned(
+			other.agentId,
+			805306370,
+			1,
+			5,
+			other.posX,
+			other.posY,
+			0,
+			other.facingX,
+			other.facingY,
+			other.speed,
+			other.allegianceFlags,
+		))
+		// What's this?
+		to.EnqueuePacket(MarshalAgentAttrUpdateInt(30, other.agentId, other.playerId))
 	}
 }
