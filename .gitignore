@@ -1,4 +1,4 @@
 server
 .vscode
 *.dump
-*.db
+*.sqlite3

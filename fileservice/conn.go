@@ -8,21 +8,21 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type Client struct {
-	conn *net.TCPConn
-	log  zerolog.Logger
+type FSConn struct {
+	socket *net.TCPConn
+	log    zerolog.Logger
 }
 
-func NewClient(conn *net.TCPConn, logCtx zerolog.Logger) *Client {
-	fc := Client{
-		conn: conn,
-		log:  logCtx.With().Str("srv", "file").Logger(),
+func NewFSConn(socket *net.TCPConn, logCtx zerolog.Logger) *FSConn {
+	fc := FSConn{
+		socket: socket,
+		log:    logCtx.With().Str("srv", "file").Logger(),
 	}
 	fc.log.Info().Msg("new client")
 	return &fc
 }
 
-func (client *Client) onHelloMessage(in *GwPacket.In) (int, error) {
+func (conn *FSConn) onHelloMessage(in *GwPacket.In) (int, error) {
 	if in.Remaining() < 3 {
 		return 0, nil
 	}
@@ -30,7 +30,7 @@ func (client *Client) onHelloMessage(in *GwPacket.In) (int, error) {
 	return in.Position(), nil
 }
 
-func (client *Client) onInitialData(in *GwPacket.In) (int, error) {
+func (conn *FSConn) onInitialData(in *GwPacket.In) (int, error) {
 	if in.Remaining() < 14 {
 		return 0, nil
 	}
@@ -46,11 +46,11 @@ func (client *Client) onInitialData(in *GwPacket.In) (int, error) {
 		0xda, 0xd0, 0x05, 0x00,
 		0x30, 0xd2, 0x05, 0x00,
 	})
-	client.WritePacket(&resp)
+	conn.WritePacket(&resp)
 	return in.Position(), nil
 }
 
-func (client *Client) onLoadingStatus(in *GwPacket.In) (int, error) {
+func (conn *FSConn) onLoadingStatus(in *GwPacket.In) (int, error) {
 	if in.Remaining() < 2 {
 		return 0, nil
 	}
@@ -66,7 +66,7 @@ func (client *Client) onLoadingStatus(in *GwPacket.In) (int, error) {
 	return in.Position(), nil
 }
 
-func (client *Client) onHeartbeat(in *GwPacket.In) (int, error) {
+func (conn *FSConn) onHeartbeat(in *GwPacket.In) (int, error) {
 	if in.Remaining() < 2 {
 		return 0, nil
 	}
@@ -76,14 +76,14 @@ func (client *Client) onHeartbeat(in *GwPacket.In) (int, error) {
 	}
 	resp := GwPacket.NewOut(0x09f1)
 	resp.Uint16(unk)
-	client.WritePacket(&resp)
-	client.log.Info().Int("unk", unk).Msg("Heartbeat")
+	conn.WritePacket(&resp)
+	conn.log.Info().Int("unk", unk).Msg("Heartbeat")
 
 	return in.Position(), nil
 }
 
-func (client *Client) HandleBytes(data []byte) (int, error) {
-	client.log.Info().Int("len", len(data)).Msg("HandleBytes")
+func (conn *FSConn) HandleBytes(data []byte) (int, error) {
+	conn.log.Info().Int("len", len(data)).Msg("HandleBytes")
 	in := GwPacket.NewIn(data)
 	op, err := in.Uint16()
 	if err != nil {
@@ -91,28 +91,28 @@ func (client *Client) HandleBytes(data []byte) (int, error) {
 	}
 	switch op {
 	case 0x0001:
-		return client.onHelloMessage(&in)
+		return conn.onHelloMessage(&in)
 	case 0x00f1:
-		return client.onInitialData(&in)
+		return conn.onInitialData(&in)
 	case 0x10f1:
-		return client.onLoadingStatus(&in)
+		return conn.onLoadingStatus(&in)
 	case 0x08f1:
-		return client.onHeartbeat(&in)
+		return conn.onHeartbeat(&in)
 	}
-	client.log.Warn().Hex("data", data).Str("op", fmt.Sprintf("%04x", op)).Msg("unhandled message")
+	conn.log.Warn().Hex("data", data).Str("op", fmt.Sprintf("%04x", op)).Msg("unhandled message")
 	return len(data), nil
 }
 
-func (client *Client) Read(buf []byte) (int, error) {
-	return client.conn.Read(buf)
+func (conn *FSConn) Read(buf []byte) (int, error) {
+	return conn.socket.Read(buf)
 }
 
-func (client *Client) Close() {
-	client.conn.Close()
+func (conn *FSConn) Close() {
+	conn.socket.Close()
 }
 
-func (client *Client) WritePacket(packet *GwPacket.Out) error {
+func (conn *FSConn) WritePacket(packet *GwPacket.Out) error {
 	bts := packet.GetBytes()
-	_, err := client.conn.Write(bts)
+	_, err := conn.socket.Write(bts)
 	return err
 }

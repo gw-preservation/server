@@ -1,12 +1,14 @@
+//lint:file-ignore U1000 Fields are not unused
+//go:generate go run ../cmd/codegen/main.go s2c fmt
+//go:generate go fmt
+
 package AuthService
 
-import GwPacket "gw1/server/gwpacket"
+type VarByte []byte
 
-func newRequestResponse(reqNumber int, code int) (resp GwPacket.Out) {
-
-	// Login status code:
+// opcode: 0x0003
+/*
 	// Missing entries default to "Network error ."
-
 	// 0- OK
 	// 1- Reject with no error
 	// 3- "Gulid wars was unable to complete the operation"
@@ -96,139 +98,70 @@ func newRequestResponse(reqNumber int, code int) (resp GwPacket.Out) {
 	// 227 - Legacy message. "We don't recognize your account login information"
 	// 244 - Email address not found
 	// 247 - Legacy 2FA - asks user to open email link to verify login
-
-	resp = GwPacket.NewOut(0x0003)
-	resp.Uint32(reqNumber)
-	resp.Uint32(code)
-	return
+*/
+type RequestResponse struct {
+	reqNumber    int // wire:uint32
+	responseCode int // wire:uint32
 }
 
-func newCharacterSummaryPacket(reqNumber int, charName string, charUUID []byte, mapId int, appearanceBits [8]byte, equipmentData []byte) GwPacket.Out {
-	pkt := GwPacket.NewOut(0x007)
-	pkt.Uint32(reqNumber)
-	// Character UUID bytes
-	pkt.Bytes(charUUID)
-	pkt.Uint32(0) // Unknown purpose
-	pkt.UTF16WithLengthPrefix(charName)
-	subBlock := GwPacket.NewOutRaw()
-	summaryBlockVersion := 6
-	subBlock.Uint16(summaryBlockVersion)
-	subBlock.Uint16(mapId)
-	// Unknown purpose
-	subBlock.Bytes([]byte{0x00, 0x00, 0x00, 0x00})
-	// Appearance bits
-	subBlock.Bytes(appearanceBits[:])
-	subBlock.Uint32(0)
-	subBlock.Uint32(0)
-	subBlock.Uint32(0) // If this or any of the above 3 are > 0 then we are in Guild Hall
-	subBlock.Bytes(equipmentData)
-	subBlockBytes := subBlock.GetBytes()
-	pkt.Uint16(len(subBlockBytes))
-	pkt.Bytes(subBlockBytes)
-
-	return pkt
+// opcode: 0x0007
+type CharacterSummary struct {
+	reqNumber int    // wire:uint32
+	charUUID  []byte // len:16
+	unk1      int    // wire:uint32
+	charName  string
+	summary   VarByte
 }
 
-func newAccountExtraInfo_0014(requestNumber int, accountUUID []byte, activeCharUUID []byte, territoryCode int, readEula bool) GwPacket.Out {
-	pkt := GwPacket.NewOut(0x0014)
-	pkt.Uint32(requestNumber)
-	pkt.Bytes([]byte{0x00, 0x00, 0x00, 0x00})
-	// 0x11, 0x00 looks to be like EULA/enrolment info?
-	// If it's absent then you have to agree to EULA, and even when agreeing, you get an unauthorized message!
-	pkt.Bytes([]byte{0x11, 0x00})
-	pkt.Uint32(requestNumber)
-	// 'territory' identifier. only 0-6 are supported, higher gives assertion crash.
-	// Territories:
-	// 0- America
-	// 1- Korea
-	// 2- Europe
-	// 3- Taiwan
-	// 4- Japan
-	// 5- China
-	// 6- China
-	pkt.Uint32(territoryCode)
-	pkt.Uint32(4) // What's this? Language maybe?
-	// 00 = Only EoTN
-	// 01 = Proph + EoTN
-	// 02 = Factions + EoTN
-	// 03 = Proph + Factions + EoTN
-	// 04 = NF + EoTN
-	// 05 = Proph + NF + EoTN
-	// 06 = Factions + NF + EoTN
-	// 07 = Proph + Factions + NF + EoTN
-
-	// 08 = Only EoTN
-	// 09 = Proph + EoTN
-	// 10 = Factions + EoTN
-	// 11 = Proph + Factions + EoTN
-	// 12 = NF + EoTN
-
-	pkt.Bytes([]byte{
-		0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	})
-	pkt.Bytes(accountUUID)
-	pkt.Bytes(activeCharUUID) // Active character
-	/*
-		Dword(3)
-		UnhandledField (type=14)
-		Byte(4)
-		Dword(100663552)
-
-		VarBytes(4) 01 00 06 00
-		Byte(24)
-		Dword(1)
-	*/
-	pkt.Uint32(3)
-	pkt.Uint16(4) // 4 bytes extra for account unlocks
-	pkt.Uint16(1) // Type 1 = Extra Char Slots
-	pkt.Uint16(6)
-
-	if readEula {
-		pkt.Uint8(0x18) // EULA revision read?
-	} else {
-		pkt.Uint8(0)
-	}
-	pkt.Uint32(1) // Unknown
-	return pkt
+// opcode: 0x0014
+type AccountExtraInfoStart struct {
+	reqNumber int // wire:uint32
+	unk1      int // wire:uint32
 }
 
-func newAccountBinaryInfo_0016(requestNumber int) GwPacket.Out {
-	pkt := GwPacket.NewOut(0x0016)
-	pkt.Uint32(requestNumber)
-	accountInfoBlock := []byte{}
-	pkt.Uint16(len(accountInfoBlock))
-	pkt.Bytes(accountInfoBlock)
-	return pkt
+// opcode: 0x0011
+type AccountExtraInfo struct {
+	reqNumber      int    // wire:uint32
+	territoryCode  int    // wire:uint32
+	languageCode   int    // wire:uint32
+	unk1           []byte // len:8
+	unk2           []byte // len:8
+	accountUUID    []byte // len:16
+	activeCharUUID []byte // len:16
+	unk3           int    // wire:uint32
+	entitlements   VarByte
+	eulaByte       int // wire:uint8
+	unk4           int // wire:uint32
 }
 
-func newServerSeed(xoredRandomBytes []byte) *GwPacket.Out {
-	p := GwPacket.NewOutRaw()
-	p.Uint8(1)
-	p.Uint8(len(xoredRandomBytes) + 2)
-	p.Bytes(xoredRandomBytes)
-	return &p
+// opcode: 0x0016
+type AccountBinaryInfo struct {
+	reqNumber  int // wire:uint32
+	binaryData VarByte
 }
 
-func newSessionInfo(salt int) (resp GwPacket.Out) {
-	resp = GwPacket.NewOut(1)
-	resp.Uint32(salt)
-	resp.Uint32(0xffffffff)
-	return
+// opcode: 0x1601
+type ServerSeed struct {
+	xoredRandomBytes []byte // len:20
 }
 
-func newInstanceServerInfo(requestNumber int, worldId int, mapId int, playerId int) (resp GwPacket.Out) {
-	resp = GwPacket.NewOut(0x0009)
-	resp.Uint32(requestNumber)
-	resp.Uint32(worldId)
-	resp.Uint32(mapId)
-	resp.Bytes([]byte{0x02, 0x00})             // AF_INET
-	resp.Bytes([]byte{0x17, 0xe0})             // port (6112)
-	resp.Bytes([]byte{0xc0, 0xa8, 0x01, 0x50}) // 192.168.1.80
-	resp.Bytes([]byte{
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	})
-	resp.Uint32(playerId)
-	return
+// opcode: 0x0001
+type SessionSaltInfo struct {
+	salt int // wire:uint32
+	unk1 int // wire:uint32
+}
+
+// opcode: 0x0009
+type InstanceServerInfo struct {
+	reqNumber  int    // wire:uint32
+	worldHash  int    // wire:uint32
+	mapId      int    // wire:uint32
+	socketData []byte // len:24
+	playerHash int    // wire:uint32
+}
+
+// opcode: 0x0000
+type Unknown0000 struct {
+	unk1 int // wire:uint32
+	unk2 int // wire:uint32
 }

@@ -87,6 +87,7 @@
     },
     "agents": {
         "ralena_stormbringer": {
+            "name": "Ralena Stormbringer",
             "type": "npc",
             "enc_name": "32f0 8841 9a09 33f7",
             "allegiance_flags": 1886151033,
@@ -97,6 +98,7 @@
             "model_id": 116712
         },
         "vassar": {
+            "name": "Vassar",
             "enc_name": "32cf 93ba fa50 3899",
             "type": "npc",
             "allegiance_flags": 1886151033,
@@ -107,6 +109,7 @@
             "model_id": 116691
         },
         "laren_merchant": {
+            "name": "Laren (Merchant)",
             "enc_name": "2d9e f878 bdbf 12e7",
             "type": "npc",
             "allegiance_flags": 1852796515,
@@ -117,6 +120,7 @@
             "model_id": 116698
         },
         "lord_darrin": {
+            "name": "Lord Darrin",
             "enc_name": "3494 c84e d433 48d7",
             "type": "npc",
             "allegiance_flags": 1852796515,
@@ -127,6 +131,7 @@
             "model_id": 76594
         },
         "gram_merchant": {
+            "name": "Gram (Merchant)",
             "enc_name": "2da7 f0d6 d159 6765",
             "type": "npc",
             "allegiance_flags": 1852796515,
@@ -137,6 +142,7 @@
             "model_id": 116698
         },
         "hatcher_collector": {
+            "name": "Hatcher (Collector)",
             "enc_name": "328a e3b9 aa36 2e69",
             "type": "npc",
             "allegiance_flags": 1852796515,
@@ -147,6 +153,7 @@
             "model_id": 116703
         },
         "ascalon_guard": {
+            "name": "Ascalon Guard",
             "enc_name": "2b5e 9f0f b437 7153",
             "type": "npc",
             "allegiance_flags": 1852796515,

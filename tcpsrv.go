@@ -22,7 +22,7 @@ type tcpsrv struct {
 	listener *net.TCPListener
 }
 
-type TCPServicer interface {
+type Transport interface {
 	HandleBytes(data []byte) (int, error)
 	Read(buf []byte) (int, error)
 	Close()
@@ -52,17 +52,17 @@ func NewTCPServer() tcpsrv {
 }
 
 func (srv tcpsrv) handleTCPConnection(conn *net.TCPConn) {
-	log.Debugf("connection from %v established", conn.RemoteAddr())
+	logger.Info().Str("remoteAddr", conn.RemoteAddr().String()).Msg("connection established")
 	var buffer []byte // to store leftover data that wasn't consumed
-	var servicer TCPServicer = nil
+	var transport Transport = nil
 	var servicerName string
 	var suffering = 0
 	tempBuffer := make([]byte, 32*1024) // Buffer to read data into
 	for {
 		var numBytesReadFromSocket int
 		var err error
-		if servicer != nil {
-			numBytesReadFromSocket, err = servicer.Read(tempBuffer)
+		if transport != nil {
+			numBytesReadFromSocket, err = transport.Read(tempBuffer)
 		} else {
 			numBytesReadFromSocket, err = conn.Read(tempBuffer)
 		}
@@ -70,35 +70,35 @@ func (srv tcpsrv) handleTCPConnection(conn *net.TCPConn) {
 			if err != io.EOF && !errors.Is(err, net.ErrClosed) && !errors.Is(err, syscall.ECONNRESET) {
 				log.Errorf("error reading from tcp socket: %s", err)
 			}
-			log.Infof("connection from %s closed", conn.RemoteAddr())
+			logger.Info().Str("remoteAddr", conn.RemoteAddr().String()).Msg("connection closed")
 			conn.Close()
 			return
 		}
 		if numBytesReadFromSocket == 0 {
-			log.Errorf("0 bytes read from tcp socket!")
+			logger.Error().Msg("0 bytes read from tcp socket")
 			conn.Close()
 			return
 		}
 		// Add newly read data to the buffer
 		buffer = append(buffer, tempBuffer[:numBytesReadFromSocket]...)
-		if servicer == nil {
+		if transport == nil {
 			//logger := RootLogger.With().Str("ip", conn.RemoteAddr().(*net.TCPAddr).IP.String()).Logger()
 			// Determine what kind of connection this is for
 			if len(buffer) == 21 {
 				// FileClient
-				servicer = FileService.NewClient(conn, logger)
+				transport = FileService.NewFSConn(conn, logger)
 				servicerName = "file"
 			} else if len(buffer) == 16 {
 				// AuthClient
-				servicer = AuthService.NewClient(conn, logger)
+				transport = AuthService.NewASConn(conn, logger)
 				servicerName = "auth"
 			} else if len(buffer) == 64 {
 				// GameClient
-				servicer = GameService.NewClient(conn, logger)
+				transport = GameService.NewGSConn(conn, logger)
 				servicerName = "game"
 			} else if len(buffer) > 6 && string(buffer[:3]) == "P /" {
 				// PortalClient
-				servicer = PortalService.NewClient(conn, logger)
+				transport = PortalService.NewPSConn(conn, logger)
 				servicerName = "portal"
 			} else {
 				logger.Error().Msg("unrecognised connection type")
@@ -106,14 +106,14 @@ func (srv tcpsrv) handleTCPConnection(conn *net.TCPConn) {
 				return
 			}
 		}
-		if client, ok := servicer.(*AuthService.Client); ok {
+		if client, ok := transport.(*AuthService.ASConn); ok {
 			if suffering > 0 {
 				client.DecryptBytes(buffer[suffering:])
 			} else {
 				client.DecryptBytes(buffer)
 			}
 		}
-		if client, ok := servicer.(*GameService.Client); ok {
+		if client, ok := transport.(*GameService.GSConn); ok {
 			if suffering > 0 {
 				client.DecryptBytes(buffer[suffering:])
 			} else {
@@ -121,13 +121,13 @@ func (srv tcpsrv) handleTCPConnection(conn *net.TCPConn) {
 			}
 		}
 		for len(buffer) > 0 {
-			numConsumedThisTime, err := servicer.HandleBytes(buffer)
+			numConsumedThisTime, err := transport.HandleBytes(buffer)
 			if err != nil {
 				if errors.Is(errors.Unwrap(err), io.ErrUnexpectedEOF) {
 					// OK, just need more data
 				} else {
 					logger.Err(err).Str("servicer", servicerName).Msg("servicer reported error")
-					servicer.Close()
+					transport.Close()
 					return
 				}
 			}

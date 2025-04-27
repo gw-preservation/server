@@ -54,6 +54,7 @@ type instanceDefinition struct {
 }
 
 type agentDefinition struct {
+	Name               string  `json:"name"`
 	EncName            string  `json:"enc_name"`
 	ModelId            int     `json:"model_id"`
 	AllegianceFlags    int     `json:"allegiance_flags"`
@@ -159,7 +160,7 @@ func (im *instanceManager) AddInstance(instance *Instance) {
 
 type Instance struct {
 	uuid                   uint64
-	players                []Player
+	players                []*Player
 	mapId                  int
 	definition             instanceDefinition
 	alive                  bool
@@ -204,22 +205,23 @@ func NewInstance(mapId int, definition instanceDefinition) (i Instance) {
 			log.Error().Str("name", agentToSpawn.Name).Msg("missing definition for agent")
 		}
 		ag := Agent{
-			id:                 i.NextFreeAgentId(),
-			definitionIndex:    agentDefinition.DefinitionIndex,
-			debugName:          agentToSpawn.Name,
-			posX:               agentToSpawn.SpawnPoint[0],
-			posY:               agentToSpawn.SpawnPoint[1],
-			plane:              int(agentToSpawn.SpawnPoint[2]),
-			facingX:            1.0,
-			facingY:            0.0,
-			speed:              agentDefinition.Speed,
-			modelId:            agentDefinition.ModelId,
-			allegianceFlags:    agentDefinition.AllegianceFlags,
-			encName:            agentDefinition.EncName,
-			profession:         agentDefinition.Profession,
-			level:              agentToSpawn.Level,
-			fileId:             agentDefinition.FileId,
-			unkPropertiesBytes: agentDefinition.UnkPropertiesBytes, // Really what is this? you can set to all 0 and it seems the same?
+			id:                  i.NextFreeAgentId(),
+			definitionIndex:     agentDefinition.DefinitionIndex,
+			name:                agentDefinition.Name,
+			posX:                agentToSpawn.SpawnPoint[0],
+			posY:                agentToSpawn.SpawnPoint[1],
+			plane:               int(agentToSpawn.SpawnPoint[2]),
+			facingX:             1.0,
+			facingY:             0.0,
+			speed:               agentDefinition.Speed,
+			modelId:             agentDefinition.ModelId,
+			allegianceFlags:     agentDefinition.AllegianceFlags,
+			encName:             agentDefinition.EncName,
+			primaryProfession:   agentDefinition.Profession,
+			secondaryProfession: 0,
+			level:               agentToSpawn.Level,
+			fileId:              agentDefinition.FileId,
+			unkPropertiesBytes:  agentDefinition.UnkPropertiesBytes, // Really what is this? you can set to all 0 and it seems the same?
 		}
 		i.agents = append(i.agents, ag)
 		log.Info().Str("name", agentToSpawn.Name).Msg("added agent!")
@@ -244,10 +246,10 @@ func (i *Instance) MainLoop() {
 		default:
 			time.Sleep(time.Second * 5)
 			for _, player := range i.players {
-				if player.client.closed {
+				if player.conn.closed {
 					continue
 				}
-				player.EnqueuePacket(newPingRequest(30, 491)) // dont know what these values mean
+				player.EnqueuePacket(MarshalPingRequest(30, 491)) // dont know what these values mean
 			}
 		}
 	}
@@ -257,10 +259,10 @@ func (i *Instance) MovementTickLoop() {
 	for i.alive {
 		time.Sleep(time.Millisecond * 500)
 		for _, player := range i.players {
-			if player.client.closed {
+			if player.conn.closed {
 				continue
 			}
-			player.EnqueuePacket(newAgentMovementTick(500))
+			player.EnqueuePacket(MarshalAgentMovementTick(500))
 		}
 	}
 }
@@ -311,35 +313,27 @@ func convertEncName(in string) []byte {
 		if err != nil {
 			panic(fmt.Errorf("invalid hex word %q: %w", word, err))
 		}
-		// Append high byte then low byte (big-endian)
 		conv = append(conv, byte(val&0xff), byte(val>>8))
 	}
 	return conv
-	//s := string([]byte{0x2d, 0x9e, 0xf8, 0x78, 0xbd, 0xbf, 0x12, 0xe7})
-	/*converted, err := parseUTF16HexString(in)
-	if err != nil {
-		panic(err)
-	}
-	return converted*/
-	//return s
 }
 
 func (i *Instance) AddPlayer(player *Player) {
-	i.players = append(i.players, *player)
-	player.agentId = i.NextFreeAgentId()
-	i.log.Info().Int("agentId", player.agentId).Msg("assigned player agent id")
+	i.players = append(i.players, player)
+	player.id = i.NextFreeAgentId()
+	i.log.Info().Int("agentId", player.id).Msg("assigned player agent id")
 	i.log.Debug().Uint64("playerUuid", player.uuid).Msg("player added to instance")
-	player.EnqueuePacket(newInstanceLoadHead())
+	player.EnqueuePacket(MarshalInstanceLoadHead())
 	if i.IsCharCreationInstance() {
-		player.EnqueuePacket(newCharCreationStart())
-		player.client.sendCreateCharacterInstanceInfo()
+		player.EnqueuePacket(MarshalCharCreationStart())
+		player.conn.sendCreateCharacterInstanceInfo()
 	} else {
 		player.posX, player.posY, player.plane = i.NextSpawnPoint()
-		player.client.sendWorldInstanceHead()
-		player.client.sendWorldInstanceBody()
-		player.EnqueuePacket(newUpdateMapId(i.mapId))
-		player.EnqueuePacket(newReadyForMapSpawn())
-		player.EnqueuePacket(newInstanceManifestDone(0, 1, 0))
+		player.conn.sendWorldInstanceHead()
+		player.conn.sendWorldInstanceBody()
+		player.EnqueuePacket(MarshalUpdateCurrentMapId(i.mapId))
+		player.EnqueuePacket(MarshalReadyForMapSpawn())
+		player.EnqueuePacket(MarshalInstanceManifestDone(0, 1, 0))
 	}
 }
 
@@ -353,7 +347,6 @@ func contains(slice []int, val any) bool {
 }
 
 func randomFloatAround(start, rangeVal float32) float32 {
-	rand.Seed(time.Now().UnixNano()) // Seed with current time
 	offset := (rand.Float32() * 2 * rangeVal) - rangeVal
 	return start + offset
 }
@@ -363,25 +356,32 @@ func (i *Instance) SendActiveAgents(to *Player) {
 	transmittedDefinitions := make([]int, 0)
 	for _, ag := range i.agents {
 
-		testAgentId := ag.definitionIndex
-		testAgentType := (0x2000 << 16) | testAgentId
-
 		// NOTE: UpdateNPCProperties and UpdateNPCModel are only transmitted for the first instance of that NPC definition
 		// It doesn't look like the client cares what goes into the NpcID property?
 		if !contains(transmittedDefinitions, ag.definitionIndex) {
 			// Original code was this:
 			//agentType := (0x2000 << 16)|(npcIdFromPacketCapture & 0xffff)
-			to.EnqueuePacket(newAgentUpdateNPCProperties(testAgentId, ag.fileId, ag.profession, ag.level, convertEncName(ag.unkPropertiesBytes)))
-			to.EnqueuePacket(newAgentUpdateNPCModel(testAgentId, ag.modelId))
+			to.EnqueuePacket(MarshalAgentUpdateNPCProperties(ag.definitionIndex, ag.fileId, ag.primaryProfession, ag.level, convertEncName(ag.unkPropertiesBytes)))
+			to.EnqueuePacket(MarshalAgentUpdateNPCModel(ag.definitionIndex, ag.modelId))
 			transmittedDefinitions = append(transmittedDefinitions, ag.definitionIndex)
 		}
 
-		to.EnqueuePacket(newAgentUpdateNPCName(ag.id, convertEncName(ag.encName)))
-		to.EnqueuePacket(newAgentInitialEffects(ag.id, 0))
+		to.EnqueuePacket(MarshalAgentUpdateNPCName(ag.id, convertEncName(ag.encName)))
+		to.EnqueuePacket(MarshalAgentInitialEffects(ag.id, 0))
 		// for allegiance:
 		// Player has       0x706c6179
 		// normal NPC has   0x706C6179
 		// blocking NPC has 0x6e6f6e63
-		to.EnqueuePacket(newAgentSpawned(ag.id, testAgentType, 1, 9, ag.allegianceFlags, ag.posX, ag.posY, ag.plane, ag.facingX, ag.facingY, ag.speed))
+		agentType := (0x2000 << 16) | ag.definitionIndex
+		to.EnqueuePacket(MarshalAgentSpawned(
+			ag.id,
+			agentType,
+			1,
+			9,
+			ag.posX, ag.posY, ag.plane,
+			ag.facingX, ag.facingY,
+			ag.speed,
+			ag.allegianceFlags,
+		))
 	}
 }

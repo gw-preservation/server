@@ -48,6 +48,19 @@ func (p *In) Uint8() (out int, err error) {
 	return out, err
 }
 
+func (p *In) Bool() (out bool, err error) {
+	tmp, err := p.Uint8()
+	if err != nil {
+		return
+	}
+	if tmp > 0 {
+		out = true
+	} else {
+		out = false
+	}
+	return
+}
+
 func (p *In) Uint16() (out int, err error) {
 	if p.Remaining() < 2 {
 		err = io.ErrUnexpectedEOF
@@ -180,6 +193,14 @@ func NewOutRaw() Out {
 		buf: &bytes.Buffer{},
 	}
 	return p
+}
+
+func (p *Out) Bool(val bool) {
+	if val {
+		p.Uint8(1)
+	} else {
+		p.Uint8(0)
+	}
 }
 
 func (p *Out) Uint8(val int) {
