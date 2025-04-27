@@ -54,14 +54,17 @@ func unmarshal8091(in *GwPacket.In) (pl _8091, err error) {
 }
 
 type verifyClientConnection struct {
-	unk1       int // 0c 00
-	unk2       int // ae 92
-	unk3       int // 00 00
-	unk4       int // 01 00 00 00
-	sharedVal1 int
-	unk5       int
-	sharedVal2 int
-	zeroBytes  [40]byte
+	unk1          int // 0c 00
+	clientVersion int // ae 92
+	unk3          int // 00 00
+	unk4          int // 01 00 00 00
+	worldId       int
+	mapId         int
+	playerId      int
+	accountUUID   [16]byte
+	characterUUID [16]byte
+	unk5          int
+	unk6          int
 }
 
 func unmarshalVerifyClientConnection(in *GwPacket.In) (pl verifyClientConnection, err error) {
@@ -70,9 +73,9 @@ func unmarshalVerifyClientConnection(in *GwPacket.In) (pl verifyClientConnection
 		err = fmt.Errorf("read unk1: %w", err)
 		return
 	}
-	pl.unk2, err = in.Uint16()
+	pl.clientVersion, err = in.Uint16()
 	if err != nil {
-		err = fmt.Errorf("read unk2: %w", err)
+		err = fmt.Errorf("read clientVersion: %w", err)
 		return
 	}
 	pl.unk3, err = in.Uint16()
@@ -85,28 +88,45 @@ func unmarshalVerifyClientConnection(in *GwPacket.In) (pl verifyClientConnection
 		err = fmt.Errorf("read unk4: %w", err)
 		return
 	}
-	pl.sharedVal1, err = in.Uint32()
+	pl.worldId, err = in.Uint32()
 	if err != nil {
-		err = fmt.Errorf("read sharedVal1: %w", err)
+		err = fmt.Errorf("read worldId: %w", err)
 		return
 	}
-	pl.unk5, err = in.Uint32()
+	pl.mapId, err = in.Uint32()
+	if err != nil {
+		err = fmt.Errorf("read mapId: %w", err)
+		return
+	}
+	pl.playerId, err = in.Uint32()
+	if err != nil {
+		err = fmt.Errorf("read playerId: %w", err)
+		return
+	}
+	accountUUID, err := in.Bytes(16)
+	if err != nil {
+		err = fmt.Errorf("read accountUUID: %w", err)
+		return
+	}
+	pl.accountUUID = [16]byte(accountUUID)
+
+	characterUUID, err := in.Bytes(16)
+	if err != nil {
+		err = fmt.Errorf("read characterUUID: %w", err)
+		return
+	}
+	pl.characterUUID = [16]byte(characterUUID)
+
+	pl.unk5, err = in.Uint16()
 	if err != nil {
 		err = fmt.Errorf("read unk5: %w", err)
 		return
 	}
-	pl.sharedVal2, err = in.Uint32()
+	pl.unk6, err = in.Uint32()
 	if err != nil {
-		err = fmt.Errorf("read sharedVal2: %w", err)
+		err = fmt.Errorf("read unk6: %w", err)
 		return
 	}
-	zb, err := in.Bytes(40)
-	if err != nil {
-		err = fmt.Errorf("read zeroBytes: %w", err)
-		return
-	}
-	pl.zeroBytes = [40]byte(zb)
-
 	return
 }
 

@@ -141,7 +141,7 @@ func (p *Player) sendInstanceLoadSync(payload instanceLoadRequestSync) {
 	resp.Uint32(1)
 	resp.Uint32(0)
 	p.EnqueuePacket(resp)
-	p.EnqueuePacket(newAgentCreatePlayer(1, p.agentId, 103153665, 0, 0, 3435973836, "Scout Char"))
+	p.EnqueuePacket(newAgentCreatePlayer(1, p.agentId, 103153665, 0, 0, 3435973836, p.username))
 
 	// party info
 

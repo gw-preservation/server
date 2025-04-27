@@ -72,15 +72,15 @@ var instanceDefinitions = struct {
 	Agents:    make(map[string]agentDefinition, 0),
 }
 
-func LoadInstanceDefinitionsFromDisk() {
+func LoadInstanceDefinitionsFromDisk() error {
 	file, err := os.Open("gameservice/instance_definitions.json")
 	if err != nil {
-		panic(fmt.Sprintf("failed to load instance definitions: %v", err))
+		return fmt.Errorf("failed to load instance definitions: %w", err)
 	}
 	defer file.Close()
 
 	if err := json.NewDecoder(file).Decode(&instanceDefinitions); err != nil {
-		panic(fmt.Sprintf("failed to load instance definitions: %v", err))
+		return fmt.Errorf("failed to load instance definitions: %w", err)
 	}
 	log.Info().Int("count", len(instanceDefinitions.Instances)).Msg("loaded instance definitions from disk")
 	log.Info().Int("count", len(instanceDefinitions.Agents)).Msg("loaded agent definitions from disk")
@@ -108,6 +108,7 @@ func LoadInstanceDefinitionsFromDisk() {
 		InstanceManager.AddInstance(&inst)
 	}
 	log.Info().Int("count", len(InstanceManager.instances)).Msg("persistent instances created")
+	return nil
 }
 
 type instanceManager struct {

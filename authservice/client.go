@@ -4,16 +4,13 @@ import (
 	"crypto/rc4"
 	"fmt"
 	"gw1/server/crypt"
+	"gw1/server/db"
 	GwPacket "gw1/server/gwpacket"
+	PortalService "gw1/server/portalservice"
 	"net"
 
 	"github.com/rs/zerolog"
 )
-
-// Fixed UUIDs
-var accountUUID = [16]byte{0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11}
-var char1UUID = [16]byte{0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22, 0x22}
-var char2UUID = [16]byte{0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33, 0x33}
 
 type State int
 
@@ -32,6 +29,7 @@ type Client struct {
 	dec   *rc4.Cipher
 	out   GwPacket.Out
 	log   zerolog.Logger
+	acc   db.Account
 }
 
 func NewClient(conn *net.TCPConn, logCtx zerolog.Logger) *Client {
@@ -118,18 +116,37 @@ func (client *Client) on8038_GetAccountInfo(in *GwPacket.In) (int, error) {
 	}
 
 	client.log.Info().Hex("uuid1", payload.uuid1[:]).Hex("gameToken", payload.gameTokenFromPortalService[:]).Str("unkString", payload.unkString).Msg("GetAccountInfo")
-	client.EnqueuePacket(newCharacterSummaryPacket(payload.reqNumber, "Char A", char1UUID[:], 165, [8]byte{0x11, 0x18, 0x21, 0x06, 0x00, 0x00, 0x00, 0x00}, []byte{
-		0x11, 0x40, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x8f, 0x00, 0x02, 0x00, 0x07, 0x95, 0x00,
-		0x02, 0x00, 0x07, 0x96, 0x00, 0x02, 0x00, 0x07, 0x97, 0x00, 0x02, 0x00, 0x07, 0x94, 0x00, 0x02,
-		0x00, 0x07,
-	}))
-	client.EnqueuePacket(newCharacterSummaryPacket(payload.reqNumber, "Char B", char2UUID[:], 166, [8]byte{0x11, 0x18, 0x21, 0x06, 0x00, 0x00, 0x00, 0x00}, []byte{
-		0x11, 0x40, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x8f, 0x00, 0x02, 0x00, 0x07, 0x95, 0x00,
-		0x02, 0x00, 0x07, 0x96, 0x00, 0x02, 0x00, 0x07, 0x97, 0x00, 0x02, 0x00, 0x07, 0x94, 0x00, 0x02,
-		0x00, 0x07,
-	}))
+	// Validate connection token
+	tokenStr := db.UUIDStr(payload.gameTokenFromPortalService[:])
+	accountId, ok := PortalService.ValidateConnectionToken(tokenStr)
+	if !ok {
+		// Bad connection token!
+		return 0, fmt.Errorf("invalid GameConnectionToken")
+	}
+	// Re-retrieve account from DB:
+	client.acc, ok = db.GetFullAccountByID(accountId)
+	if !ok {
+		// Account does not exist though a token was generated to connect to it?
+		return 0, fmt.Errorf("no such account during GetAccountInfo token verification")
+	}
+
+	// Now send all characters belonging to the account:
+	lastCharUUID := []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
+	for _, char := range client.acc.Characters {
+		client.EnqueuePacket(newCharacterSummaryPacket(
+			payload.reqNumber,
+			char.Name,
+			char.UUID,
+			int(char.LastOutpostID),
+			[8]byte(char.Appearance),
+			char.EquipmentData,
+		))
+		lastCharUUID = char.UUID
+
+		fmt.Printf("Btw, sent a char UUID of %s\n", db.UUIDStr(char.UUID))
+	}
 	client.EnqueuePacket(newAccountBinaryInfo_0016(payload.reqNumber))
-	client.EnqueuePacket(newAccountExtraInfo_0014(payload.reqNumber, char2UUID[:], 2, true))
+	client.EnqueuePacket(newAccountExtraInfo_0014(payload.reqNumber, client.acc.UUID, lastCharUUID, 2, true))
 	client.EnqueuePacket(newRequestResponse(payload.reqNumber, 0))
 
 	return in.Position(), nil
@@ -168,7 +185,6 @@ func (client *Client) on800d_Disconnect(in *GwPacket.In) (int, error) {
 }
 
 func (client *Client) on8029_LoginCharacter(in *GwPacket.In) (int, error) {
-	client.log.Info().Msg("StartLoginChar")
 	payload, err := unmarshalLoginCharacter(in)
 	if err != nil {
 		return 0, fmt.Errorf("unmarshalLoginCharacter: %w", err)
@@ -194,8 +210,9 @@ func (client *Client) on8029_LoginCharacter(in *GwPacket.In) (int, error) {
 	} else {
 		client.state = StateInInstance
 	}
-
-	client.EnqueuePacket(newInstanceServerInfo(payload.reqNumber, payload.mapId, payload.mapId, 0xbebafeca))
+	worldId := 0x10101010
+	playerId := 0xbebafeca
+	client.EnqueuePacket(newInstanceServerInfo(payload.reqNumber, worldId, payload.mapId, playerId))
 
 	return in.Position(), nil
 }
@@ -218,12 +235,11 @@ func (client *Client) on800a_SetActiveCharacter(in *GwPacket.In) (int, error) {
 	client.log.Info().Str("charName", payload.charName).Msg("SetActiveCharacter")
 	// Client sends this with empty charName if the active char was already selected upon a login char request
 
-	// Character specific UUID
-	if payload.charName == "Char B" {
+	/*if payload.charName == "Char B" {
 		client.EnqueuePacket(newAccountExtraInfo_0014(payload.reqNumber, char2UUID[:], 4, true))
 	} else {
 		client.EnqueuePacket(newAccountExtraInfo_0014(payload.reqNumber, char1UUID[:], 4, true))
-	}
+	}*/
 	client.EnqueuePacket(newRequestResponse(payload.reqNumber, 0))
 	return in.Position(), nil
 }

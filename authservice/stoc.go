@@ -129,7 +129,7 @@ func newCharacterSummaryPacket(reqNumber int, charName string, charUUID []byte, 
 	return pkt
 }
 
-func newAccountExtraInfo_0014(requestNumber int, activeCharUUID []byte, territoryCode int, readEula bool) GwPacket.Out {
+func newAccountExtraInfo_0014(requestNumber int, accountUUID []byte, activeCharUUID []byte, territoryCode int, readEula bool) GwPacket.Out {
 	pkt := GwPacket.NewOut(0x0014)
 	pkt.Uint32(requestNumber)
 	pkt.Bytes([]byte{0x00, 0x00, 0x00, 0x00})
@@ -167,7 +167,7 @@ func newAccountExtraInfo_0014(requestNumber int, activeCharUUID []byte, territor
 		0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	})
-	pkt.Bytes(accountUUID[:])
+	pkt.Bytes(accountUUID)
 	pkt.Bytes(activeCharUUID) // Active character
 	/*
 		Dword(3)

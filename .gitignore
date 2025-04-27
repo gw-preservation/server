@@ -1,3 +1,4 @@
 server
 .vscode
 *.dump
+*.db

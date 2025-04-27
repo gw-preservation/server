@@ -3,6 +3,7 @@ package PortalService
 import (
 	"errors"
 	"fmt"
+	"gw1/server/db"
 	Sts "gw1/server/portalservice/sts"
 	"io"
 	"net"
@@ -27,6 +28,7 @@ type Client struct {
 	tlsConn *tls.Conn
 	state   State
 	log     zerolog.Logger
+	acc     db.Account
 }
 
 func NewClient(conn *net.TCPConn, logCtx zerolog.Logger) *Client {
@@ -72,8 +74,12 @@ type A struct {
 
 func (a A) Lookup(user string) (v, s []byte, grp tls.SRPGroup, err error) {
 	grp = tls.SRPGroup1024
-	salt := []byte("salt")
-	v = tls.SRPVerifier(user, "p", salt, grp)
+	acc, ok := db.GetAccountByEmail(user)
+	if !ok {
+		return nil, nil, grp, nil
+	}
+	salt := []byte("salt") // this should come from the database i think?
+	v = tls.SRPVerifier(user, acc.Password, salt, grp)
 	return v, salt, grp, nil
 }
 
@@ -96,7 +102,13 @@ func (client *Client) handleStartTls(msg Sts.ReqMsg) error {
 		return err
 	}
 	// Handshake OK
-	client.log.Info().Str("user", client.tlsConn.ConnectionState().SRPUser).Msg("SRP Verified!")
+	verifiedEmail := client.tlsConn.ConnectionState().SRPUser
+	client.log.Info().Str("email", verifiedEmail).Msg("SRP Verified!")
+	var ok bool
+	if client.acc, ok = db.GetAccountByEmail(verifiedEmail); !ok {
+		// this should never be reached - we already verified their credentials
+		panic("suddenly !ok")
+	}
 	client.state = StateTlsUpgraded
 	return nil
 }
@@ -104,7 +116,8 @@ func (client *Client) handleStartTls(msg Sts.ReqMsg) error {
 func (client *Client) handleLoginFinish(msg Sts.ReqMsg) error {
 	client.state = StateSentAccInfo
 	// Send account info
-	accInfo := Sts.NewAccountInfoMsg(200, msg.Header.Seq, "00010203-0405-0607-0809-0A0B0C0D0E0F", 4, ":Leo.1234", "00010203-0405-0607-0809-0A0B0C0D0E0F", 1)
+	fmt.Printf("((Portal)) AccUUID=%s\n", db.UUIDStr(client.acc.UUID))
+	accInfo := Sts.NewAccountInfoMsg(200, msg.Header.Seq, db.UUIDStr(client.acc.UUID), 4, ":Unused.1234", "00010203-0405-0607-0809-0A0B0C0D0E0F", 1)
 	client.Write([]byte(accInfo))
 	return nil
 }
@@ -126,8 +139,10 @@ func (client *Client) handleRequestGameToken(msg Sts.ReqMsg) error {
 	if pl.GameCode != "gw1" {
 		return fmt.Errorf("unexpected GameCode %s", pl.GameCode)
 	}
+	connectionToken := generateConnectionToken(client.acc.ID)
+	gameToken := Sts.NewGameTokenMsg(200, msg.Header.Seq, connectionToken)
+
 	client.state = StateSentGameToken
-	gameToken := Sts.NewGameTokenMsg(200, msg.Header.Seq, "00010203-0405-0607-0809-CAFEBABE8008")
 	client.Write(gameToken)
 	return nil
 }

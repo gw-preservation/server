@@ -1,9 +1,11 @@
 package GameService
 
 import (
+	"bytes"
 	"crypto/rc4"
 	"fmt"
 	"gw1/server/crypt"
+	"gw1/server/db"
 	GwPacket "gw1/server/gwpacket"
 	"net"
 	"time"
@@ -16,10 +18,11 @@ type Client struct {
 	enc    *rc4.Cipher
 	dec    *rc4.Cipher
 	out    GwPacket.Out
-	mapId  int
 	closed bool
 	log    zerolog.Logger
 	player Player
+	acc    db.Account
+	char   db.Character
 }
 
 func NewClient(conn *net.TCPConn, logCtx zerolog.Logger) *Client {
@@ -28,7 +31,6 @@ func NewClient(conn *net.TCPConn, logCtx zerolog.Logger) *Client {
 		closed: false,
 		out:    GwPacket.NewOutRaw(),
 		log:    logCtx.With().Str("srv", "game").Logger(),
-		mapId:  0,
 	}
 	client.player = NewPlayer(&client, logCtx)
 	client.log.Info().Msg("new client")
@@ -53,21 +55,39 @@ func (client *Client) DecryptBytes(data []byte) {
 func (client *Client) onVerifyClientConnection(pkt *GwPacket.In) (int, error) {
 	payload, err := unmarshalVerifyClientConnection(pkt)
 	if err != nil {
-		return 0, fmt.Errorf("unmarshalverifyClientConnection: %w", err)
+		return 0, fmt.Errorf("unmarshalVerifyClientConnection: %w", err)
 	}
-	// we can validate here, or ignore while developing locally
-	client.mapId = payload.sharedVal1
+	// We should validate now, to check the request is valid
+	verified := false
+	acc, ok := db.GetFullAccountByUUID(payload.accountUUID[:])
+	if !ok {
+		return 0, fmt.Errorf("no such account with uuid %v", payload.accountUUID)
+	}
+	client.acc = acc
+	// Check character UUID exists:
+	for _, char := range acc.Characters {
+		if bytes.Equal(char.UUID, payload.characterUUID[:]) {
+			client.char = char
+			verified = true
+			break
+		}
+	}
+	if !verified {
+		return 0, fmt.Errorf("no such character with uuid %v", payload.characterUUID)
+	}
+	client.player.username = client.char.Name
+
+	// TODO: Here we should verify the map is adjacent to the LastOutpostID if its explorable!
 
 	// Hook client up to an instance
-	inst := InstanceManager.GetOrCreateInstanceByMapId(client.mapId)
+	inst := InstanceManager.GetOrCreateInstanceByMapId(payload.mapId)
 	if inst == nil {
 		// something went wrong - decline connection
-		// TODO: decline connection
-		panic("unimplemented: decline connection due to instance creation error")
+		return 0, fmt.Errorf("decline connection due to instance creation error")
 	}
 	client.player.connectedInstance = inst
 
-	client.log.Info().Int("mapId", client.mapId).Msg("VerifyClientConnection")
+	client.log.Info().Int("mapId", payload.mapId).Msg("VerifyClientConnection")
 	return pkt.Position(), nil
 }
 func (client *Client) onClientSeed(pkt *GwPacket.In) (int, error) {
@@ -75,7 +95,6 @@ func (client *Client) onClientSeed(pkt *GwPacket.In) (int, error) {
 	if err != nil {
 		return 0, fmt.Errorf("unmarshalClientSeed: %w", err)
 	}
-	client.log.Info().Msg("ClientSeed")
 	rc4Key, publicBytes := crypt.GenerateEncryptionKey(payload.seed)
 
 	client.dec, err = rc4.NewCipher(rc4Key[:])
@@ -183,9 +202,9 @@ func (client *Client) sendWorldInstanceHead() {
 
 	client.EnqueuePacket(newInstancePlayerDataStart())
 
-	client.EnqueuePacket(newInstanceLoadPlayerName("Scout Char"))
+	client.EnqueuePacket(newInstanceLoadPlayerName(client.char.Name))
 
-	client.EnqueuePacket(newInstanceLoadInfo(1, client.mapId, false, 1, 0, false))
+	client.EnqueuePacket(newInstanceLoadInfo(1, int(client.char.LastOutpostID), false, 1, 0, false))
 }
 
 func (client *Client) sendWorldInstanceBody() {
