@@ -394,19 +394,19 @@ type AgentAttrUpdateFloat struct {
 
 // opcode: 0x00e8
 type PlayerAttrSet struct {
-	unk1  int //wire:uint32,val:0
+	xp    int //wire:uint32
 	unk2  int //wire:uint32,val:0
 	unk3  int //wire:uint32,val:0
-	unk4  int //wire:uint32,val:9000
-	unk5  int //wire:uint32,val:9000
+	unk4  int //wire:uint32,val:0
+	unk5  int //wire:uint32,val:0
 	unk6  int //wire:uint32,val:0
 	unk7  int //wire:uint32,val:0
 	unk8  int //wire:uint32,val:0
 	unk9  int //wire:uint32,val:0
-	unk10 int //wire:uint32,val:1
+	level int //wire:uint32
 	unk11 int //wire:uint32,val:100
 	unk12 int //wire:uint32,val:0
-	unk13 int //wire:uint32,val:6300
+	unk13 int //wire:uint32,val:0
 	unk14 int //wire:uint32,val:0
 	unk15 int //wire:uint32,val:0
 }

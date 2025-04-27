@@ -189,6 +189,8 @@ func WriteUnmarshalFunction(name string, structType *ast.StructType, docs []*ast
 				panic("unable to parse WireLength")
 			}
 			out += fmt.Sprintf("resp.%s, err = in.Bytes(%d)\n", fd.name, length)
+		default:
+			panic(fmt.Errorf("unhandled identity in unmarshal func '%s' field '%s': %s", name, fd.name, fd.identity))
 		}
 		out += "if err != nil {\n"
 		out += fmt.Sprintf("err = fmt.Errorf(\"read %s: %%w\", err)\n", fd.name)
@@ -320,6 +322,8 @@ func WriteMarshalFunction(name string, structType *ast.StructType, docs []*ast.C
 				}
 			}
 			out += fmt.Sprintf("resp.Bytes(%s)\n", valToWrite)
+		default:
+			panic(fmt.Errorf("unhandled identity in marshal func '%s' field '%s': %s", name, fd.name, fd.identity))
 		}
 	}
 	out += "return\n}\n\n"

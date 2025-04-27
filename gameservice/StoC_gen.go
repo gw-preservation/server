@@ -466,21 +466,21 @@ func MarshalAgentAttrUpdateFloat(attributeId int, agentId int, val float32) (res
 	return
 }
 
-func MarshalPlayerAttrSet() (resp GwPacket.Out) {
+func MarshalPlayerAttrSet(xp int, level int) (resp GwPacket.Out) {
 	resp = GwPacket.NewOut(0xe8)
-	resp.Uint32(0)
-	resp.Uint32(0)
-	resp.Uint32(0)
-	resp.Uint32(9000)
-	resp.Uint32(9000)
+	resp.Uint32(xp)
 	resp.Uint32(0)
 	resp.Uint32(0)
 	resp.Uint32(0)
 	resp.Uint32(0)
-	resp.Uint32(1)
+	resp.Uint32(0)
+	resp.Uint32(0)
+	resp.Uint32(0)
+	resp.Uint32(0)
+	resp.Uint32(level)
 	resp.Uint32(100)
 	resp.Uint32(0)
-	resp.Uint32(6300)
+	resp.Uint32(0)
 	resp.Uint32(0)
 	resp.Uint32(0)
 	return

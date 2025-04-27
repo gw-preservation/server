@@ -75,9 +75,9 @@ func (conn *ASConn) onClientHashInfo(in *GwPacket.In) (int, error) {
 	if err != nil {
 		return 0, fmt.Errorf("UnmarshalClientHashInfo: %w", err)
 	}
-	if payload.clientVersion != 37550 {
+	if payload.clientVersion != 37578 {
 		// Wrong client version
-		conn.log.Panic().Msgf("bad client version %d", payload.clientVersion)
+		return 0, fmt.Errorf("bad client version %d", payload.clientVersion)
 	}
 	conn.log.Debug().
 		Str("op", fmt.Sprintf("%04x", in.Opcode())).
@@ -155,6 +155,46 @@ func (conn *ASConn) on8038_GetAccountInfo(in *GwPacket.In) (int, error) {
 
 		fmt.Printf("Btw, sent a char UUID of %s\n", db.UUIDStr(char.UUID))
 	}
+	/* Note, from a brand new Masterpiece acc, seeing Eula for first time and pressing accept:
+		<<-- [+3.239s] 0x16 {
+	    Dword(1)
+	    VarBytes(0)
+	}
+	<<-- [+3.239s] 0x14 {
+	    Dword(1)
+	    Dword(0)
+	}
+	<<-- [+3.239s] 0x11 {
+	    Dword(1)
+	    Dword(0)
+	    Dword(4)
+	    Blob(8) => 3f 00 00 00 00 00 00 00
+	    Blob(8) => 80 3f 02 00 03 00 0c 00
+	    Blob(16) => 05 2f 60 5b 4f fd 82 47 ba af 6e 03 45 b6 0c 1d
+	    Blob(16) => 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+	    Dword(3)
+	    VarBytes(8) 01 00 06 00 57 00 01 00
+	    Byte(0)  // This is set to 0x18 (24) once EULA is agreed
+	    Dword(0)
+	}
+	<<-- [+3.239s] 0x3 {
+	    Dword(1)
+	    Dword(0)
+	}
+	-->> [+6.927s] 0x26 {  // This is only sent when EULA is clicked Agree
+	    Byte(24)
+	}
+	-->> [+6.927s] 0x35 {
+	    Dword(2)
+	}
+	<<-- [+7.011s] 0x3 {
+	    Dword(2)
+	    Dword(181)
+	}
+	-->> [+22.809s] 0xe {
+	    Dword(0)
+	}
+	*/
 	conn.EnqueuePacket(MarshalAccountBinaryInfo(payload.reqNumber, []byte{}))
 	conn.EnqueuePacket(MarshalAccountExtraInfoStart(payload.reqNumber, 0))
 	conn.EnqueuePacket(MarshalAccountExtraInfo(
@@ -337,7 +377,7 @@ func (conn *ASConn) onClientVersion(pkt *GwPacket.In) (int, error) {
 		Int("version", payload.clientVersion).
 		Msg("ClientVersion")
 	conn.state = StateReadClientSeed
-	return 16, nil
+	return pkt.Position(), nil
 }
 
 func (conn *ASConn) onClientSeed(pkt *GwPacket.In) (int, error) {

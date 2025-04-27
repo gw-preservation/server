@@ -27,6 +27,7 @@ type Player struct {
 	connectedInstance  *Instance
 	log                zerolog.Logger
 	readyForAgentTicks bool // TODO: refactor into LoadingState / ReadyState
+	xp                 int
 
 	dbAcc  db.Account
 	dbChar db.Character
@@ -79,6 +80,8 @@ func (p *Player) OnC2SVerifyConnection(payload VerifyClientConnection) {
 	p.name = p.dbChar.Name
 	p.primaryProfession = int(p.dbChar.ProfessionPrimary)
 	p.secondaryProfession = int(p.dbChar.ProfessionPrimary)
+	p.level = int(p.dbChar.Level)
+	p.xp = int(p.dbChar.XP)
 
 	// TODO: Here we should verify the map is adjacent to the LastOutpostID if its explorable!
 
@@ -145,9 +148,9 @@ func (p *Player) sendInstanceLoadSync(payload InstanceLoadRequestSync) {
 	//p.sendVanquishUpdate()
 	p.EnqueuePacket(MarshalInstanceLoaded())
 	//p.sendDialogStuff()
-	p.sendAttributeUpdateInt(41)
-	p.sendAttributeUpdateInt(42)
-	p.sendAttributeUpdateInt(36)
+	p.EnqueuePacket(MarshalAgentAttrUpdateInt(41, p.id, 25))      // energy
+	p.EnqueuePacket(MarshalAgentAttrUpdateInt(42, p.id, 100))     // health
+	p.EnqueuePacket(MarshalAgentAttrUpdateInt(36, p.id, p.level)) // level
 
 	// REVERSE THIS MORE:
 	// GAME_SMSG_AGENT_something
@@ -167,7 +170,7 @@ func (p *Player) sendInstanceLoadSync(payload InstanceLoadRequestSync) {
 	p.EnqueuePacket(resp)
 
 	// GAME_SMSG_PLAYER_ATTR_SET
-	p.EnqueuePacket(MarshalPlayerAttrSet())
+	p.EnqueuePacket(MarshalPlayerAttrSet(int(p.xp), p.level))
 
 	// REVERSE THIS MORE:
 	resp = GwPacket.NewOut(0x00ee)
@@ -354,7 +357,7 @@ func (p *Player) sendAttributePointsRemaining() {
 }
 
 func (p *Player) sendProfession() {
-	p.EnqueuePacket(MarshalPlayerUpdateProfession(p.id, p.primaryProfession, p.secondaryProfession))
+	p.EnqueuePacket(MarshalPlayerUpdateProfession(p.id, int(p.dbChar.ProfessionPrimary), int(p.dbChar.ProfessionSecondary)))
 }
 
 func (p *Player) sendUnlockedProfessions() {
@@ -372,13 +375,14 @@ func (p *Player) sendAttributeUpdateInt(attributeId int) {
 	if attributeId == 41 {
 		val = 25
 	} else if attributeId == 42 {
-		val = 0x3FFF
+		val = 200
 	}
-	p.EnqueuePacket(MarshalAgentAttrUpdateInt(p.id, attributeId, val))
+	p.log.Warn().Int("val", val).Int("id", attributeId).Msg("AttributeInt")
+	p.EnqueuePacket(MarshalAgentAttrUpdateInt(attributeId, p.id, val))
 }
 
 func (p *Player) sendAttributeUpdateFloat(attributeId int) {
-	p.EnqueuePacket(MarshalAgentAttrUpdateFloat(p.id, attributeId, 0.039600))
+	p.EnqueuePacket(MarshalAgentAttrUpdateFloat(attributeId, p.id, 0.039600))
 }
 
 func (p *Player) sendCartographyData() {
