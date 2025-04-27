@@ -312,6 +312,7 @@ func (client *Client) Close() {
 	}
 	client.conn.Close()
 }
+
 func (client *Client) HandleBytes(data []byte) (consumed int, err error) {
 	if len(data) < 2 {
 		return 0, nil

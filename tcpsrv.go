@@ -31,7 +31,7 @@ type TCPServicer interface {
 func init() {
 	// Set up the root logger (output to console @ trace level)
 	logger = zerolog.New(zerolog.NewConsoleWriter())
-	logger = logger.Level(zerolog.InfoLevel)
+	logger = logger.Level(zerolog.DebugLevel)
 	logger = logger.With().Timestamp().Logger()
 }
 

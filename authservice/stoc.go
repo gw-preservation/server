@@ -169,9 +169,17 @@ func newAccountExtraInfo_0014(requestNumber int, activeCharUUID []byte, territor
 	})
 	pkt.Bytes(accountUUID[:])
 	pkt.Bytes(activeCharUUID) // Active character
-	pkt.Bytes([]byte{
-		0x03, 0x00, 0x00, 0x00})
+	/*
+		Dword(3)
+		UnhandledField (type=14)
+		Byte(4)
+		Dword(100663552)
 
+		VarBytes(4) 01 00 06 00
+		Byte(24)
+		Dword(1)
+	*/
+	pkt.Uint32(3)
 	pkt.Uint16(4) // 4 bytes extra for account unlocks
 	pkt.Uint16(1) // Type 1 = Extra Char Slots
 	pkt.Uint16(6)
