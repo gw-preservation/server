@@ -75,7 +75,7 @@ func (conn *ASConn) onClientHashInfo(in *GwPacket.In) (int, error) {
 	if err != nil {
 		return 0, fmt.Errorf("UnmarshalClientHashInfo: %w", err)
 	}
-	if payload.clientVersion != 37587 {
+	if payload.clientVersion != 37600 { //37587 {
 		// Wrong client version
 		return 0, fmt.Errorf("bad client version %d", payload.clientVersion)
 	}
@@ -135,13 +135,22 @@ func (conn *ASConn) on8038_GetAccountInfo(in *GwPacket.In) (int, error) {
 		subBlock.Uint16(summaryBlockVersion)
 		subBlock.Uint16(int(char.LastOutpostID))
 		// Unknown purpose
-		subBlock.Bytes([]byte{0x00, 0x00, 0x00, 0x00})
+		subBlock.Uint32(0)
 		// Appearance bits
-		subBlock.Bytes(char.Appearance)
-		subBlock.Uint32(0)
-		subBlock.Uint32(0)
-		subBlock.Uint32(0) // If this or any of the above 3 are > 0 then we are in Guild Hall
-		subBlock.Bytes(char.EquipmentData)
+		conn.log.Info().Uint32("appearanceBytes", char.AppearanceBits).Msg("Appearance")
+		subBlock.Uint32(int(char.AppearanceBits))
+		subBlock.Bytes([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}) // Guild Hall ID
+		var bits16 uint16
+		bits16 |= uint16(1 & 0xF)                            // CampaignType
+		bits16 |= uint16(char.Level&0x1F) << 4               // Level
+		bits16 |= uint16(char.ProfessionSecondary&0xF) << 10 // SecondaryProfession
+		bits16 |= uint16(1&0x3) << 14                        // HelmStatus
+		subBlock.Uint16(int(bits16))
+
+		subBlock.Uint16(0) // H001E
+		subBlock.Uint8(0)  // number_of_pieces
+		subBlock.Bytes([]byte{0xDD, 0xDD, 0xDD, 0xDD})
+
 		subBlockBytes := subBlock.GetBytes()
 
 		conn.EnqueuePacket(MarshalCharacterSummary(
@@ -152,8 +161,6 @@ func (conn *ASConn) on8038_GetAccountInfo(in *GwPacket.In) (int, error) {
 			subBlockBytes,
 		))
 		lastCharUUID = char.UUID
-
-		fmt.Printf("Btw, sent a char UUID of %s\n", db.UUIDStr(char.UUID))
 	}
 	/* Note, from a brand new Masterpiece acc, seeing Eula for first time and pressing accept:
 		<<-- [+3.239s] 0x16 {
@@ -288,7 +295,6 @@ func (conn *ASConn) on8029_LoginCharacter(in *GwPacket.In) (int, error) {
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	}, playerId,
 	))
-	//conn.EnqueuePacket(newInstanceServerInfo(payload.reqNumber, worldId, payload.mapId, playerId))
 
 	return in.Position(), nil
 }
@@ -299,6 +305,12 @@ func (conn *ASConn) on801c_AddAccessKey(in *GwPacket.In) (int, error) {
 		return 0, fmt.Errorf("UnmarshalAddAccessKey: %w", err)
 	}
 	conn.log.Info().Str("key", payload.key).Msg("AddAccessKey")
+	// 0 = OK
+	// 102 = InvalidAccessKey
+	// 103 = AccessKeyInUse
+	// 105 = AccessKeyNotNeeded
+	// 119 = AccessKeyAlreadyAppliedByYourAccount
+	// 122 = AccessKeyDisabled
 	conn.EnqueuePacket(MarshalRequestResponse(payload.reqNumber, 0))
 	return in.Position(), nil
 }
@@ -326,7 +338,25 @@ func (conn *ASConn) on800e_SetPlayerOnlineVisibilityStatus(in *GwPacket.In) (int
 		return 0, fmt.Errorf("UnmarshalSetPlayerOnlineVisibilityStatus: %w", err)
 	}
 	conn.log.Info().Int("newVisibility", payload.visibility).Msg("SetPlayerOnlineVisibilityStatus")
-	return 6, nil
+	return in.Position(), nil
+}
+
+func (conn *ASConn) on8021_UpdateSettingsLength(in *GwPacket.In) (int, error) {
+	payload, err := UnmarshalUpdateSettingsLength(in)
+	if err != nil {
+		return 0, fmt.Errorf("UnmarshalUpdateSettingsLength: %w", err)
+	}
+	conn.log.Info().Int("unk1", payload.unk1).Int("unk2", payload.unk2).Msg("UpdateSettingsLength")
+	return in.Position(), nil
+}
+
+func (conn *ASConn) on8020_UpdateSettings(in *GwPacket.In) (int, error) {
+	_, err := UnmarshalUpdateSettings(in)
+	if err != nil {
+		return 0, fmt.Errorf("UnmarshalUpdateSettings: %w", err)
+	}
+	//conn.log.Info().Int("unk1", payload.unk1).Hex("settings", payload.settings).Msg("UpdateSettings")
+	return in.Position(), nil
 }
 
 func (conn *ASConn) onPacket(in *GwPacket.In) (consumed int, err error) {
@@ -356,11 +386,15 @@ func (conn *ASConn) onPacket(in *GwPacket.In) (consumed int, err error) {
 		consumed, err = conn.on800e_SetPlayerOnlineVisibilityStatus(in)
 	case 0x800d: //, 0x800e:
 		consumed, err = conn.on800d_Disconnect(in)
+	case 0x8021:
+		consumed, err = conn.on8021_UpdateSettingsLength(in)
+	case 0x8020:
+		consumed, err = conn.on8020_UpdateSettings(in)
 	default:
 		// Unexpected opcode!
 		return 0, fmt.Errorf("[%04x] UNEXPECTED; len=%d", op, in.Remaining())
 	}
-	conn.log.Debug().Str("op", fmt.Sprintf("%04x", op)).Int("consumed", consumed).Int("remaining", in.Remaining()).Msg("")
+	//conn.log.Debug().Str("op", fmt.Sprintf("%04x", op)).Int("consumed", consumed).Int("remaining", in.Remaining()).Msg("")
 	if len(conn.out.GetBytes()) > 0 {
 		conn.WritePacket(&conn.out)
 		conn.out.Reset()

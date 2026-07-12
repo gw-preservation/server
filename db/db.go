@@ -96,18 +96,13 @@ func NewDbBag(forCharacterId uint64, capacity int, bagType int) (bag Bag) {
 	return
 }
 
-func NewDbChar(forAccountId uint64, name string, primaryProfession int, appearanceBits []byte) (char Character) {
+func NewDbChar(forAccountId uint64, name string, primaryProfession int, appearanceBits uint32) (char Character) {
 	char.AccountID = forAccountId
 	char.UUID = randUuid()
 	char.Name = name
 	char.ProfessionPrimary = uint8(primaryProfession)
 	char.ProfessionSecondary = 0
-	char.Appearance = appearanceBits
-	char.EquipmentData = []byte{
-		0x11, 0x40, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x8f, 0x00, 0x02, 0x00, 0x07, 0x95, 0x00,
-		0x02, 0x00, 0x07, 0x96, 0x00, 0x02, 0x00, 0x07, 0x97, 0x00, 0x02, 0x00, 0x07, 0x94, 0x00, 0x02,
-		0x00, 0x07,
-	}
+	char.AppearanceBits = appearanceBits
 	// Give it an inventory bag
 	inventory := NewDbBag(char.ID, 20, 1)
 	equipment := NewDbBag(char.ID, 9, 2) // TODO: why 9 and not 8?
@@ -127,12 +122,12 @@ func NewDbChar(forAccountId uint64, name string, primaryProfession int, appearan
 		ItemQuantity: 1,
 	}
 
-	// give costume
+	/*// give costume
 	equipment.Slots[7] = Slot{
 		BagID:        equipment.ID,
 		ItemID:       1085,
 		ItemType:     44,
 		ItemQuantity: 1,
-	}
+	}*/
 	return
 }

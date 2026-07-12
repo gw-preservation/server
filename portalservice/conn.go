@@ -78,7 +78,7 @@ func (a A) Lookup(user string) (v, s []byte, grp tls.SRPGroup, err error) {
 	if !ok {
 		return nil, nil, grp, nil
 	}
-	salt := []byte("salt") // this should come from the database i think?
+	salt := []byte("saltsalt") // this should come from the database i think?
 	v = tls.SRPVerifier(user, acc.Password, salt, grp)
 	return v, salt, grp, nil
 }
@@ -93,8 +93,8 @@ func (conn *PSConn) handleStartTls(msg Sts.ReqMsg) error {
 	}
 
 	conn.tlsConn = tls.Server(conn.socket, &tls.Config{
-		SRPSaltKey:  "salt",
-		SRPSaltSize: 4,
+		SRPSaltKey:  "saltsalt",
+		SRPSaltSize: 8,
 		SRPLookup:   AA,
 	})
 	err = conn.tlsConn.Handshake()
@@ -116,7 +116,6 @@ func (conn *PSConn) handleStartTls(msg Sts.ReqMsg) error {
 func (conn *PSConn) handleLoginFinish(msg Sts.ReqMsg) error {
 	conn.state = StateSentAccInfo
 	// Send account info
-	fmt.Printf("((Portal)) AccUUID=%s\n", db.UUIDStr(conn.acc.UUID))
 	accInfo := Sts.NewAccountInfoMsg(200, msg.Header.Seq, db.UUIDStr(conn.acc.UUID), 4, ":Unused.1234", "00010203-0405-0607-0809-0A0B0C0D0E0F", 1)
 	conn.Write([]byte(accInfo))
 	return nil

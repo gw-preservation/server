@@ -151,11 +151,11 @@ func (conn *GSConn) sendCreateCharacterInstanceInfo() {
 		[]uint32{608703488},
 	))
 
-	conn.EnqueuePacket(MarshalAgentUpdateAttributePoints(1, 0, 0))
+	conn.EnqueuePacket(MarshalAgentUpdateAttributePoints(conn.player.agentId, 0, 0))
 
-	conn.EnqueuePacket(MarshalPlayerUpdateProfession(1, 1, 0))
+	conn.EnqueuePacket(MarshalPlayerUpdateProfession(conn.player.agentId, conn.player.primaryProfession, conn.player.secondaryProfession))
 
-	conn.EnqueuePacket(MarshalAgentAttrUpdateInt(1, 64, 0))
+	conn.EnqueuePacket(MarshalAgentAttrUpdateInt(conn.player.agentId, 64, 0))
 
 	conn.EnqueuePacket(MarshalInstancePlayerDataDone())
 }
@@ -240,20 +240,12 @@ func (conn *GSConn) sendWorldInstanceBody() {
 }
 
 func (conn *GSConn) onCreateCharRequestPlayer(pkt *GwPacket.In) (int, error) {
-	/*
-		CtoS packet(0x88) {
-		} endpacket(0x88)
-	*/
 	conn.log.Info().Msg("CharCreationRequestPlayer")
 
 	return pkt.Position(), nil
 }
 
 func (conn *GSConn) on8090(pkt *GwPacket.In) (int, error) {
-	/*
-		CtoS packet(0x90) {
-		} endpacket(0x90)
-	*/
 	if pkt.Remaining() < 2 {
 		return 0, nil
 	}
@@ -267,12 +259,12 @@ func (conn *GSConn) onInstanceLoadRequestSpawnPoint(pkt *GwPacket.In) (int, erro
 	return pkt.Position(), nil
 }
 
-func (conn *GSConn) onInstanceLoadRequestSync(pkt *GwPacket.In) (int, error) {
-	payload, err := UnmarshalInstanceLoadRequestSync(pkt)
+func (conn *GSConn) onInstanceLoadRequestPlayers(pkt *GwPacket.In) (int, error) {
+	payload, err := UnmarshalInstanceLoadRequestPlayers(pkt)
 	if err != nil {
-		return 0, fmt.Errorf("UnmarshalInstanceLoadRequestSync: %w", err)
+		return 0, fmt.Errorf("UnmarshalInstanceLoadRequestPlayers: %w", err)
 	}
-	conn.player.sendInstanceLoadSync(payload)
+	conn.player.sendInstanceLoadRequestPlayers(payload)
 
 	return pkt.Position(), nil
 }
@@ -311,7 +303,9 @@ func (conn *GSConn) onCreateCharacterFinish(pkt *GwPacket.In) (int, error) {
 	if err != nil {
 		return 0, fmt.Errorf("UnmarshalCreateCharacterFinish: %w", err)
 	}
-	conn.log.Info().Str("desiredName", payload.name).Hex("custom", payload.appearance).Msg("CreateCharacterFinish")
+	appearance := ParseAppearanceBits(uint32(payload.appearance))
+
+	conn.log.Info().Str("desiredName", payload.name).Interface("appearance", appearance).Msg("CreateCharacterFinish")
 
 	// Simulate name taken:
 	conn.EnqueuePacket(MarshalCharCreationError(29))
@@ -326,8 +320,60 @@ func (conn *GSConn) onMoveToPoint(in *GwPacket.In) (int, error) {
 	if err != nil {
 		return 0, fmt.Errorf("UnmarshalMoveToPoint: %w", err)
 	}
-	conn.log.Info().Float32("x", payload.x).Float32("y", payload.y).Msg("MoveToPoint")
-	conn.EnqueuePacket(MarshalMoveToPointS2C(2, payload.x, payload.y, 0))
+	conn.player.connectedInstance.UpdateRequestedPlayerPos(&conn.player, payload.x, payload.y)
+	conn.EnqueuePacket(MarshalMoveToPointS2C(conn.player.agentId, payload.x, payload.y, 0))
+	return in.Position(), nil
+}
+
+func (conn *GSConn) onRotateAgent(in *GwPacket.In) (int, error) {
+	payload, err := UnmarshalRotateAgent(in)
+	if err != nil {
+		return 0, fmt.Errorf("UnmarshalRotateAgent: %w", err)
+	}
+	conn.log.Debug().Int("unk1", payload.unk1).Int("unk2", payload.unk2).Msg("RotateAgent")
+	return in.Position(), nil
+}
+
+func (conn *GSConn) onMovementUpdate(in *GwPacket.In) (int, error) {
+	_, err := UnmarshalMovementUpdate(in)
+	if err != nil {
+		return 0, fmt.Errorf("UnmarshalMovementUpdate %w", err)
+	}
+	return in.Position(), nil
+}
+
+func (conn *GSConn) onLastPosBeforeMoveCancelled(in *GwPacket.In) (int, error) {
+	_, err := UnmarshalLastPosBeforeMoveCancelled(in)
+	if err != nil {
+		return 0, fmt.Errorf("UnmarshalLastPosBeforeMoveCancelled %w", err)
+	}
+	return in.Position(), nil
+}
+
+func (conn *GSConn) onUpdateTarget(in *GwPacket.In) (int, error) {
+	payload, err := UnmarshalUpdateTarget(in)
+	if err != nil {
+		return 0, fmt.Errorf("UnmarshalUnknown80c0: %w", err)
+	}
+	conn.log.Debug().Int("target", payload.targetAgentId).Str("playerName", conn.player.name).Msg("UpdateTarget")
+	return in.Position(), nil
+}
+
+func (conn *GSConn) onInteractAgent(in *GwPacket.In) (int, error) {
+	payload, err := UnmarshalInteractAgent(in)
+	if err != nil {
+		return 0, fmt.Errorf("UnmarshalInteractAgent: %w", err)
+	}
+	conn.player.SendChatWarning(fmt.Sprintf("missing interaction definition for agent=%d,action=%d", payload.agentId, payload.action))
+	conn.log.Info().Int("target", payload.agentId).Int("action", payload.action).Msg("InteractAgent")
+	return in.Position(), nil
+}
+
+func (conn *GSConn) onCancelInteraction(in *GwPacket.In) (int, error) {
+	_, err := UnmarshalCancelInteraction(in)
+	if err != nil {
+		return 0, fmt.Errorf("UnmarshalCancelInteraction: %w", err)
+	}
 	return in.Position(), nil
 }
 
@@ -337,6 +383,14 @@ func (conn *GSConn) Close() {
 		(*conn.player.connectedInstance).RemovePlayer(&conn.player)
 	}
 	conn.socket.Close()
+}
+
+func (conn *GSConn) onClientPingRequest(in *GwPacket.In) (int, error) {
+	_, err := UnmarshalClientPingRequest(in)
+	if err != nil {
+		return 0, fmt.Errorf("UnmarshalClientPingRequest: %w", err)
+	}
+	return in.Position(), nil
 }
 
 func (conn *GSConn) HandleBytes(data []byte) (consumed int, err error) {
@@ -352,10 +406,22 @@ func (conn *GSConn) HandleBytes(data []byte) (consumed int, err error) {
 		consumed, err = conn.onClientSeed(&in)
 	case 0x800a:
 		consumed, err = conn.onGPUInformation(&in)
+	case 0x800c:
+		consumed, err = conn.onClientPingRequest(&in)
 	case 0x8009:
 		consumed, err = conn.onPingReply(&in)
+	case 0x8027:
+		consumed, err = conn.onCancelInteraction(&in)
+	case 0x8038:
+		consumed, err = conn.onInteractAgent(&in)
+	case 0x803c:
+		consumed, err = conn.onMovementUpdate(&in)
 	case 0x803d:
 		consumed, err = conn.onMoveToPoint(&in)
+	case 0x803f:
+		consumed, err = conn.onRotateAgent(&in)
+	case 0x8046:
+		consumed, err = conn.onLastPosBeforeMoveCancelled(&in)
 	case 0x805f:
 		consumed, err = conn.onUpdateProfessionChoice(&in)
 	case 0x8063:
@@ -367,7 +433,7 @@ func (conn *GSConn) HandleBytes(data []byte) (consumed int, err error) {
 	case 0x8088:
 		consumed, err = conn.onCreateCharRequestPlayer(&in)
 	case 0x808f:
-		consumed, err = conn.onInstanceLoadRequestSync(&in)
+		consumed, err = conn.onInstanceLoadRequestPlayers(&in)
 	case 0x8089:
 		consumed, err = conn.onInstanceLoadRequestStart(&in)
 	case 0x808a:
@@ -378,13 +444,13 @@ func (conn *GSConn) HandleBytes(data []byte) (consumed int, err error) {
 		consumed, err = conn.on8091(&in)
 	case 0x8008:
 		consumed, err = conn.onDisconnect(&in)
+	case 0x80c0:
+		consumed, err = conn.onUpdateTarget(&in)
 	default:
 		consumed = len(data)
-		conn.log.Warn().Str("op", fmt.Sprintf("%04x", op)).Msg("unhandled packet")
+		conn.log.Warn().Str("op", fmt.Sprintf("%04x", op)).Hex("data", data).Msg("unhandled packet")
 		// TEMPORARY HACK, REMOVE COMMENT AND HANDLE PACKETS PROPERLY!
-		//err = fmt.Errorf("unhandled packet with len %d", in.Remaining())
 	}
-	conn.log.Debug().Str("op", fmt.Sprintf("%04x", op)).Int("consumed", consumed).Int("remaining", in.Remaining()).Int("sent", len(conn.out.GetBytes())).Msg("")
 	if len(conn.out.GetBytes()) > 0 {
 		conn.WritePacket(&conn.out)
 		conn.out.Reset()

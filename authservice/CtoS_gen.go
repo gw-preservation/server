@@ -257,3 +257,42 @@ func UnmarshalClientSeed(in *GwPacket.In) (resp ClientSeed, err error) {
 	}
 	return
 }
+func UnmarshalUpdateSettingsLength(in *GwPacket.In) (resp UpdateSettingsLength, err error) {
+	if in.Opcode() != 0x8021 {
+		err = errors.New("bad opcode")
+		return
+	}
+	resp.unk1, err = in.Uint32()
+	if err != nil {
+		err = fmt.Errorf("read unk1: %w", err)
+		return
+	}
+	resp.unk2, err = in.Uint32()
+	if err != nil {
+		err = fmt.Errorf("read unk2: %w", err)
+		return
+	}
+	return
+}
+func UnmarshalUpdateSettings(in *GwPacket.In) (resp UpdateSettings, err error) {
+	if in.Opcode() != 0x8020 {
+		err = errors.New("bad opcode")
+		return
+	}
+	resp.unk1, err = in.Uint32()
+	if err != nil {
+		err = fmt.Errorf("read unk1: %w", err)
+		return
+	}
+	settingsLen, err := in.Uint16()
+	if err != nil {
+		err = fmt.Errorf("read settings.len: %w", err)
+		return
+	}
+	resp.settings, err = in.Bytes(settingsLen)
+	if err != nil {
+		err = fmt.Errorf("read settings: %w", err)
+		return
+	}
+	return
+}

@@ -31,6 +31,7 @@ func NewPlayer(conn *GSConn, logCtx zerolog.Logger) Player {
 		questBytes:         make([]byte, 0),
 		readyForAgentTicks: false,
 	}
+	p.allegianceFlags = 0x706c6179
 	p.uuid = rand.Uint64()
 	p.log = logCtx.With().Uint64("uuid", p.uuid).Logger()
 	p.isPlayer = true
@@ -43,6 +44,28 @@ func (p *Player) EnqueuePacket(out GwPacket.Out) {
 
 func (p *Player) Disconnect() {
 	p.conn.Close()
+}
+
+func (p *Player) SendChat(msg string, color int) {
+	p.conn.EnqueuePacket(MarshalChatMessageFromServer(fmt.Sprintf("(server) %s", msg), color))
+}
+
+func (p *Player) SendChatWarning(msg string) {
+	p.SendChat(msg, 13)
+}
+
+func (p *Player) SendChatInfo(msg string) {
+	p.SendChat(msg, 3)
+}
+
+func (p *Player) SendChatDebug(msg string) {
+	p.SendChat(msg, 4)
+}
+
+func (p *Player) SendChatColorTest() {
+	for i := range 14 {
+		p.SendChat(fmt.Sprintf("index: %d", i), i)
+	}
 }
 
 func (p *Player) OnC2SVerifyConnection(payload VerifyClientConnection) {
@@ -124,8 +147,8 @@ func (p *Player) sendInstanceLoadSpawnPoint() {
 	p.EnqueuePacket(MarshalInstanceLoadSpawnPoint(inst.definition.MapFileId, p.posX, p.posY, p.plane, false, []byte{0xcd, 0x49, 0x03, 0xcc, 0x17, 0xa7, 0xdb, 0x01}))
 }
 
-func (p *Player) sendInstanceLoadSync(payload InstanceLoadRequestSync) {
-	p.log.Info().Hex("unkBlob", payload.unk1).Msg("InstanceLoadRequestSync")
+func (p *Player) sendInstanceLoadRequestPlayers(payload InstanceLoadRequestPlayers) {
+	p.log.Info().Hex("unkBlob", payload.unk1).Int("playerAgentId", p.agentId).Msg("InstanceLoadRequestPlayers")
 	// Sync skill info
 	p.sendUnlockedSkills()
 	p.sendSkillbar()
@@ -150,28 +173,12 @@ func (p *Player) sendInstanceLoadSync(payload InstanceLoadRequestSync) {
 	p.EnqueuePacket(MarshalAgentAttrUpdateInt(42, p.agentId, 100))     // health
 	p.EnqueuePacket(MarshalAgentAttrUpdateInt(36, p.agentId, p.level)) // level
 
-	// REVERSE THIS MORE:
-	// GAME_SMSG_AGENT_something
-	resp := GwPacket.NewOut(0x009b)
-	resp.Uint32(p.agentId)
-	resp.Uint32(100)
-	p.EnqueuePacket(resp)
+	p.EnqueuePacket(MarshalUpdateDeathPenalty(p.agentId, 100))
 
-	// REVERSE THIS MORE:
-	resp = GwPacket.NewOut(0x00b4)
-	resp.Bytes([]byte{
-		0x32, 0x00, 0x05, 0x00, 0x66, 0x11, 0x00, 0x08, 0xc0,
-		0x3c, 0x00, 0x00, 0x10, 0x00, 0x00, 0x04, 0x40, 0x3c, 0x00, 0x00, 0x10, 0x00, 0x00, 0x04, 0x73,
-		0x00, 0x00, 0x76, 0x01, 0x00, 0x00, 0x77, 0x12, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x40, 0x60, 0x00, 0x00, 0x00, 0x00,
-	})
-	p.EnqueuePacket(resp)
-
-	// GAME_SMSG_PLAYER_ATTR_SET
 	p.EnqueuePacket(MarshalPlayerAttrSet(int(p.xp), p.level))
 
 	// REVERSE THIS MORE:
-	resp = GwPacket.NewOut(0x00ee)
+	resp := GwPacket.NewOut(0x00ee)
 	resp.Uint32(255)
 	resp.Uint32(255)
 	p.EnqueuePacket(resp)
@@ -183,7 +190,50 @@ func (p *Player) sendInstanceLoadSync(payload InstanceLoadRequestSync) {
 	resp.Uint32(1)
 	resp.Uint32(0)
 	p.EnqueuePacket(resp)
-	p.EnqueuePacket(MarshalAgentCreatePlayer(p.playerId, p.agentId, p.name))
+
+	p.EnqueuePacket(MarshalAgentCreatePlayer(p.playerId, p.agentId, int(p.dbChar.AppearanceBits), p.name))
+
+	p.connectedInstance.SendActiveAgents(p)
+
+	// REVERSE THIS MORE:
+	p.EnqueuePacket(MarshalUnknown00b0(p.playerId, p.playerId))
+
+	// GAME_SMSG_AGENT_INITIAL_EFFECTS
+	// 0x200 enables GM effect (0010 0000 0000)
+	p.EnqueuePacket(MarshalAgentInitialEffects(p.agentId, 0))
+
+	p.EnqueuePacket(MarshalAgentUpdateProfession(p.agentId, p.primaryProfession, p.secondaryProfession))
+
+	// GAME_SMSG_AGENT_SPAWNED - player
+	agentType := 0x30000000
+	agentType |= p.playerId
+	allegianceFlags := 0x706c6179
+	plane := 0
+	facingX := float32(0)
+	facingY := float32(0)
+	speed := float32(288) // 1x speed
+	p.EnqueuePacket(MarshalAgentSpawned(
+		p.agentId,
+		agentType,
+		1,
+		5,
+		p.posX,
+		p.posY,
+		plane,
+		facingX,
+		facingY,
+		speed,
+		allegianceFlags,
+	))
+	p.EnqueuePacket(MarshalAgentSetPlayer(p.agentId))
+
+	p.EnqueuePacket(MarshalAgentUpdateVisualEquipment(p.agentId))
+
+	// GAME_SMSG_AGENT_DISPLAY_CAPE
+	p.EnqueuePacket(MarshalAgentDisplayCape(p.agentId, true))
+
+	// GAME_SMSG_POST_PROCESS
+	p.EnqueuePacket(MarshalPostProcess())
 
 	// party info
 
@@ -209,48 +259,6 @@ func (p *Player) sendInstanceLoadSync(payload InstanceLoadRequestSync) {
 	// GAME_SMSG_PARTY_SET_DIFFICULTY
 	p.EnqueuePacket(MarshalPartySetDifficulty(false))
 
-	// REVERSE THIS MORE:
-	p.EnqueuePacket(MarshalUnknown00b0(p.playerId, p.playerId))
-
-	// GAME_SMSG_AGENT_INITIAL_EFFECTS
-	// 0x200 enables GM effect (0010 0000 0000)
-	p.EnqueuePacket(MarshalAgentInitialEffects(p.agentId, 0))
-
-	p.EnqueuePacket(MarshalAgentUpdateProfession(p.agentId, p.primaryProfession, p.secondaryProfession))
-
-	// GAME_SMSG_AGENT_SPAWNED - player
-	agentType := 0x30000001
-	allegianceFlags := 0x706c6179
-	plane := 0
-	facingX := float32(0)
-	facingY := float32(0)
-	speed := float32(288) // 1x speed
-	p.EnqueuePacket(MarshalAgentSpawned(
-		p.agentId,
-		agentType,
-		1,
-		5,
-		p.posX,
-		p.posY,
-		plane,
-		facingX,
-		facingY,
-		speed,
-		allegianceFlags,
-	))
-	// GAME_SMSG_AGENT_SET_PLAYER
-	p.EnqueuePacket(MarshalAgentSetPlayer(p.agentId))
-
-	p.EnqueuePacket(MarshalAgentUpdateVisualEquipment(p.agentId))
-
-	// GAME_SMSG_AGENT_DISPLAY_CAPE
-	p.EnqueuePacket(MarshalAgentDisplayCape(p.agentId, true))
-
-	// GAME_SMSG_POST_PROCESS
-	p.EnqueuePacket(MarshalPostProcess())
-
-	p.EnqueuePacket(MarshalUnknown00b0(p.playerId, p.playerId))
-
 	// party something
 	resp = GwPacket.NewOut(0x1b1)
 	resp.Uint16(1)
@@ -264,8 +272,6 @@ func (p *Player) sendInstanceLoadSync(payload InstanceLoadRequestSync) {
 	resp = GwPacket.NewOut(0x016d)
 	resp.Uint8(0)
 	p.EnqueuePacket(resp)
-
-	p.connectedInstance.SendActiveAgents(p)
 
 	// GAME_SMSG_INSTANCE_LOAD_FINISH
 	p.EnqueuePacket(MarshalInstanceLoadFinish())
@@ -388,7 +394,19 @@ func (p *Player) sendCartographyData() {
 }
 
 func (p *Player) OnC2SChatMessage(payload ChatMessage) {
-
 	p.log.Info().Int("ag", payload.agentId).Str("msg", payload.message).Msg("ChatMessage")
-	p.EnqueuePacket(MarshalChatMessageFromServer(fmt.Sprintf("received chat message ' %s '", payload.message), 5))
+
+	// find channel by prefix char
+	if len(payload.message) <= 1 {
+		return
+	}
+	var channel = payload.message[0]
+	var remainder = payload.message[1:]
+	if channel == '!' {
+		p.connectedInstance.BroadcastLocalChat(p, remainder)
+	}
+}
+
+func (p *Player) sendAgentDespawned(agent *Agent) {
+	p.EnqueuePacket(MarshalAgentDespawned(agent.agentId))
 }

@@ -17,14 +17,13 @@ type Account struct {
 }
 
 type Character struct {
-	ID                  uint64 `gorm:"primaryKey"`
-	Level               uint8  `gorm:"default:1"`
-	ProfessionPrimary   uint8  `gorm:"default:1"` // Just in case!
-	ProfessionSecondary uint8  `gorm:"default:0"`
-	UUID                []byte `gorm:"type:binary(16);unique"`
-	LastOutpostID       uint16 `gorm:"default:165"` // Just in case!
-	Appearance          []byte `gorm:"type:binary(8)"`
-	EquipmentData       []byte
+	ID                  uint64  `gorm:"primaryKey"`
+	Level               uint8   `gorm:"default:1"`
+	ProfessionPrimary   uint8   `gorm:"default:1"` // Just in case!
+	ProfessionSecondary uint8   `gorm:"default:0"`
+	UUID                []byte  `gorm:"type:binary(16);unique"`
+	LastOutpostID       uint16  `gorm:"default:165"` // Just in case!
+	AppearanceBits      uint32  `gorm:"default:0"`
 	AccountID           uint64  // Foreign key to Account
 	Account             Account `gorm:"foreignKey:AccountID"` // ForeignKey relation
 	Name                string
@@ -105,12 +104,6 @@ func randUuid() []byte {
 	return res
 }
 
-func marshalAppearanceBits(primaryProfession uint8) (out []byte) {
-	out = []byte{0x11, 0x18, 0x11, 0x06, 0x00, 0x00, 0x00, 0x00}
-	out[2] = primaryProfession << 4
-	return
-}
-
 func maybeBootstrap() (err error) {
 	var count int64
 	database.Model(&Account{}).Count(&count)
@@ -125,26 +118,8 @@ func maybeBootstrap() (err error) {
 	}
 	database.Create(&rootAccount)
 	// One character
-	primaryProfession := uint8(2)
-	/*rootChar := Character{
-		AccountID:         rootAccount.ID,
-		UUID:              randUuid(),
-		Name:              "Default Char",
-		ProfessionPrimary: primaryProfession,
-		Appearance:        marshalAppearanceBits(primaryProfession),
-		// 0xff = 15
-		// 0xf1 = 15 (proph)
-
-		// 0x60 in 2nd byte = ranger/ritualist
-
-		// 0xf1 0xff = level 31, pvp only
-		EquipmentData: []byte{
-			0x11, 0x40, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x8f, 0x00, 0x02, 0x00, 0x07, 0x95, 0x00,
-			0x02, 0x00, 0x07, 0x96, 0x00, 0x02, 0x00, 0x07, 0x97, 0x00, 0x02, 0x00, 0x07, 0x94, 0x00, 0x02,
-			0x00, 0x07},
-	}*/
-
-	rootChar := NewDbChar(rootAccount.ID, "Default Char", int(primaryProfession), marshalAppearanceBits(primaryProfession))
+	primaryProfession := uint8(4)
+	rootChar := NewDbChar(rootAccount.ID, "Default Char", int(primaryProfession), 0x0744943b)
 	database.Create(&rootChar)
 
 	// Make an alt account
@@ -156,7 +131,19 @@ func maybeBootstrap() (err error) {
 	database.Create(&altAccount)
 	primaryProfession = uint8(1)
 
-	altChar := NewDbChar(altAccount.ID, "Alt Char", int(primaryProfession), marshalAppearanceBits(primaryProfession))
+	altChar := NewDbChar(altAccount.ID, "Alt Char 1", int(primaryProfession), 0x041094e6)
 	database.Create(&altChar)
+
+	// Make a second alt account
+	altAccount2 := Account{
+		Email:    "alt2@localhost",
+		Password: "p",
+		UUID:     randUuid(),
+	}
+	database.Create(&altAccount2)
+	primaryProfession = uint8(5)
+
+	altChar2 := NewDbChar(altAccount2.ID, "Alt Char 2", int(primaryProfession), 0x045171b5)
+	database.Create(&altChar2)
 	return
 }

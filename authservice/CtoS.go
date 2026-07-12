@@ -89,3 +89,15 @@ type ClientSeed struct {
 	skip      int    // wire:uint16
 	seedBytes []byte // len:64
 }
+
+// opcode: 0x8021
+type UpdateSettingsLength struct {
+	unk1 int // wire:uint32
+	unk2 int // wire:uint32
+}
+
+// opcode: 0x8020
+type UpdateSettings struct {
+	unk1     int    // wire:uint32
+	settings []byte // wire:VarByte
+}

@@ -30,8 +30,9 @@ type Transport interface {
 
 func init() {
 	// Set up the root logger (output to console @ trace level)
-	logger = zerolog.New(zerolog.NewConsoleWriter())
-	logger = logger.Level(zerolog.InfoLevel)
+	writer := zerolog.NewConsoleWriter()
+	logger = zerolog.New(writer)
+	logger = logger.Level(zerolog.DebugLevel)
 	logger = logger.With().Timestamp().Logger()
 }
 
@@ -71,6 +72,9 @@ func (srv tcpsrv) handleTCPConnection(conn *net.TCPConn) {
 				log.Errorf("error reading from tcp socket: %s", err)
 			}
 			logger.Info().Str("remoteAddr", conn.RemoteAddr().String()).Msg("connection closed")
+			if transport != nil {
+				transport.Close()
+			}
 			conn.Close()
 			return
 		}

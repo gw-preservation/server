@@ -16,7 +16,7 @@ type AgentUpdateNPCName struct {
 }
 
 // opcode: 0x000c
-type PingRequest struct {
+type ServerPingRequest struct {
 	unk1 int //wire:uint16
 	unk2 int //wire:uint32
 }
@@ -54,16 +54,24 @@ type UpdateCurrentMapId struct {
 	unk1  int //wire:uint8,val:0
 }
 
+// opcode: 0x002c
+type AgentUpdatePosition struct {
+	agentId int // wire:uint32
+	x       float32
+	y       float32
+	plane   int // wire:uint16
+}
+
 // opcode: 0x006d
 type AgentUpdateVisualEquipment struct {
 	agentId int //wire:uint32
 	unk1    int //wire:uint32,val:0
 	unk2    int //wire:uint32,val:0
-	unk3    int //wire:uint32,val:10
-	unk4    int //wire:uint32,val:13
-	unk5    int //wire:uint32,val:11
-	unk6    int //wire:uint32,val:14
-	unk7    int //wire:uint32,val:12
+	unk3    int //wire:uint32,val:0
+	unk4    int //wire:uint32,val:0
+	unk5    int //wire:uint32,val:0
+	unk6    int //wire:uint32,val:0
+	unk7    int //wire:uint32,val:0
 	unk8    int //wire:uint32,val:0
 	unk9    int //wire:uint32,val:0
 }
@@ -118,6 +126,11 @@ type AgentSpawned struct {
 	inf3            float32 //val:float32(math.Inf(1))
 	inf4            float32 //val:float32(math.Inf(1))
 	unk15           int     //wire:uint16,val:0
+}
+
+// opcode: 0x0021
+type AgentDespawned struct {
+	agentId int // wire:uint32
 }
 
 // opcode: 0x0194
@@ -239,13 +252,13 @@ type VanquishProgress struct {
 
 // opcode: 0x0058
 type AgentCreatePlayer struct {
-	playerId int //wire:uint32
-	agentId  int //wire:uint32
-	unk2     int //wire:uint32,val:103153665
-	unk3     int //wire:uint8,val:0
-	unk4     int //wire:uint32,val:0
-	unk5     int //wire:uint32:val:3435973836
-	name     string
+	playerId       int //wire:uint32
+	agentId        int //wire:uint32
+	appearanceBits int //wire:uint32
+	unk3           int //wire:uint8,val:0
+	unk4           int //wire:uint32,val:0
+	unk5           int //wire:uint32:val:3435973836
+	name           string
 }
 
 // opcode: 0x00ef
@@ -297,9 +310,9 @@ type PartyCreate struct {
 
 // opcode: 0x1ca
 type PartyPlayerAdd struct {
-	partyId  int //wire:uint16
-	playerId int //wire:uint16
-	unk2     int //wire:uint8,val:1
+	partyId        int //wire:uint16
+	playerId       int //wire:uint16
+	isClientLoaded int //wire:uint8,val:1
 }
 
 // opcode: 0x018d
@@ -448,19 +461,34 @@ type InstanceLoadHead struct {
 
 // opcode: 0x005d
 type ChatMessageServer struct {
-	unk1  int //wire:uint16,val:0
-	color int //wire:uint8
+	unk1    int //wire:uint16,val:0
+	channel int //wire:uint8
 }
 
-func MarshalChatMessageFromServer(message string, color int) GwPacket.Out {
-	// color=7 makes text in red in middle of screen -- used for ie quick skill alerts
+// opcode: 0x0060
+type ChatMessageLocal struct {
+	agentId int //wire:uint16
+	channel int // wire:uint8
+}
+
+func MarshalChatMessageCore(message string) GwPacket.Out {
 	resp := GwPacket.NewOut(0x5c)
 	resp.Uint16(len(message) + 3)
 	resp.Uint16(0x0108)
 	resp.Uint16(0x0107)
 	resp.UTF16(message)
-	resp.Uint8(0x01)
-	resp.Uint8(0x00)
-	resp.Merge(MarshalChatMessageServer(color))
+	resp.Uint16(0x0001)
 	return resp
+}
+
+func MarshalChatMessageFromServer(message string, channel int) GwPacket.Out {
+	resp := MarshalChatMessageCore(message)
+	resp.Merge(MarshalChatMessageServer(channel))
+	return resp
+}
+
+// opcode: 0x009b
+type UpdateDeathPenalty struct {
+	agentId           int //wire:uint32
+	deathPenaltyBasis int //wire:uint32
 }

@@ -19,14 +19,19 @@ func UnmarshalCreateCharacterFinish(in *GwPacket.In) (resp CreateCharacterFinish
 		err = fmt.Errorf("read name: %w", err)
 		return
 	}
-	resp.appearance, err = in.Bytes(8)
+	resp.appearance, err = in.Uint32()
 	if err != nil {
 		err = fmt.Errorf("read appearance: %w", err)
 		return
 	}
+	resp.ignore, err = in.Uint32()
+	if err != nil {
+		err = fmt.Errorf("read ignore: %w", err)
+		return
+	}
 	return
 }
-func UnmarshalInstanceLoadRequestSync(in *GwPacket.In) (resp InstanceLoadRequestSync, err error) {
+func UnmarshalInstanceLoadRequestPlayers(in *GwPacket.In) (resp InstanceLoadRequestPlayers, err error) {
 	if in.Opcode() != 0x808f {
 		err = errors.New("bad opcode")
 		return
@@ -60,12 +65,7 @@ func UnmarshalVerifyClientConnection(in *GwPacket.In) (resp VerifyClientConnecti
 		err = errors.New("bad opcode")
 		return
 	}
-	resp.unk1, err = in.Uint16()
-	if err != nil {
-		err = fmt.Errorf("read unk1: %w", err)
-		return
-	}
-	resp.clientVersion, err = in.Uint16()
+	resp.clientVersion, err = in.Uint32()
 	if err != nil {
 		err = fmt.Errorf("read clientVersion: %w", err)
 		return
@@ -105,7 +105,7 @@ func UnmarshalVerifyClientConnection(in *GwPacket.In) (resp VerifyClientConnecti
 		err = fmt.Errorf("read characterUUID: %w", err)
 		return
 	}
-	resp.unk5, err = in.Uint16()
+	resp.unk5, err = in.Uint32()
 	if err != nil {
 		err = fmt.Errorf("read unk5: %w", err)
 		return
@@ -287,6 +287,130 @@ func UnmarshalMoveToPoint(in *GwPacket.In) (resp MoveToPoint, err error) {
 	resp.plane, err = in.Uint32()
 	if err != nil {
 		err = fmt.Errorf("read plane: %w", err)
+		return
+	}
+	return
+}
+func UnmarshalRotateAgent(in *GwPacket.In) (resp RotateAgent, err error) {
+	if in.Opcode() != 0x803f {
+		err = errors.New("bad opcode")
+		return
+	}
+	resp.unk1, err = in.Uint32()
+	if err != nil {
+		err = fmt.Errorf("read unk1: %w", err)
+		return
+	}
+	resp.unk2, err = in.Uint32()
+	if err != nil {
+		err = fmt.Errorf("read unk2: %w", err)
+		return
+	}
+	return
+}
+func UnmarshalLastPosBeforeMoveCancelled(in *GwPacket.In) (resp LastPosBeforeMoveCancelled, err error) {
+	if in.Opcode() != 0x8046 {
+		err = errors.New("bad opcode")
+		return
+	}
+	resp.x, err = in.Float32()
+	if err != nil {
+		err = fmt.Errorf("read x: %w", err)
+		return
+	}
+	resp.y, err = in.Float32()
+	if err != nil {
+		err = fmt.Errorf("read y: %w", err)
+		return
+	}
+	resp.unk2, err = in.Uint32()
+	if err != nil {
+		err = fmt.Errorf("read unk2: %w", err)
+		return
+	}
+	return
+}
+func UnmarshalMovementUpdate(in *GwPacket.In) (resp MovementUpdate, err error) {
+	if in.Opcode() != 0x803c {
+		err = errors.New("bad opcode")
+		return
+	}
+	resp.posX, err = in.Float32()
+	if err != nil {
+		err = fmt.Errorf("read posX: %w", err)
+		return
+	}
+	resp.posY, err = in.Float32()
+	if err != nil {
+		err = fmt.Errorf("read posY: %w", err)
+		return
+	}
+	resp.unk1, err = in.Uint32()
+	if err != nil {
+		err = fmt.Errorf("read unk1: %w", err)
+		return
+	}
+	resp.facingX, err = in.Float32()
+	if err != nil {
+		err = fmt.Errorf("read facingX: %w", err)
+		return
+	}
+	resp.facingY, err = in.Float32()
+	if err != nil {
+		err = fmt.Errorf("read facingY: %w", err)
+		return
+	}
+	resp.unk2, err = in.Uint32()
+	if err != nil {
+		err = fmt.Errorf("read unk2: %w", err)
+		return
+	}
+	return
+}
+func UnmarshalUpdateTarget(in *GwPacket.In) (resp UpdateTarget, err error) {
+	if in.Opcode() != 0x80c0 {
+		err = errors.New("bad opcode")
+		return
+	}
+	resp.targetAgentId, err = in.Uint32()
+	if err != nil {
+		err = fmt.Errorf("read targetAgentId: %w", err)
+		return
+	}
+	resp.agentId2, err = in.Uint32()
+	if err != nil {
+		err = fmt.Errorf("read agentId2: %w", err)
+		return
+	}
+	return
+}
+func UnmarshalInteractAgent(in *GwPacket.In) (resp InteractAgent, err error) {
+	if in.Opcode() != 0x8038 {
+		err = errors.New("bad opcode")
+		return
+	}
+	resp.agentId, err = in.Uint32()
+	if err != nil {
+		err = fmt.Errorf("read agentId: %w", err)
+		return
+	}
+	resp.action, err = in.Uint8()
+	if err != nil {
+		err = fmt.Errorf("read action: %w", err)
+		return
+	}
+	return
+}
+func UnmarshalCancelInteraction(in *GwPacket.In) (resp CancelInteraction, err error) {
+	if in.Opcode() != 0x8027 {
+		err = errors.New("bad opcode")
+		return
+	}
+	return
+}
+func UnmarshalClientPingRequest(in *GwPacket.In) (resp ClientPingRequest, err error) {
+	if in.Opcode() != 0x800c {
+		err = errors.New("bad opcode")
 		return
 	}
 	return

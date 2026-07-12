@@ -154,7 +154,14 @@ type Instance struct {
 	log                    zerolog.Logger
 }
 
+func (inst *Instance) TransmitAgentDespawned(agent *Agent) {
+	for _, other := range inst.players {
+		other.sendAgentDespawned(agent)
+	}
+}
+
 func (inst *Instance) RemovePlayer(player *Player) {
+	inst.TransmitAgentDespawned(&player.Agent)
 	for i, v := range inst.players {
 		if v == nil {
 			continue
@@ -212,7 +219,7 @@ func NewInstance(mapId int, definition instanceDefinition) (i Instance) {
 			unkPropertiesBytes:  agentDefinition.UnkPropertiesBytes, // Really what is this? you can set to all 0 and it seems the same?
 		}
 		i.agents = append(i.agents, ag)
-		log.Info().Str("name", agentToSpawn.Name).Msg("added agent!")
+		log.Info().Str("name", agentToSpawn.Name).Int("agentId", ag.agentId).Msg("added agent!")
 	}
 	return
 }
@@ -237,7 +244,7 @@ func (i *Instance) MainLoop() {
 				if player.conn.closed {
 					continue
 				}
-				player.EnqueuePacket(MarshalPingRequest(30, 491)) // dont know what these values mean
+				player.EnqueuePacket(MarshalServerPingRequest(30, 491)) // dont know what these values mean
 			}
 		}
 	}
@@ -259,7 +266,7 @@ func (i *Instance) NextFreeAgentId() int {
 	return len(i.agents) + 1
 }
 func (i *Instance) NextFreePlayerId() int {
-	return len(i.players) + 1
+	return len(i.players) + 10
 }
 
 func (i *Instance) NextSpawnPoint() (x, y float32, plane int) {
@@ -314,7 +321,11 @@ func (i *Instance) AddPlayer(player *Player) {
 	player.playerId = i.NextFreePlayerId()
 	i.players = append(i.players, player)
 	i.agents = append(i.agents, player.Agent)
-	i.log.Debug().Uint64("playerUuid", player.uuid).Msg("player added to instance")
+	fmt.Printf("%s added to instance.\n", player.name)
+	fmt.Printf("%d players in instance:\n", len(i.players))
+	for i, v := range i.players {
+		fmt.Printf("  #%d = PlayerID=%d AgentID=%d Name=%s\n", i, v.playerId, v.agentId, v.name)
+	}
 	player.EnqueuePacket(MarshalInstanceLoadHead())
 	if i.IsCharCreationInstance() {
 		player.EnqueuePacket(MarshalCharCreationStart())
@@ -326,6 +337,8 @@ func (i *Instance) AddPlayer(player *Player) {
 		player.EnqueuePacket(MarshalUpdateCurrentMapId(i.mapId))
 		player.EnqueuePacket(MarshalReadyForMapSpawn())
 		player.EnqueuePacket(MarshalInstanceManifestDone(0, 1, 0))
+
+		i.TransmitPlayerToOthers(player)
 	}
 }
 
@@ -381,30 +394,78 @@ func (i *Instance) SendActiveAgents(to *Player) {
 		))
 		i.log.Info().Int("agentId", ag.agentId).Int("ToAgId", to.agentId).Int("ToPlayerId", to.playerId).Msg("Transmitted Agent")
 	}
+	i.TransmitOtherPlayersToPlayer(to)
+}
 
+func (i *Instance) TransmitOtherPlayersToPlayer(to *Player) {
 	for _, other := range i.players {
 		if other.playerId == to.playerId {
 			continue
 		}
-		i.log.Info().Str("OtherName", other.name).Str("ToName", to.name).Msg("Transmitting agent spawn")
-		to.EnqueuePacket(MarshalAgentCreatePlayer(other.playerId, other.agentId, other.name))
-		to.EnqueuePacket(MarshalAgentUpdateProfession(other.agentId, other.primaryProfession, other.secondaryProfession))
-		to.EnqueuePacket(MarshalAgentAttrUpdateInt(36, other.agentId, other.level))
-		to.EnqueuePacket(MarshalAgentInitialEffects(other.agentId, 0))
-		to.EnqueuePacket(MarshalAgentSpawned(
-			other.agentId,
-			805306370,
-			1,
-			5,
-			other.posX,
-			other.posY,
-			0,
-			other.facingX,
-			other.facingY,
-			other.speed,
-			other.allegianceFlags,
-		))
-		// What's this?
-		to.EnqueuePacket(MarshalAgentAttrUpdateInt(30, other.agentId, other.playerId))
+		i.TransmitPlayer(to, other)
 	}
+}
+
+func (i *Instance) TransmitPlayerToOthers(player *Player) {
+	for _, other := range i.players {
+		if other.playerId == player.playerId {
+			continue
+		}
+		i.TransmitPlayer(other, player)
+	}
+}
+
+func (i *Instance) TransmitPlayer(to *Player, other *Player) {
+	to.EnqueuePacket(MarshalAgentCreatePlayer(other.playerId, other.agentId, int(other.dbChar.AppearanceBits), other.name))
+	to.EnqueuePacket(MarshalAgentUpdateProfession(other.agentId, other.primaryProfession, other.secondaryProfession))
+	to.EnqueuePacket(MarshalAgentAttrUpdateInt(36, other.agentId, other.level))
+	to.EnqueuePacket(MarshalAgentInitialEffects(other.agentId, 0))
+	agentType := 0x30000000
+	agentType |= other.playerId
+	to.EnqueuePacket(MarshalAgentSpawned(
+		other.agentId,
+		agentType,
+		1,
+		5,
+		other.posX,
+		other.posY,
+		0,
+		other.facingX,
+		other.facingY,
+		other.speed,
+		other.allegianceFlags,
+	))
+	// What's this?
+	to.EnqueuePacket(MarshalAgentAttrUpdateInt(30, other.agentId, other.playerId))
+}
+
+func (i *Instance) UpdateRequestedPlayerPos(player *Player, x float32, y float32) {
+	// The player requested a new position -- for now just update the instance definition and transmit movement update to everyone.
+	player.posX = x
+	player.posY = y
+	for _, other := range i.players {
+		other.EnqueuePacket(MarshalAgentUpdatePosition(player.agentId, x, y, 0))
+	}
+}
+
+func (i *Instance) BroadcastLocalChat(from *Player, message string) {
+	packet := MarshalChatMessageCore(message)
+	packet.Merge(MarshalChatMessageLocal(from.playerId, 3))
+
+	for _, other := range i.players {
+		other.EnqueuePacket(packet)
+	}
+
+	// TODO: if nobody else in zone, send "No one hears you..."
+	/*
+		// No one hears you:
+		unk := GwPacket.NewOut(0x5C)
+		unk.Uint16(1)
+		unk.Uint16(0x087b)
+		packet.Merge(unk)
+		unk2 := GwPacket.NewOut(0x5D)
+		unk2.Uint16(1)
+		unk2.Uint8(13)
+		packet.Merge(MarshalChatMessageServer(13))
+	*/
 }

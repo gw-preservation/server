@@ -17,7 +17,7 @@ func MarshalAgentUpdateNPCName(agentId int, encName VarUTF16) (resp GwPacket.Out
 	return
 }
 
-func MarshalPingRequest(unk1 int, unk2 int) (resp GwPacket.Out) {
+func MarshalServerPingRequest(unk1 int, unk2 int) (resp GwPacket.Out) {
 	resp = GwPacket.NewOut(0xc)
 	resp.Uint16(unk1)
 	resp.Uint32(unk2)
@@ -63,16 +63,25 @@ func MarshalUpdateCurrentMapId(mapId int) (resp GwPacket.Out) {
 	return
 }
 
+func MarshalAgentUpdatePosition(agentId int, x float32, y float32, plane int) (resp GwPacket.Out) {
+	resp = GwPacket.NewOut(0x2c)
+	resp.Uint32(agentId)
+	resp.Float32(x)
+	resp.Float32(y)
+	resp.Uint16(plane)
+	return
+}
+
 func MarshalAgentUpdateVisualEquipment(agentId int) (resp GwPacket.Out) {
 	resp = GwPacket.NewOut(0x6d)
 	resp.Uint32(agentId)
 	resp.Uint32(0)
 	resp.Uint32(0)
-	resp.Uint32(10)
-	resp.Uint32(13)
-	resp.Uint32(11)
-	resp.Uint32(14)
-	resp.Uint32(12)
+	resp.Uint32(0)
+	resp.Uint32(0)
+	resp.Uint32(0)
+	resp.Uint32(0)
+	resp.Uint32(0)
 	resp.Uint32(0)
 	resp.Uint32(0)
 	return
@@ -131,6 +140,12 @@ func MarshalAgentSpawned(agentId int, agentType int, unk1 int, unk2 int, posX fl
 	resp.Float32(float32(math.Inf(1)))
 	resp.Float32(float32(math.Inf(1)))
 	resp.Uint16(0)
+	return
+}
+
+func MarshalAgentDespawned(agentId int) (resp GwPacket.Out) {
+	resp = GwPacket.NewOut(0x21)
+	resp.Uint32(agentId)
 	return
 }
 
@@ -275,11 +290,11 @@ func MarshalVanquishProgress(progress int) (resp GwPacket.Out) {
 	return
 }
 
-func MarshalAgentCreatePlayer(playerId int, agentId int, name string) (resp GwPacket.Out) {
+func MarshalAgentCreatePlayer(playerId int, agentId int, appearanceBits int, name string) (resp GwPacket.Out) {
 	resp = GwPacket.NewOut(0x58)
 	resp.Uint32(playerId)
 	resp.Uint32(agentId)
-	resp.Uint32(103153665)
+	resp.Uint32(appearanceBits)
 	resp.Uint8(0)
 	resp.Uint32(0)
 	resp.Uint32(3435973836)
@@ -528,9 +543,23 @@ func MarshalInstanceLoadHead() (resp GwPacket.Out) {
 	return
 }
 
-func MarshalChatMessageServer(color int) (resp GwPacket.Out) {
+func MarshalChatMessageServer(channel int) (resp GwPacket.Out) {
 	resp = GwPacket.NewOut(0x5d)
 	resp.Uint16(0)
-	resp.Uint8(color)
+	resp.Uint8(channel)
+	return
+}
+
+func MarshalChatMessageLocal(agentId int, channel int) (resp GwPacket.Out) {
+	resp = GwPacket.NewOut(0x60)
+	resp.Uint16(agentId)
+	resp.Uint8(channel)
+	return
+}
+
+func MarshalUpdateDeathPenalty(agentId int, deathPenaltyBasis int) (resp GwPacket.Out) {
+	resp = GwPacket.NewOut(0x9b)
+	resp.Uint32(agentId)
+	resp.Uint32(deathPenaltyBasis)
 	return
 }
