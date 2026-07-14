@@ -18,7 +18,6 @@ func NewFSConn(socket *net.TCPConn, logCtx zerolog.Logger) *FSConn {
 		socket: socket,
 		log:    logCtx.With().Str("srv", "file").Logger(),
 	}
-	fc.log.Info().Msg("new client")
 	return &fc
 }
 
@@ -89,8 +88,6 @@ func (conn *FSConn) onHeartbeat(in *GwPacket.In) (int, error) {
 	resp := GwPacket.NewOut(0x09f1)
 	resp.Uint16(unk)
 	conn.WritePacket(&resp)
-	conn.log.Info().Int("unk", unk).Msg("Heartbeat")
-
 	return in.Position(), nil
 }
 
@@ -100,7 +97,6 @@ func (conn *FSConn) HandleBytes(data []byte) (int, error) {
 	if err != nil {
 		return 0, fmt.Errorf("read opcode: %w", err)
 	}
-	//conn.log.Info().Int("len", len(data)).Int("op", op).Msg("HandleBytes")
 	switch op {
 	case 0x0001:
 		return conn.onHelloMessage(&in)

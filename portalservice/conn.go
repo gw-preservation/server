@@ -4,11 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"gw1/server/db"
+	"gw1/server/portalservice/srp"
 	Sts "gw1/server/portalservice/sts"
 	"io"
 	"net"
 
-	"github.com/mjl-/go-tls-srp"
 	"github.com/rs/zerolog"
 )
 
@@ -23,24 +23,34 @@ const (
 	StateSentGameToken
 )
 
+const (
+	gameCodeGuildWars = "gw1"
+)
+
+const (
+	pathConnect      = "/Sts/Connect"
+	pathStartTls     = "/Auth/StartTls"
+	pathLoginFinish  = "/Auth/LoginFinish"
+	pathListAccounts = "/Auth/ListMyGameAccounts"
+	pathRequestToken = "/Auth/RequestGameToken"
+	pathPing         = "/Sts/Ping"
+)
+
 type PSConn struct {
 	socket  *net.TCPConn
-	tlsConn *tls.Conn
+	tlsConn *srp.Conn
 	state   State
 	log     zerolog.Logger
 	acc     db.Account
 }
 
 func NewPSConn(socket *net.TCPConn, logCtx zerolog.Logger) *PSConn {
-
-	conn := PSConn{
+	return &PSConn{
 		state:   StateInitial,
 		socket:  socket,
 		tlsConn: nil,
 		log:     logCtx.With().Str("srv", "portal").Logger(),
 	}
-	conn.log.Info().Msg("new client")
-	return &conn
 }
 
 func (conn *PSConn) HandleBytes(data []byte) (int, error) {
@@ -52,38 +62,46 @@ func (conn *PSConn) HandleBytes(data []byte) (int, error) {
 		return 0, err
 	}
 	conn.log.Debug().Str("action", msg.Header.Action).Str("resource", msg.Header.Resource).Msg("")
-	if msg.Header.Action == "P" && msg.Header.Resource == "/Sts/Connect" && conn.state == StateInitial {
-		conn.state = StateStartTls
-	} else if msg.Header.Action == "P" && msg.Header.Resource == "/Auth/StartTls" && conn.state == StateStartTls {
-		err = conn.handleStartTls(msg)
-	} else if msg.Header.Action == "P" && msg.Header.Resource == "/Auth/LoginFinish" && conn.state == StateTlsUpgraded {
-		err = conn.handleLoginFinish(msg)
-	} else if msg.Header.Action == "P" && msg.Header.Resource == "/Auth/ListMyGameAccounts" && conn.state == StateSentAccInfo {
-		err = conn.handleListGameAccounts(msg)
-	} else if msg.Header.Action == "P" && msg.Header.Resource == "/Auth/RequestGameToken" && conn.state == StateSentAccCreationInfo {
-		err = conn.handleRequestGameToken(msg)
-	} else if msg.Header.Resource == "/Sts/Ping" {
-	} else {
-		return msg.Length(), fmt.Errorf("unexpected Sts message '%s %s'", msg.Header.Action, msg.Header.Resource)
+	hdr := msg.Header
+	if hdr.Action == "P" {
+		switch conn.state {
+		case StateInitial:
+			if hdr.Resource == pathConnect {
+				conn.state = StateStartTls
+			}
+		case StateStartTls:
+			if hdr.Resource == pathStartTls {
+				err = conn.handleStartTls(msg)
+			}
+		case StateTlsUpgraded:
+			if hdr.Resource == pathLoginFinish {
+				err = conn.handleLoginFinish(msg)
+			}
+		case StateSentAccInfo:
+			if hdr.Resource == pathListAccounts {
+				err = conn.handleListGameAccounts(msg)
+			}
+		case StateSentAccCreationInfo:
+			if hdr.Resource == pathRequestToken {
+				err = conn.handleRequestGameToken(msg)
+			}
+		}
 	}
 	return msg.Length(), err
 }
 
-type A struct {
-}
-
-func (a A) Lookup(user string) (v, s []byte, grp tls.SRPGroup, err error) {
-	grp = tls.SRPGroup1024
-	acc, ok := db.GetAccountByEmail(user)
+func lookup(username string) (*srp.SRPUser, error) {
+	acc, ok := db.GetAccountByEmail(username)
 	if !ok {
-		return nil, nil, grp, nil
+		return nil, fmt.Errorf("unknown user")
 	}
-	salt := []byte("saltsalt") // this should come from the database i think?
-	v = tls.SRPVerifier(user, acc.Password, salt, grp)
-	return v, salt, grp, nil
-}
 
-var AA A
+	user, err := srp.CreateSRPUser(srp.SRP1024(), username, acc.Password)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
+}
 
 func (conn *PSConn) handleStartTls(msg Sts.ReqMsg) error {
 	m := Sts.NewErrorRespMsg(400, msg.Header.Seq, "1001", "2", "1146")
@@ -91,23 +109,21 @@ func (conn *PSConn) handleStartTls(msg Sts.ReqMsg) error {
 	if err != nil {
 		return err
 	}
-
-	conn.tlsConn = tls.Server(conn.socket, &tls.Config{
-		SRPSaltKey:  "saltsalt",
-		SRPSaltSize: 8,
-		SRPLookup:   AA,
-	})
-	err = conn.tlsConn.Handshake()
-	if err != nil {
-		return err
+	conn.tlsConn = srp.Server(conn.socket, lookup)
+	if err := conn.tlsConn.Handshake(); err != nil {
+		conn.log.Warn().Str("email", conn.tlsConn.Username()).Msg("failed login")
+		conn.Close()
+		return nil
 	}
+
 	// Handshake OK
-	verifiedEmail := conn.tlsConn.ConnectionState().SRPUser
-	conn.log.Info().Str("email", verifiedEmail).Msg("SRP Verified!")
+	verifiedEmail := conn.tlsConn.Username()
+	conn.log.Debug().Str("email", verifiedEmail).Msg("SRP Verified!")
 	var ok bool
 	if conn.acc, ok = db.GetAccountByEmail(verifiedEmail); !ok {
 		// this should never be reached - we already verified their credentials
-		panic("suddenly !ok")
+		conn.log.Error().Str("email", verifiedEmail).Msg("GetAccountByEmail !ok for a verified connection")
+		return errors.New("database error")
 	}
 	conn.state = StateTlsUpgraded
 	return nil
@@ -123,11 +139,11 @@ func (conn *PSConn) handleLoginFinish(msg Sts.ReqMsg) error {
 
 func (conn *PSConn) handleListGameAccounts(msg Sts.ReqMsg) error {
 	pl := msg.Payload.(*Sts.PayloadListGameAccounts)
-	if pl.GameCode != "gw1" {
+	if pl.GameCode != gameCodeGuildWars {
 		return fmt.Errorf("unexpected GameCode %s", pl.GameCode)
 	}
 	conn.state = StateSentAccCreationInfo
-	creationInfo := Sts.NewAccountCreationInfoMsg(200, msg.Header.Seq, "gw1", "gw1", "2019-12-02T12:01:02Z")
+	creationInfo := Sts.NewAccountCreationInfoMsg(200, msg.Header.Seq, gameCodeGuildWars, gameCodeGuildWars, "2019-12-02T12:01:02Z")
 	conn.Write(creationInfo)
 
 	return nil
@@ -135,7 +151,7 @@ func (conn *PSConn) handleListGameAccounts(msg Sts.ReqMsg) error {
 
 func (conn *PSConn) handleRequestGameToken(msg Sts.ReqMsg) error {
 	pl := msg.Payload.(*Sts.PayloadRequestGameToken)
-	if pl.GameCode != "gw1" {
+	if pl.GameCode != gameCodeGuildWars {
 		return fmt.Errorf("unexpected GameCode %s", pl.GameCode)
 	}
 	connectionToken := generateConnectionToken(conn.acc.ID)

@@ -39,6 +39,23 @@ type MoveToPointS2C struct {
 type PvPItemsEnd struct {
 }
 
+/*
+	0x0187: {
+		0x1005,
+		0x1417,
+		0x0204,
+		0x4000b,
+		0x0006,
+	},
+*/
+// opcode: 0x187
+type CharCreationFinish struct {
+	charUuid []byte //len:16
+	name     string
+	mapId    int    //wire:uint16
+	unk3     []byte //wire:VarByte
+}
+
 // opcode: 0x0188
 type CharCreationStart struct {
 }
@@ -491,4 +508,17 @@ func MarshalChatMessageFromServer(message string, channel int) GwPacket.Out {
 type UpdateDeathPenalty struct {
 	agentId           int //wire:uint32
 	deathPenaltyBasis int //wire:uint32
+}
+
+// opcode: 0x0018
+type SetUnlockedHeroes struct {
+	unk []uint16
+}
+
+// opcode: 0x0033
+type MessageOfTheDay struct {
+	// note this isn't a regular message. send a regular message 'test123' and you get:
+	// Assertion: (codedString[0] & ~WORD_BIT_MORE) >= WORD_VALUE_BASE
+	// P:\Code\Engine\Text\TextApi.cpp(585)
+	motd string
 }

@@ -136,3 +136,25 @@ type CancelInteraction struct {
 // opcode: 0x800c
 type ClientPingRequest struct {
 }
+
+// opcode: 0x8087
+type InstanceLoadRequestSpawnPoint struct {
+}
+
+// opcode: 0x8088
+type CreateCharRequestPlayer struct {
+}
+
+// opcode: 0x8089
+type InstanceLoadRequestStart struct {
+}
+
+// opcode: 0x8008
+type ClientDisconnect struct {
+}
+
+// opcode: 0x8090
+type Unknown8090 struct {
+	unk1 int //wire:uint8
+	unk2 int //wire:uint8
+}

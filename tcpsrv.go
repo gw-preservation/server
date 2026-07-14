@@ -7,7 +7,6 @@ import (
 	GameService "gw1/server/gameservice"
 	PortalService "gw1/server/portalservice"
 	"io"
-	"syscall"
 
 	"net"
 
@@ -57,7 +56,7 @@ func (srv tcpsrv) handleTCPConnection(conn *net.TCPConn) {
 	var buffer []byte // to store leftover data that wasn't consumed
 	var transport Transport = nil
 	var servicerName string
-	var suffering = 0
+	var unconsumedBytes = 0
 	tempBuffer := make([]byte, 32*1024) // Buffer to read data into
 	for {
 		var numBytesReadFromSocket int
@@ -68,9 +67,9 @@ func (srv tcpsrv) handleTCPConnection(conn *net.TCPConn) {
 			numBytesReadFromSocket, err = conn.Read(tempBuffer)
 		}
 		if err != nil {
-			if err != io.EOF && !errors.Is(err, net.ErrClosed) && !errors.Is(err, syscall.ECONNRESET) {
-				log.Errorf("error reading from tcp socket: %s", err)
-			}
+			//if err != io.EOF && !errors.Is(err, net.ErrClosed) && !errors.Is(err, syscall.ECONNRESET) {
+			//	log.Errorf("error reading from tcp socket: %s", err)
+			//}
 			logger.Info().Str("remoteAddr", conn.RemoteAddr().String()).Msg("connection closed")
 			if transport != nil {
 				transport.Close()
@@ -111,15 +110,15 @@ func (srv tcpsrv) handleTCPConnection(conn *net.TCPConn) {
 			}
 		}
 		if client, ok := transport.(*AuthService.ASConn); ok {
-			if suffering > 0 {
-				client.DecryptBytes(buffer[suffering:])
+			if unconsumedBytes > 0 {
+				client.DecryptBytes(buffer[unconsumedBytes:])
 			} else {
 				client.DecryptBytes(buffer)
 			}
 		}
 		if client, ok := transport.(*GameService.GSConn); ok {
-			if suffering > 0 {
-				client.DecryptBytes(buffer[suffering:])
+			if unconsumedBytes > 0 {
+				client.DecryptBytes(buffer[unconsumedBytes:])
 			} else {
 				client.DecryptBytes(buffer)
 			}
@@ -136,7 +135,7 @@ func (srv tcpsrv) handleTCPConnection(conn *net.TCPConn) {
 				}
 			}
 			if numConsumedThisTime == 0 {
-				suffering = len(buffer)
+				unconsumedBytes += len(buffer)
 				if len(buffer) >= 2 {
 					logger.Warn().Msgf("Possible message fragmentation! Partially read %d / %d bytes [%02x%02x]", numConsumedThisTime, len(buffer), buffer[1], buffer[0])
 				} else {
@@ -144,7 +143,7 @@ func (srv tcpsrv) handleTCPConnection(conn *net.TCPConn) {
 				}
 				break
 			} else {
-				suffering -= numConsumedThisTime
+				unconsumedBytes -= numConsumedThisTime
 			}
 			buffer = buffer[numConsumedThisTime:]
 		}

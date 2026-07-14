@@ -27,11 +27,15 @@ func (msg errorRespMsgPayload) Marshal() string {
 	return strings.Replace(string(marshal), "></Error>", "/>", 1)
 }
 
-func NewErrorRespMsg(headerCode int, seqNumber int, server string, module string, line string) []byte {
-	header := RespHeader{
-		Code: headerCode,
-		Seq:  seqNumber,
+func newRespHeader(code, seq int) RespHeader {
+	return RespHeader{
+		Code: code,
+		Seq:  seq,
 	}
+}
+
+func NewErrorRespMsg(headerCode int, seqNumber int, server string, module string, line string) []byte {
+	header := newRespHeader(headerCode, seqNumber)
 	payload := errorRespMsgPayload{
 		Server: server,
 		Module: module,
@@ -55,10 +59,7 @@ type accountInfoMsgPayload struct {
 }
 
 func NewAccountInfoMsg(headerCode int, seqNumber int, userId string, userCenter int, userName string, resumeToken string, emailVerified int) []byte {
-	header := RespHeader{
-		Code: headerCode,
-		Seq:  seqNumber,
-	}
+	header := newRespHeader(headerCode, seqNumber)
 	payload := accountInfoMsgPayload{
 		UserId:        userId,
 		UserCenter:    userCenter,
@@ -83,10 +84,7 @@ type accountCreationInfoMsgPayload struct {
 }
 
 func NewAccountCreationInfoMsg(headerCode int, seqNumber int, gameCode string, alias string, created string) []byte {
-	header := RespHeader{
-		Code: headerCode,
-		Seq:  seqNumber,
-	}
+	header := newRespHeader(headerCode, seqNumber)
 	payload := accountCreationInfoMsgPayload{
 		Type: "array",
 		Rows: []row{{
@@ -104,19 +102,15 @@ type gameTokenRespMsgPayload struct {
 }
 
 func NewGameTokenMsg(headerCode int, seqNumber int, token string) []byte {
-	header := RespHeader{
-		Code: headerCode,
-		Seq:  seqNumber,
-	}
+	header := newRespHeader(headerCode, seqNumber)
 	payload := gameTokenRespMsgPayload{
 		Token: token,
 	}
 	return MarshalResp(header, payload)
 }
 func MarshalResp(header RespHeader, payload any) []byte {
-	headerStr := header.Marshal()
 	payloadStr := mustMarshalXML(payload)
-	headerStr = fmt.Sprintf(headerStr, len(payloadStr)+1) // +1 due to ending \n
+	headerStr := fmt.Sprintf(header.Marshal(), len(payloadStr)+1)
 	return []byte(headerStr + payloadStr + "\n")
 }
 
@@ -126,6 +120,10 @@ func mustMarshalXML(thing any) string {
 		panic(err)
 	}
 	return strings.ReplaceAll(string(data), "\xCA\xFE\xBA\xBE", "")
+}
+
+func unmarshalPayload(data []byte, v any) error {
+	return xml.Unmarshal(data, v)
 }
 
 type PayloadConnect struct {
@@ -140,49 +138,17 @@ type PayloadConnect struct {
 	Process     int
 }
 
-func (pl *PayloadConnect) Unmarshal(data []byte) error {
-	err := xml.Unmarshal(data, &pl)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 type PayloadLoginFinish struct {
 	Language string
-}
-
-func (pl *PayloadLoginFinish) Unmarshal(data []byte) error {
-	err := xml.Unmarshal(data, &pl)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 type PayloadListGameAccounts struct {
 	GameCode string
 }
 
-func (pl *PayloadListGameAccounts) Unmarshal(data []byte) error {
-	err := xml.Unmarshal(data, &pl)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 type PayloadRequestGameToken struct {
 	GameCode     string
 	AccountAlias string
-}
-
-func (pl *PayloadRequestGameToken) Unmarshal(data []byte) error {
-	err := xml.Unmarshal(data, &pl)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 type RespHeader struct {
@@ -191,18 +157,23 @@ type RespHeader struct {
 }
 
 func (h RespHeader) codeString() string {
-	if h.Code == 400 {
+	switch h.Code {
+	case 400:
 		return "Success"
-	}
-	if h.Code == 200 {
+	case 200:
 		return "OK"
+	default:
+		return "Unknown"
 	}
-	return "UNKNOWN"
 }
 
 func (h RespHeader) Marshal() string {
-	var out = fmt.Sprintf("STS/1.0 %d %s\r\ns:%dR\r\nl:%%d\r\n\r\n", h.Code, h.codeString(), h.Seq)
-	return out
+	return fmt.Sprintf(
+		"STS/1.0 %d %s\r\ns:%dR\r\nl:%%d\r\n\r\n",
+		h.Code,
+		h.codeString(),
+		h.Seq,
+	)
 }
 
 type ReqMsg struct {
@@ -225,6 +196,13 @@ type ReqHeader struct {
 	PayloadLen int
 	HeaderLen  int
 }
+
+const (
+	pathConnect      = "/Sts/Connect"
+	pathLoginFinish  = "/Auth/LoginFinish"
+	pathListAccounts = "/Auth/ListMyGameAccounts"
+	pathRequestToken = "/Auth/RequestGameToken"
+)
 
 func UnmarshalReqMsg(data []byte) (ReqMsg, error) {
 	msg := ReqMsg{}
@@ -265,18 +243,22 @@ func UnmarshalReqMsg(data []byte) (ReqMsg, error) {
 		return msg, io.ErrUnexpectedEOF // Need more data to fit payload
 	}
 	switch msg.Header.Resource {
-	case "/Sts/Connect":
-		msg.Payload = &PayloadConnect{}
-		err = msg.Payload.(*PayloadConnect).Unmarshal(data[payloadStartIndex:])
-	case "/Auth/LoginFinish":
-		msg.Payload = &PayloadLoginFinish{}
-		err = msg.Payload.(*PayloadLoginFinish).Unmarshal(data[payloadStartIndex:])
-	case "/Auth/ListMyGameAccounts":
-		msg.Payload = &PayloadListGameAccounts{}
-		err = msg.Payload.(*PayloadListGameAccounts).Unmarshal(data[payloadStartIndex:])
-	case "/Auth/RequestGameToken":
-		msg.Payload = &PayloadRequestGameToken{}
-		err = msg.Payload.(*PayloadRequestGameToken).Unmarshal(data[payloadStartIndex:])
+	case pathConnect:
+		payload := &PayloadConnect{}
+		err = unmarshalPayload(data[payloadStartIndex:], payload)
+		msg.Payload = payload
+	case pathLoginFinish:
+		payload := &PayloadLoginFinish{}
+		err = unmarshalPayload(data[payloadStartIndex:], payload)
+		msg.Payload = payload
+	case pathListAccounts:
+		payload := &PayloadListGameAccounts{}
+		err = unmarshalPayload(data[payloadStartIndex:], payload)
+		msg.Payload = payload
+	case pathRequestToken:
+		payload := &PayloadRequestGameToken{}
+		err = unmarshalPayload(data[payloadStartIndex:], payload)
+		msg.Payload = payload
 	}
 	if err != nil {
 		return msg, err

@@ -7,6 +7,16 @@
             "party_size": 0,
             "agents": []
         },
+        "158": {
+            "debug_name": "port_sledge",
+            "explorable": false,
+            "map_file_id": 46599,
+            "agents": [],
+            "party_size": 1,
+            "spawn_points": [
+                [-8000, -6000, 0]
+            ]
+        },
         "165": {
             "debug_name": "foibles_fair",
             "explorable": false,

@@ -78,45 +78,49 @@ func (p *Player) OnC2SVerifyConnection(payload VerifyClientConnection) {
 		return
 	}
 	p.dbAcc = acc
-	// Check character UUID exists:
-	for _, char := range acc.Characters {
-		if bytes.Equal(char.UUID, payload.characterUUID[:]) {
-			p.dbChar = char
-			verified = true
-			break
+	if payload.mapId == 0 {
+		p.log.Debug().Msg("Skip UUID check - entering CharCreation instance")
+	} else {
+		// Check character UUID exists:
+		for _, char := range acc.Characters {
+			if bytes.Equal(char.UUID, payload.characterUUID[:]) {
+				p.dbChar = char
+				verified = true
+				break
+			}
 		}
+		if !verified {
+			p.log.Error().Str("characterUUID", db.UUIDStr(payload.characterUUID[:])).Msg("no such character")
+			p.Disconnect()
+			return
+		}
+		// Merge from DB data:
+		p.name = p.dbChar.Name
+		p.primaryProfession = int(p.dbChar.ProfessionPrimary)
+		p.secondaryProfession = int(p.dbChar.ProfessionSecondary)
+		p.level = int(p.dbChar.Level)
+		p.xp = int(p.dbChar.XP)
+		// Bags
+		bags, ok := db.GetBagsForCharacterByID(p.dbChar.ID)
+		if !ok {
+			p.log.Error().Uint64("id", p.dbChar.ID).Msg("failed to get bags for character")
+		}
+		p.bags = bags
 	}
-	if !verified {
-		p.log.Error().Str("accUUID", db.UUIDStr(payload.characterUUID[:])).Msg("no such character")
-		p.Disconnect()
-		return
-	}
-	// Merge from DB data:
-	p.name = p.dbChar.Name
-	p.primaryProfession = int(p.dbChar.ProfessionPrimary)
-	p.secondaryProfession = int(p.dbChar.ProfessionSecondary)
-	p.level = int(p.dbChar.Level)
-	p.xp = int(p.dbChar.XP)
-	// Bags
-	bags, ok := db.GetBagsForCharacterByID(p.dbChar.ID)
-	if !ok {
-		p.log.Error().Uint64("id", p.dbChar.ID).Msg("failed to get bags for character")
-	}
-	p.bags = bags
 
 	// TODO: Here we should verify the map is adjacent to the LastOutpostID if its explorable!
 
 	// Hook client up to an instance
-	inst := InstanceManager.GetOrCreateInstanceByMapId(payload.mapId)
-	if inst == nil {
+	inst, err := InstanceManager.GetOrCreateInstanceByMapId(payload.mapId)
+	if inst == nil || err != nil {
 		// something went wrong - decline connection
-		p.log.Error().Msg("unable to create instance")
+		p.log.Error().Err(err).Msg("unable to create instance")
 		p.Disconnect()
 		return
 	}
 	p.connectedInstance = inst
 
-	p.log.Info().Int("mapId", payload.mapId).Msg("VerifyClientConnection")
+	p.log.Debug().Int("mapId", payload.mapId).Msg("VerifyClientConnection")
 }
 
 func (p *Player) OnUserDisconnected() {
@@ -124,17 +128,21 @@ func (p *Player) OnUserDisconnected() {
 }
 
 func (p *Player) OnC2SUpdateProfessionChoice(payload UpdateProfessionChoice) {
-	p.log.Info().
+	p.log.Debug().
 		Int("profession", payload.professionId).
 		Bool("isPvE", payload.isPvE).
 		Msg("UpdateProfessionChoice")
 
 	p.EnqueuePacket(MarshalPvPItemsEnd())
 	p.EnqueuePacket(MarshalPlayerUpdateProfession(1, payload.professionId, 0))
+
+	p.EnqueuePacket(MarshalItemSetProfession(1, payload.professionId))
+
 }
 
 func (p *Player) OnC2SDyeEquipment(payload DyeEquipment) {
-	p.EnqueuePacket(MarshalItemSetProfession(1, 1))
+	//p.log.Info().Int("Prof", p.primaryProfession).Msg("C2SDyeEquipment")
+	//p.EnqueuePacket(MarshalItemSetProfession(1, 5))
 	resp := GwPacket.NewOut(0x15A)
 	resp.Uint32(1)
 	resp.Uint32(1)
@@ -142,13 +150,13 @@ func (p *Player) OnC2SDyeEquipment(payload DyeEquipment) {
 }
 
 func (p *Player) sendInstanceLoadSpawnPoint() {
-	p.log.Info().Msg("InstanceLoadRequestSpawnPoint")
+	p.log.Debug().Msg("InstanceLoadRequestSpawnPoint")
 	inst := *p.connectedInstance
 	p.EnqueuePacket(MarshalInstanceLoadSpawnPoint(inst.definition.MapFileId, p.posX, p.posY, p.plane, false, []byte{0xcd, 0x49, 0x03, 0xcc, 0x17, 0xa7, 0xdb, 0x01}))
 }
 
 func (p *Player) sendInstanceLoadRequestPlayers(payload InstanceLoadRequestPlayers) {
-	p.log.Info().Hex("unkBlob", payload.unk1).Int("playerAgentId", p.agentId).Msg("InstanceLoadRequestPlayers")
+	p.log.Debug().Hex("unkBlob", payload.unk1).Int("playerAgentId", p.agentId).Msg("InstanceLoadRequestPlayers")
 	// Sync skill info
 	p.sendUnlockedSkills()
 	p.sendSkillbar()
@@ -306,15 +314,11 @@ func (p *Player) sendUnlockedSkills() {
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00,
 	})
 	p.EnqueuePacket(resp)
-	// GAME_SMSG_SKILLS_UNLOCKED
 	p.EnqueuePacket(MarshalSkillsUnlocked())
 }
 
 func (p *Player) sendUnlockedPvpHeroes() {
-	resp := GwPacket.NewOut(0x0018)
-	resp.Uint16(1)
-	resp.Bytes([]byte{0xda, 0xde, 0xad, 0x0f})
-	p.EnqueuePacket(resp)
+	p.EnqueuePacket(MarshalSetUnlockedHeroes([]uint16{}))
 }
 
 func (p *Player) sendQuestInfoSync() {
@@ -355,7 +359,6 @@ func (p *Player) sendAttributePointsRemaining() {
 }
 
 func (p *Player) sendProfession() {
-	p.log.Info().Int("primary", int(p.dbChar.ProfessionPrimary)).Msg("sendProfession")
 	p.EnqueuePacket(MarshalPlayerUpdateProfession(p.agentId, int(p.dbChar.ProfessionPrimary), int(p.dbChar.ProfessionSecondary)))
 }
 
@@ -394,12 +397,12 @@ func (p *Player) sendCartographyData() {
 }
 
 func (p *Player) OnC2SChatMessage(payload ChatMessage) {
-	p.log.Info().Int("ag", payload.agentId).Str("msg", payload.message).Msg("ChatMessage")
-
-	// find channel by prefix char
 	if len(payload.message) <= 1 {
 		return
 	}
+	p.log.Info().Int("ag", payload.agentId).Str("msg", payload.message).Msg("ChatMessage")
+
+	// find channel by prefix char
 	var channel = payload.message[0]
 	var remainder = payload.message[1:]
 	if channel == '!' {

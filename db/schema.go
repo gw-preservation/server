@@ -13,7 +13,7 @@ type Account struct {
 	UUID       []byte `gorm:"type:binary(16);unique"` // Fixed-length 16-byte UUID field
 	Email      string `gorm:"unique"`
 	Password   string
-	Characters []Character `gorm:"foreignKey:AccountID"` // One-to-many relation
+	Characters []Character `gorm:"foreignKey:AccountID;constraint:OnDelete:CASCADE;"` // One-to-many relation, cascade delete
 }
 
 type Character struct {
@@ -28,7 +28,7 @@ type Character struct {
 	Account             Account `gorm:"foreignKey:AccountID"` // ForeignKey relation
 	Name                string
 	XP                  uint32 `gorm:"default:0"`
-	Bags                []Bag  `gorm:"foreignKey:CharacterID"` // One-to-many relationship with Bag
+	Bags                []Bag  `gorm:"foreignKey:CharacterID;constraint:OnDelete:CASCADE;"` // One-to-many relation, cascade delete
 }
 
 type Bag struct {
@@ -119,8 +119,7 @@ func maybeBootstrap() (err error) {
 	database.Create(&rootAccount)
 	// One character
 	primaryProfession := uint8(4)
-	rootChar := NewDbChar(rootAccount.ID, "Default Char", int(primaryProfession), 0x0744943b)
-	database.Create(&rootChar)
+	AddDbChar(rootAccount.ID, "Default Char", int(primaryProfession), 0x0744943b)
 
 	// Make an alt account
 	altAccount := Account{
@@ -131,8 +130,7 @@ func maybeBootstrap() (err error) {
 	database.Create(&altAccount)
 	primaryProfession = uint8(1)
 
-	altChar := NewDbChar(altAccount.ID, "Alt Char 1", int(primaryProfession), 0x041094e6)
-	database.Create(&altChar)
+	AddDbChar(altAccount.ID, "Alt Char 1", int(primaryProfession), 0x041094e6)
 
 	// Make a second alt account
 	altAccount2 := Account{
@@ -143,7 +141,6 @@ func maybeBootstrap() (err error) {
 	database.Create(&altAccount2)
 	primaryProfession = uint8(5)
 
-	altChar2 := NewDbChar(altAccount2.ID, "Alt Char 2", int(primaryProfession), 0x045171b5)
-	database.Create(&altChar2)
+	AddDbChar(altAccount2.ID, "Alt Char 2", int(primaryProfession), 0x045171b5)
 	return
 }

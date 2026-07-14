@@ -92,12 +92,18 @@ type ClientSeed struct {
 
 // opcode: 0x8021
 type UpdateSettingsLength struct {
-	unk1 int // wire:uint32
-	unk2 int // wire:uint32
+	reqNumber int // wire:uint32
+	unk2      int // wire:uint32
 }
 
 // opcode: 0x8020
 type UpdateSettings struct {
 	unk1     int    // wire:uint32
 	settings []byte // wire:VarByte
+}
+
+// opcode: 0x8007
+type DeleteCharacter struct {
+	reqNumber int // wire:uint32
+	name      string
 }

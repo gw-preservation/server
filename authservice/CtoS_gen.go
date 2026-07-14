@@ -262,9 +262,9 @@ func UnmarshalUpdateSettingsLength(in *GwPacket.In) (resp UpdateSettingsLength, 
 		err = errors.New("bad opcode")
 		return
 	}
-	resp.unk1, err = in.Uint32()
+	resp.reqNumber, err = in.Uint32()
 	if err != nil {
-		err = fmt.Errorf("read unk1: %w", err)
+		err = fmt.Errorf("read reqNumber: %w", err)
 		return
 	}
 	resp.unk2, err = in.Uint32()
@@ -292,6 +292,23 @@ func UnmarshalUpdateSettings(in *GwPacket.In) (resp UpdateSettings, err error) {
 	resp.settings, err = in.Bytes(settingsLen)
 	if err != nil {
 		err = fmt.Errorf("read settings: %w", err)
+		return
+	}
+	return
+}
+func UnmarshalDeleteCharacter(in *GwPacket.In) (resp DeleteCharacter, err error) {
+	if in.Opcode() != 0x8007 {
+		err = errors.New("bad opcode")
+		return
+	}
+	resp.reqNumber, err = in.Uint32()
+	if err != nil {
+		err = fmt.Errorf("read reqNumber: %w", err)
+		return
+	}
+	resp.name, err = in.UTF16WithLengthPrefix()
+	if err != nil {
+		err = fmt.Errorf("read name: %w", err)
 		return
 	}
 	return

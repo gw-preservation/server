@@ -415,3 +415,48 @@ func UnmarshalClientPingRequest(in *GwPacket.In) (resp ClientPingRequest, err er
 	}
 	return
 }
+func UnmarshalInstanceLoadRequestSpawnPoint(in *GwPacket.In) (resp InstanceLoadRequestSpawnPoint, err error) {
+	if in.Opcode() != 0x8087 {
+		err = errors.New("bad opcode")
+		return
+	}
+	return
+}
+func UnmarshalCreateCharRequestPlayer(in *GwPacket.In) (resp CreateCharRequestPlayer, err error) {
+	if in.Opcode() != 0x8088 {
+		err = errors.New("bad opcode")
+		return
+	}
+	return
+}
+func UnmarshalInstanceLoadRequestStart(in *GwPacket.In) (resp InstanceLoadRequestStart, err error) {
+	if in.Opcode() != 0x8089 {
+		err = errors.New("bad opcode")
+		return
+	}
+	return
+}
+func UnmarshalClientDisconnect(in *GwPacket.In) (resp ClientDisconnect, err error) {
+	if in.Opcode() != 0x8008 {
+		err = errors.New("bad opcode")
+		return
+	}
+	return
+}
+func UnmarshalUnknown8090(in *GwPacket.In) (resp Unknown8090, err error) {
+	if in.Opcode() != 0x8090 {
+		err = errors.New("bad opcode")
+		return
+	}
+	resp.unk1, err = in.Uint8()
+	if err != nil {
+		err = fmt.Errorf("read unk1: %w", err)
+		return
+	}
+	resp.unk2, err = in.Uint8()
+	if err != nil {
+		err = fmt.Errorf("read unk2: %w", err)
+		return
+	}
+	return
+}

@@ -3,7 +3,6 @@ package GameService
 import (
 	"crypto/rc4"
 	"fmt"
-	"gw1/server/crypt"
 	GwPacket "gw1/server/gwpacket"
 	Item "gw1/server/item"
 	"net"
@@ -30,7 +29,6 @@ func NewGSConn(socket *net.TCPConn, logCtx zerolog.Logger) *GSConn {
 		log:    logCtx.With().Str("srv", "game").Logger(),
 	}
 	conn.player = NewPlayer(&conn, logCtx)
-	conn.log.Info().Msg("new client")
 	go func() {
 		for !conn.closed {
 			time.Sleep(time.Millisecond * 20)
@@ -49,86 +47,8 @@ func (conn *GSConn) DecryptBytes(data []byte) {
 	}
 }
 
-func (conn *GSConn) onVerifyClientConnection(pkt *GwPacket.In) (int, error) {
-	payload, err := UnmarshalVerifyClientConnection(pkt)
-	if err != nil {
-		return 0, fmt.Errorf("UnmarshalVerifyClientConnection: %w", err)
-	}
-	conn.player.OnC2SVerifyConnection(payload)
-	return pkt.Position(), nil
-}
-func (conn *GSConn) onClientSeed(pkt *GwPacket.In) (int, error) {
-	payload, err := UnmarshalClientSeed(pkt)
-	if err != nil {
-		return 0, fmt.Errorf("UnmarshalClientSeed: %w", err)
-	}
-	rc4Key, publicBytes := crypt.GenerateEncryptionKey([64]byte(payload.seed))
-
-	conn.dec, err = rc4.NewCipher(rc4Key[:])
-	if err != nil {
-		return 0, fmt.Errorf("error creating rc4 decrypter: %s", err)
-	}
-	resp := GwPacket.NewOutRaw()
-	resp.Uint8(01)
-	resp.Uint8(len(publicBytes) + 2)
-	resp.Bytes(publicBytes[:])
-	conn.WritePacket(&resp)
-
-	conn.enc, err = rc4.NewCipher(rc4Key[:])
-	if err != nil {
-		return 0, fmt.Errorf("error creating rc4 encrypter: %s", err)
-	}
-
-	(*conn.player.connectedInstance).AddPlayer(&conn.player)
-
-	return pkt.Position(), nil
-}
-
-func (conn *GSConn) onGPUInformation(pkt *GwPacket.In) (int, error) {
-	payload, err := UnmarshalGpuInformation(pkt)
-	if err != nil {
-		return 0, fmt.Errorf("UnmarshalGPUInformation: %w", err)
-	}
-
-	conn.log.Info().Str("name", payload.driverName).Str("version", payload.driverVersion).Msg("GPUInfo")
-
-	return pkt.Position(), nil
-}
-
-func (conn *GSConn) onDisconnect(pkt *GwPacket.In) (int, error) {
-	conn.player.OnUserDisconnected()
-	conn.Close()
-	return pkt.Position(), nil
-}
-
-func (conn *GSConn) onInstanceLoadRequestStart(pkt *GwPacket.In) (int, error) {
-	conn.log.Info().Msg("InstanceLoadRequestStart")
-	return pkt.Position(), nil
-}
-
-func (conn *GSConn) onUpdateProfessionChoice(pkt *GwPacket.In) (int, error) {
-	payload, err := UnmarshalUpdateProfessionChoice(pkt)
-	if err != nil {
-		return 0, fmt.Errorf("UnmarshalUpdateProfessionChoice: %w", err)
-	}
-	conn.player.OnC2SUpdateProfessionChoice(payload)
-	// Now respond with updated items and profession
-
-	return pkt.Position(), nil
-}
-
-func (conn *GSConn) onDyeEquipment(pkt *GwPacket.In) (int, error) {
-	payload, err := UnmarshalDyeEquipment(pkt)
-	if err != nil {
-		return 0, fmt.Errorf("UnmarshalDyeEquipment: %w", err)
-	}
-	conn.player.OnC2SDyeEquipment(payload)
-
-	return pkt.Position(), nil
-}
-
 func (conn *GSConn) sendCreateCharacterInstanceInfo() {
-	conn.log.Warn().Msg("sendCreateCharacterInstanceInfo")
+	conn.log.Debug().Msg("sendCreateCharacterInstanceInfo")
 	conn.EnqueuePacket(MarshalInstancePlayerDataStart())
 	itemStreamId := 1
 	conn.EnqueuePacket(MarshalItemStreamCreate(itemStreamId))
@@ -153,7 +73,7 @@ func (conn *GSConn) sendCreateCharacterInstanceInfo() {
 
 	conn.EnqueuePacket(MarshalAgentUpdateAttributePoints(conn.player.agentId, 0, 0))
 
-	conn.EnqueuePacket(MarshalPlayerUpdateProfession(conn.player.agentId, conn.player.primaryProfession, conn.player.secondaryProfession))
+	conn.EnqueuePacket(MarshalPlayerUpdateProfession(conn.player.agentId, 5, conn.player.secondaryProfession))
 
 	conn.EnqueuePacket(MarshalAgentAttrUpdateInt(conn.player.agentId, 64, 0))
 
@@ -228,7 +148,7 @@ func (conn *GSConn) sendWorldInstanceBody() {
 			))
 			conn.EnqueuePacket(MarshalItemMovedToLocation(1, 2+slotIndex, bagIndex, slotIndex))
 
-			conn.log.Info().Msg("Transmitting item in slot!")
+			conn.log.Debug().Msg("Transmitting item in slot!")
 		}
 	}
 
@@ -239,225 +159,31 @@ func (conn *GSConn) sendWorldInstanceBody() {
 	conn.EnqueuePacket(MarshalHeroInfo())
 }
 
-func (conn *GSConn) onCreateCharRequestPlayer(pkt *GwPacket.In) (int, error) {
-	conn.log.Info().Msg("CharCreationRequestPlayer")
-
-	return pkt.Position(), nil
-}
-
-func (conn *GSConn) on8090(pkt *GwPacket.In) (int, error) {
-	if pkt.Remaining() < 2 {
-		return 0, nil
-	}
-	pkt.Skip(2)
-
-	return pkt.Position(), nil
-}
-
-func (conn *GSConn) onInstanceLoadRequestSpawnPoint(pkt *GwPacket.In) (int, error) {
-	conn.player.sendInstanceLoadSpawnPoint()
-	return pkt.Position(), nil
-}
-
-func (conn *GSConn) onInstanceLoadRequestPlayers(pkt *GwPacket.In) (int, error) {
-	payload, err := UnmarshalInstanceLoadRequestPlayers(pkt)
-	if err != nil {
-		return 0, fmt.Errorf("UnmarshalInstanceLoadRequestPlayers: %w", err)
-	}
-	conn.player.sendInstanceLoadRequestPlayers(payload)
-
-	return pkt.Position(), nil
-}
-
-func (conn *GSConn) on8091(pkt *GwPacket.In) (int, error) {
-	_, err := UnmarshalUnknown8091(pkt)
-	if err != nil {
-		return 0, fmt.Errorf("Unmarshal8091: %w", err)
-	}
-
-	return pkt.Position(), nil
-}
-
-func (conn *GSConn) onPingReply(pkt *GwPacket.In) (int, error) {
-	_, err := UnmarshalPingReply(pkt)
-	if err != nil {
-		return 0, fmt.Errorf("UnmarshalPingReply: %w", err)
-	}
-	resp := GwPacket.NewOut(0xd)
-	resp.Uint32(1)
-	conn.EnqueuePacket(resp)
-	return pkt.Position(), nil
-}
-
-func (conn *GSConn) onChatMessage(in *GwPacket.In) (int, error) {
-	payload, err := UnmarshalChatMessage(in)
-	if err != nil {
-		return 0, fmt.Errorf("UnmarshalChatMessage: %w", err)
-	}
-	conn.player.OnC2SChatMessage(payload)
-	return in.Position(), nil
-}
-
-func (conn *GSConn) onCreateCharacterFinish(pkt *GwPacket.In) (int, error) {
-	payload, err := UnmarshalCreateCharacterFinish(pkt)
-	if err != nil {
-		return 0, fmt.Errorf("UnmarshalCreateCharacterFinish: %w", err)
-	}
-	appearance := ParseAppearanceBits(uint32(payload.appearance))
-
-	conn.log.Info().Str("desiredName", payload.name).Interface("appearance", appearance).Msg("CreateCharacterFinish")
-
-	// Simulate name taken:
-	conn.EnqueuePacket(MarshalCharCreationError(29))
-
-	// 0x187 is sent instead of 0x18A if name was successful
-
-	return pkt.Position(), nil
-}
-
-func (conn *GSConn) onMoveToPoint(in *GwPacket.In) (int, error) {
-	payload, err := UnmarshalMoveToPoint(in)
-	if err != nil {
-		return 0, fmt.Errorf("UnmarshalMoveToPoint: %w", err)
-	}
-	conn.player.connectedInstance.UpdateRequestedPlayerPos(&conn.player, payload.x, payload.y)
-	conn.EnqueuePacket(MarshalMoveToPointS2C(conn.player.agentId, payload.x, payload.y, 0))
-	return in.Position(), nil
-}
-
-func (conn *GSConn) onRotateAgent(in *GwPacket.In) (int, error) {
-	payload, err := UnmarshalRotateAgent(in)
-	if err != nil {
-		return 0, fmt.Errorf("UnmarshalRotateAgent: %w", err)
-	}
-	conn.log.Debug().Int("unk1", payload.unk1).Int("unk2", payload.unk2).Msg("RotateAgent")
-	return in.Position(), nil
-}
-
-func (conn *GSConn) onMovementUpdate(in *GwPacket.In) (int, error) {
-	_, err := UnmarshalMovementUpdate(in)
-	if err != nil {
-		return 0, fmt.Errorf("UnmarshalMovementUpdate %w", err)
-	}
-	return in.Position(), nil
-}
-
-func (conn *GSConn) onLastPosBeforeMoveCancelled(in *GwPacket.In) (int, error) {
-	_, err := UnmarshalLastPosBeforeMoveCancelled(in)
-	if err != nil {
-		return 0, fmt.Errorf("UnmarshalLastPosBeforeMoveCancelled %w", err)
-	}
-	return in.Position(), nil
-}
-
-func (conn *GSConn) onUpdateTarget(in *GwPacket.In) (int, error) {
-	payload, err := UnmarshalUpdateTarget(in)
-	if err != nil {
-		return 0, fmt.Errorf("UnmarshalUnknown80c0: %w", err)
-	}
-	conn.log.Debug().Int("target", payload.targetAgentId).Str("playerName", conn.player.name).Msg("UpdateTarget")
-	return in.Position(), nil
-}
-
-func (conn *GSConn) onInteractAgent(in *GwPacket.In) (int, error) {
-	payload, err := UnmarshalInteractAgent(in)
-	if err != nil {
-		return 0, fmt.Errorf("UnmarshalInteractAgent: %w", err)
-	}
-	conn.player.SendChatWarning(fmt.Sprintf("missing interaction definition for agent=%d,action=%d", payload.agentId, payload.action))
-	conn.log.Info().Int("target", payload.agentId).Int("action", payload.action).Msg("InteractAgent")
-	return in.Position(), nil
-}
-
-func (conn *GSConn) onCancelInteraction(in *GwPacket.In) (int, error) {
-	_, err := UnmarshalCancelInteraction(in)
-	if err != nil {
-		return 0, fmt.Errorf("UnmarshalCancelInteraction: %w", err)
-	}
-	return in.Position(), nil
-}
-
-func (conn *GSConn) Close() {
-	conn.closed = true
-	if conn.player.connectedInstance != nil {
-		(*conn.player.connectedInstance).RemovePlayer(&conn.player)
-	}
-	conn.socket.Close()
-}
-
-func (conn *GSConn) onClientPingRequest(in *GwPacket.In) (int, error) {
-	_, err := UnmarshalClientPingRequest(in)
-	if err != nil {
-		return 0, fmt.Errorf("UnmarshalClientPingRequest: %w", err)
-	}
-	return in.Position(), nil
-}
-
 func (conn *GSConn) HandleBytes(data []byte) (consumed int, err error) {
 	if len(data) < 2 {
 		return 0, nil
 	}
+
 	in := GwPacket.NewIn(data)
 	op, _ := in.Uint16()
-	switch op {
-	case 0x0500:
-		consumed, err = conn.onVerifyClientConnection(&in)
-	case 0x4200:
-		consumed, err = conn.onClientSeed(&in)
-	case 0x800a:
-		consumed, err = conn.onGPUInformation(&in)
-	case 0x800c:
-		consumed, err = conn.onClientPingRequest(&in)
-	case 0x8009:
-		consumed, err = conn.onPingReply(&in)
-	case 0x8027:
-		consumed, err = conn.onCancelInteraction(&in)
-	case 0x8038:
-		consumed, err = conn.onInteractAgent(&in)
-	case 0x803c:
-		consumed, err = conn.onMovementUpdate(&in)
-	case 0x803d:
-		consumed, err = conn.onMoveToPoint(&in)
-	case 0x803f:
-		consumed, err = conn.onRotateAgent(&in)
-	case 0x8046:
-		consumed, err = conn.onLastPosBeforeMoveCancelled(&in)
-	case 0x805f:
-		consumed, err = conn.onUpdateProfessionChoice(&in)
-	case 0x8063:
-		consumed, err = conn.onChatMessage(&in)
-	case 0x8083:
-		consumed, err = conn.onDyeEquipment(&in)
-	case 0x8087:
-		consumed, err = conn.onInstanceLoadRequestSpawnPoint(&in)
-	case 0x8088:
-		consumed, err = conn.onCreateCharRequestPlayer(&in)
-	case 0x808f:
-		consumed, err = conn.onInstanceLoadRequestPlayers(&in)
-	case 0x8089:
-		consumed, err = conn.onInstanceLoadRequestStart(&in)
-	case 0x808a:
-		consumed, err = conn.onCreateCharacterFinish(&in)
-	case 0x8090:
-		consumed, err = conn.on8090(&in)
-	case 0x8091:
-		consumed, err = conn.on8091(&in)
-	case 0x8008:
-		consumed, err = conn.onDisconnect(&in)
-	case 0x80c0:
-		consumed, err = conn.onUpdateTarget(&in)
-	default:
+	conn.log.Debug().Str("opcode", fmt.Sprintf("%04x", op)).Msg("recv")
+
+	if handler, ok := packetHandlers[op]; ok {
+		consumed, err = handler(conn, &in)
+	} else {
 		consumed = len(data)
 		conn.log.Warn().Str("op", fmt.Sprintf("%04x", op)).Hex("data", data).Msg("unhandled packet")
-		// TEMPORARY HACK, REMOVE COMMENT AND HANDLE PACKETS PROPERLY!
 	}
+
 	if len(conn.out.GetBytes()) > 0 {
 		conn.WritePacket(&conn.out)
 		conn.out.Reset()
 	}
+
 	if err != nil {
 		err = fmt.Errorf("HandleBytes(op=%04x): %w", op, err)
 	}
+
 	return consumed, err
 }
 

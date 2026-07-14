@@ -83,7 +83,7 @@ func LoadInstanceDefinitionsFromDisk() error {
 	for mapIdStr, definition := range instanceDefinitions.Instances {
 		mapId, err := strconv.Atoi(mapIdStr)
 		if err != nil {
-			panic(fmt.Errorf("bad map id %s: %w", mapIdStr, err))
+			return fmt.Errorf("bad map id %s: %w", mapIdStr, err)
 		}
 		if definition.Explorable {
 			continue
@@ -104,12 +104,11 @@ var InstanceManager = instanceManager{
 	instances: make(map[uint64]*Instance),
 }
 
-func (im *instanceManager) GetOrCreateInstanceByMapId(mapId int) *Instance {
+func (im *instanceManager) GetOrCreateInstanceByMapId(mapId int) (*Instance, error) {
 	// Check definition for mapId
 	definition, ok := instanceDefinitions.Instances[strconv.Itoa(mapId)]
 	if !ok {
-		log.Error().Int("mapId", mapId).Msg("missing instance definition")
-		return nil
+		return nil, fmt.Errorf("missing instance definition for map id %d", mapId)
 	}
 	var inst Instance
 	if !definition.Explorable {
@@ -117,14 +116,14 @@ func (im *instanceManager) GetOrCreateInstanceByMapId(mapId int) *Instance {
 		existingInst, hasExistingInst := im.GetInstanceByMapId(mapId)
 		if !hasExistingInst {
 			log.Error().Int("mapId", mapId).Msg("missing persistent instance")
-			return nil
+			return nil, fmt.Errorf("missing persistent instance for non-explorable map id %d", mapId)
 		}
-		return existingInst
+		return existingInst, nil
 	}
 	// Private instance -- create one now:
 	inst = NewInstance(mapId, definition)
 	im.AddInstance(&inst)
-	return &inst
+	return &inst, nil
 }
 
 func (im *instanceManager) GetInstanceByMapId(mapId int) (*Instance, bool) {
@@ -197,7 +196,8 @@ func NewInstance(mapId int, definition instanceDefinition) (i Instance) {
 	for _, agentToSpawn := range i.definition.Agents {
 		agentDefinition, ok := instanceDefinitions.Agents[agentToSpawn.Name]
 		if !ok {
-			log.Error().Str("name", agentToSpawn.Name).Msg("missing definition for agent")
+			log.Error().Int("mapId", mapId).Str("name", agentToSpawn.Name).Msg("missing definition for agent")
+			continue
 		}
 		ag := Agent{
 			agentId:             i.NextFreeAgentId(),
@@ -440,6 +440,17 @@ func (i *Instance) TransmitPlayer(to *Player, other *Player) {
 }
 
 func (i *Instance) UpdateRequestedPlayerPos(player *Player, x float32, y float32) {
+	found := false
+	for _, cur := range i.players {
+		if cur.playerId == player.playerId {
+			found = true
+			break
+		}
+	}
+	if !found {
+		i.log.Warn().Msg("refusing to update player pos for a player not in this instance")
+		return
+	}
 	// The player requested a new position -- for now just update the instance definition and transmit movement update to everyone.
 	player.posX = x
 	player.posY = y

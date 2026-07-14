@@ -1,6 +1,7 @@
 package db
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/rs/zerolog"
@@ -42,6 +43,41 @@ func Close() {
 		}
 		d.Close()
 	}
+}
+
+func CharacterNameExists(name string) bool {
+	var id uint64
+	err := database.Model(&Character{}).
+		Select("id").
+		Where("name = ?", name).
+		Take(&id).Error
+	switch {
+	case errors.Is(err, gorm.ErrRecordNotFound):
+		return false
+	case err != nil:
+		log.Error().Str("name", name).Err(err).Msg("unable to query whether character name exists")
+		return true
+	default:
+		return true
+	}
+}
+
+func DeleteDbChar(name string, requestedByAccId uint64) error {
+	result := database.Where(
+		"name = ? AND account_id = ?",
+		name,
+		requestedByAccId,
+	).Delete(&Character{})
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return errors.New("character not found or not owned by account")
+	}
+
+	return nil
 }
 
 func GetAccountByEmail(email string) (acc Account, ok bool) {
@@ -96,7 +132,8 @@ func NewDbBag(forCharacterId uint64, capacity int, bagType int) (bag Bag) {
 	return
 }
 
-func NewDbChar(forAccountId uint64, name string, primaryProfession int, appearanceBits uint32) (char Character) {
+func AddDbChar(forAccountId uint64, name string, primaryProfession int, appearanceBits uint32) (char Character) {
+	log.Info().Uint64("forAccountId", forAccountId).Str("name", name).Int("primary", primaryProfession).Uint32("appearance", appearanceBits).Msg("NewDbChar")
 	char.AccountID = forAccountId
 	char.UUID = randUuid()
 	char.Name = name
@@ -129,5 +166,6 @@ func NewDbChar(forAccountId uint64, name string, primaryProfession int, appearan
 		ItemType:     44,
 		ItemQuantity: 1,
 	}*/
+	database.Create(&char)
 	return
 }

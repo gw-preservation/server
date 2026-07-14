@@ -45,6 +45,19 @@ func MarshalPvPItemsEnd() (resp GwPacket.Out) {
 	return
 }
 
+func MarshalCharCreationFinish(charUuid []byte, name string, mapId int, unk3 VarByte) (resp GwPacket.Out) {
+	resp = GwPacket.NewOut(0x187)
+	if len(charUuid) != 16 {
+		panic(fmt.Errorf("length check failed for field 'charUuid' of struct 'CharCreationFinish': %d vs %d", len(charUuid), 16))
+	}
+	resp.Bytes(charUuid)
+	resp.UTF16WithLengthPrefix(name)
+	resp.Uint16(mapId)
+	resp.Uint16(len(unk3))
+	resp.Bytes(unk3)
+	return
+}
+
 func MarshalCharCreationStart() (resp GwPacket.Out) {
 	resp = GwPacket.NewOut(0x188)
 	return
@@ -561,5 +574,20 @@ func MarshalUpdateDeathPenalty(agentId int, deathPenaltyBasis int) (resp GwPacke
 	resp = GwPacket.NewOut(0x9b)
 	resp.Uint32(agentId)
 	resp.Uint32(deathPenaltyBasis)
+	return
+}
+
+func MarshalSetUnlockedHeroes(unk []uint16) (resp GwPacket.Out) {
+	resp = GwPacket.NewOut(0x18)
+	resp.Uint16(len(unk))
+	for _, i := range unk {
+		resp.Uint16(int(i))
+	}
+	return
+}
+
+func MarshalMessageOfTheDay(motd string) (resp GwPacket.Out) {
+	resp = GwPacket.NewOut(0x33)
+	resp.UTF16WithLengthPrefix(motd)
 	return
 }
