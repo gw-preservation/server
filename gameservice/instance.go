@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 	"unicode/utf16"
 
@@ -50,10 +51,10 @@ type agentDefinition struct {
 }
 
 var instanceDefinitions = struct {
-	Instances map[string]instanceDefinition `json:"instances"`
-	Agents    map[string]agentDefinition    `json:"agents"`
+	Instances map[int]instanceDefinition `json:"instances"`
+	Agents    map[string]agentDefinition `json:"agents"`
 }{
-	Instances: make(map[string]instanceDefinition, 0),
+	Instances: make(map[int]instanceDefinition, 0),
 	Agents:    make(map[string]agentDefinition, 0),
 }
 
@@ -80,13 +81,14 @@ func LoadInstanceDefinitionsFromDisk() error {
 	}
 
 	// Now start up all persistent instances:
-	for mapIdStr, definition := range instanceDefinitions.Instances {
-		mapId, err := strconv.Atoi(mapIdStr)
-		if err != nil {
-			return fmt.Errorf("bad map id %s: %w", mapIdStr, err)
-		}
+	for mapId, definition := range instanceDefinitions.Instances {
 		if definition.Explorable {
 			continue
+		}
+
+		nSpawnPoints := len(definition.SpawnPoints)
+		if nSpawnPoints == 0 {
+			panic(fmt.Errorf("instance for map id %d has no spawn points", mapId))
 		}
 
 		inst := NewInstance(mapId, definition)
@@ -98,15 +100,17 @@ func LoadInstanceDefinitionsFromDisk() error {
 
 type instanceManager struct {
 	instances map[uint64]*Instance
+	mu        sync.RWMutex
 }
 
 var InstanceManager = instanceManager{
 	instances: make(map[uint64]*Instance),
+	mu:        sync.RWMutex{},
 }
 
 func (im *instanceManager) GetOrCreateInstanceByMapId(mapId int) (*Instance, error) {
 	// Check definition for mapId
-	definition, ok := instanceDefinitions.Instances[strconv.Itoa(mapId)]
+	definition, ok := instanceDefinitions.Instances[mapId]
 	if !ok {
 		return nil, fmt.Errorf("missing instance definition for map id %d", mapId)
 	}
@@ -127,6 +131,8 @@ func (im *instanceManager) GetOrCreateInstanceByMapId(mapId int) (*Instance, err
 }
 
 func (im *instanceManager) GetInstanceByMapId(mapId int) (*Instance, bool) {
+	im.mu.RLock()
+	defer im.mu.RUnlock()
 	for _, inst := range im.instances {
 		if inst.mapId == mapId {
 			return inst, true
@@ -136,7 +142,9 @@ func (im *instanceManager) GetInstanceByMapId(mapId int) (*Instance, bool) {
 }
 
 func (im *instanceManager) AddInstance(instance *Instance) {
+	im.mu.Lock()
 	im.instances[instance.uuid] = instance
+	im.mu.Unlock()
 	go instance.MainLoop()
 	go instance.MovementTickLoop()
 }
@@ -151,27 +159,40 @@ type Instance struct {
 	gracefulShutdownSignal chan bool
 	forceShutdownSignal    chan bool
 	log                    zerolog.Logger
+	mu                     *sync.RWMutex
 }
 
 func (inst *Instance) TransmitAgentDespawned(agent *Agent) {
+	inst.mu.RLock()
+	defer inst.mu.RUnlock()
 	for _, other := range inst.players {
 		other.sendAgentDespawned(agent)
 	}
 }
 
 func (inst *Instance) RemovePlayer(player *Player) {
-	inst.TransmitAgentDespawned(&player.Agent)
+	inst.mu.Lock()
+	removed := false
 	for i, v := range inst.players {
 		if v == nil {
 			continue
 		}
 		if player.uuid == v.uuid {
-			// Remove the element by re-slicing
 			inst.players = slices.Delete(inst.players, i, i+1)
+			removed = true
+			break // stop iterating over a slice we just mutated
 		}
 	}
+	remaining := len(inst.players)
+	inst.mu.Unlock()
+	if !removed {
+		return
+	}
+	// so the departing player doesn't get sent their own despawn.
+	inst.TransmitAgentDespawned(&player.Agent)
+
 	inst.log.Debug().Uint64("playerUuid", player.uuid).Msg("player removed from instance")
-	if inst.definition.Explorable && len(inst.players) == 0 {
+	if inst.definition.Explorable && remaining == 0 {
 		inst.log.Debug().Msg("explorable instance shutting down due to inactivity")
 		inst.gracefulShutdownSignal <- true
 	}
@@ -186,6 +207,7 @@ func NewInstance(mapId int, definition instanceDefinition) (i Instance) {
 		agents:                 make([]Agent, 0),
 		gracefulShutdownSignal: make(chan bool, 1),
 		forceShutdownSignal:    make(chan bool, 1),
+		mu:                     &sync.RWMutex{},
 	}
 	i.log = log.With().Uint64("uuid", i.uuid).Int("mapId", i.mapId).Logger()
 	if i.definition.Explorable {
@@ -233,32 +255,47 @@ func (i *Instance) MainLoop() {
 		select {
 		case <-i.gracefulShutdownSignal:
 			i.log.Debug().Msg("graceful shutdown")
+			i.mu.Lock()
+			i.alive = false
+			i.mu.Unlock()
 			return
 		case <-i.forceShutdownSignal:
 			i.log.Debug().Msg("force shutdown")
+			i.mu.Lock()
 			i.alive = false
+			i.mu.Unlock()
 			return
 		default:
 			time.Sleep(time.Second * 5)
+			i.mu.RLock()
 			for _, player := range i.players {
 				if player.conn.closed {
 					continue
 				}
 				player.EnqueuePacket(MarshalServerPingRequest(30, 491)) // dont know what these values mean
 			}
+			i.mu.RUnlock()
 		}
 	}
 }
 
+func (i *Instance) isAlive() bool {
+	i.mu.RLock()
+	defer i.mu.RUnlock()
+	return i.alive
+}
+
 func (i *Instance) MovementTickLoop() {
-	for i.alive {
+	for i.isAlive() {
 		time.Sleep(time.Millisecond * 500)
+		i.mu.RLock()
 		for _, player := range i.players {
 			if player.conn.closed {
 				continue
 			}
 			player.EnqueuePacket(MarshalAgentMovementTick(500))
 		}
+		i.mu.RUnlock()
 	}
 }
 
@@ -266,15 +303,14 @@ func (i *Instance) NextFreeAgentId() int {
 	return len(i.agents) + 1
 }
 func (i *Instance) NextFreePlayerId() int {
-	return len(i.players) + 10
+	return len(i.players) + 1
 }
 
 func (i *Instance) NextSpawnPoint() (x, y float32, plane int) {
 	nSpawnPoints := len(i.definition.SpawnPoints)
-	if nSpawnPoints == 0 {
-		panic(fmt.Errorf("instance for map id %d has no spawn points", i.mapId))
-	}
-	spawnPoint := i.definition.SpawnPoints[0]
+	// Choose a random spawn point:
+	randIndex := rand.Intn(nSpawnPoints)
+	spawnPoint := i.definition.SpawnPoints[randIndex]
 	x = spawnPoint[0]
 	y = spawnPoint[1]
 	plane = int(spawnPoint[2])
@@ -317,10 +353,12 @@ func convertEncName(in string) []byte {
 }
 
 func (i *Instance) AddPlayer(player *Player) {
+	i.mu.Lock()
 	player.agentId = i.NextFreeAgentId()
 	player.playerId = i.NextFreePlayerId()
 	i.players = append(i.players, player)
 	i.agents = append(i.agents, player.Agent)
+	i.mu.Unlock()
 	fmt.Printf("%s added to instance.\n", player.name)
 	fmt.Printf("%d players in instance:\n", len(i.players))
 	for i, v := range i.players {
@@ -357,6 +395,8 @@ func randomFloatAround(start, rangeVal float32) float32 {
 }
 
 func (i *Instance) SendActiveAgents(to *Player) {
+	i.mu.RLock()
+	defer i.mu.RUnlock()
 
 	// Let's send agent info now.
 	transmittedDefinitions := make([]int, 0)
@@ -398,6 +438,8 @@ func (i *Instance) SendActiveAgents(to *Player) {
 }
 
 func (i *Instance) TransmitOtherPlayersToPlayer(to *Player) {
+	i.mu.RLock()
+	defer i.mu.RUnlock()
 	for _, other := range i.players {
 		if other.playerId == to.playerId {
 			continue
@@ -407,6 +449,8 @@ func (i *Instance) TransmitOtherPlayersToPlayer(to *Player) {
 }
 
 func (i *Instance) TransmitPlayerToOthers(player *Player) {
+	i.mu.RLock()
+	defer i.mu.RUnlock()
 	for _, other := range i.players {
 		if other.playerId == player.playerId {
 			continue
@@ -429,7 +473,7 @@ func (i *Instance) TransmitPlayer(to *Player, other *Player) {
 		5,
 		other.posX,
 		other.posY,
-		0,
+		other.plane,
 		other.facingX,
 		other.facingY,
 		other.speed,
@@ -440,6 +484,8 @@ func (i *Instance) TransmitPlayer(to *Player, other *Player) {
 }
 
 func (i *Instance) UpdateRequestedPlayerPos(player *Player, x float32, y float32) {
+	i.mu.RLock()
+	defer i.mu.RUnlock()
 	found := false
 	for _, cur := range i.players {
 		if cur.playerId == player.playerId {
@@ -455,11 +501,13 @@ func (i *Instance) UpdateRequestedPlayerPos(player *Player, x float32, y float32
 	player.posX = x
 	player.posY = y
 	for _, other := range i.players {
-		other.EnqueuePacket(MarshalAgentUpdatePosition(player.agentId, x, y, 0))
+		other.EnqueuePacket(MarshalAgentUpdatePosition(player.agentId, x, y, player.plane))
 	}
 }
 
 func (i *Instance) BroadcastLocalChat(from *Player, message string) {
+	i.mu.RLock()
+	defer i.mu.RUnlock()
 	packet := MarshalChatMessageCore(message)
 	packet.Merge(MarshalChatMessageLocal(from.playerId, 3))
 

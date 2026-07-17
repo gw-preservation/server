@@ -200,7 +200,7 @@ func MarshalInstanceManifestPhase(phase int) (resp GwPacket.Out) {
 
 func MarshalReadyForMapSpawn() (resp GwPacket.Out) {
 	resp = GwPacket.NewOut(0x1aa)
-	resp.Uint32(808531509)
+	resp.Uint32(1818323813)
 	return
 }
 
@@ -281,6 +281,31 @@ func MarshalCartographyData(data []byte) (resp GwPacket.Out) {
 func MarshalMapsUnlocked(data []byte) (resp GwPacket.Out) {
 	resp = GwPacket.NewOut(0x93)
 	resp.Bytes(data)
+	return
+}
+
+func MarshalMapsUnlocked2(completedMissions []uint32, unk1 []uint32, unk2 []uint32, unk3 []uint32, maps []uint32) (resp GwPacket.Out) {
+	resp = GwPacket.NewOut(0x93)
+	resp.Uint16(len(completedMissions))
+	for _, i := range completedMissions {
+		resp.Uint32(int(i))
+	}
+	resp.Uint16(len(unk1))
+	for _, i := range unk1 {
+		resp.Uint32(int(i))
+	}
+	resp.Uint16(len(unk2))
+	for _, i := range unk2 {
+		resp.Uint32(int(i))
+	}
+	resp.Uint16(len(unk3))
+	for _, i := range unk3 {
+		resp.Uint32(int(i))
+	}
+	resp.Uint16(len(maps))
+	for _, i := range maps {
+		resp.Uint32(int(i))
+	}
 	return
 }
 
@@ -589,5 +614,30 @@ func MarshalSetUnlockedHeroes(unk []uint16) (resp GwPacket.Out) {
 func MarshalMessageOfTheDay(motd string) (resp GwPacket.Out) {
 	resp = GwPacket.NewOut(0x33)
 	resp.UTF16WithLengthPrefix(motd)
+	return
+}
+
+func MarshalTransferGameServerInfo(socketData []byte, worldId int, region int, mapId int, isExplorable bool, playerId int) (resp GwPacket.Out) {
+	resp = GwPacket.NewOut(0x1a4)
+	if len(socketData) != 24 {
+		panic(fmt.Errorf("length check failed for field 'socketData' of struct 'TransferGameServerInfo': %d vs %d", len(socketData), 24))
+	}
+	resp.Bytes(socketData)
+	resp.Uint32(worldId)
+	resp.Uint8(region)
+	resp.Uint16(mapId)
+	resp.Bool(isExplorable)
+	resp.Uint32(playerId)
+	return
+}
+
+func MarshalUnknown01ac(unk1 int, unk2 int, unk3 int, unk4 int, unk5 int, unk6 string) (resp GwPacket.Out) {
+	resp = GwPacket.NewOut(0x1ac)
+	resp.Uint16(unk1)
+	resp.Uint32(unk2)
+	resp.Uint8(unk3)
+	resp.Uint8(unk4)
+	resp.Uint8(unk5)
+	resp.UTF16WithLengthPrefix(unk6)
 	return
 }

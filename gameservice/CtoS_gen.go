@@ -460,3 +460,35 @@ func UnmarshalUnknown8090(in *GwPacket.In) (resp Unknown8090, err error) {
 	}
 	return
 }
+func UnmarshalMapTravelToOutpost(in *GwPacket.In) (resp MapTravelToOutpost, err error) {
+	if in.Opcode() != 0x80b0 {
+		err = errors.New("bad opcode")
+		return
+	}
+	resp.mapId, err = in.Uint16()
+	if err != nil {
+		err = fmt.Errorf("read mapId: %w", err)
+		return
+	}
+	resp.region, err = in.Uint8()
+	if err != nil {
+		err = fmt.Errorf("read region: %w", err)
+		return
+	}
+	resp.district, err = in.Uint16()
+	if err != nil {
+		err = fmt.Errorf("read district: %w", err)
+		return
+	}
+	resp.language, err = in.Uint8()
+	if err != nil {
+		err = fmt.Errorf("read language: %w", err)
+		return
+	}
+	resp.unk1, err = in.Uint8()
+	if err != nil {
+		err = fmt.Errorf("read unk1: %w", err)
+		return
+	}
+	return
+}

@@ -180,7 +180,7 @@ type InstanceManifestPhase struct {
 
 // opcode: 0x01aa
 type ReadyForMapSpawn struct {
-	unk1 int //wire:uint32,val:808531509
+	unk1 int //wire:uint32,val:1818323813
 }
 
 // opcode: 0x0030
@@ -250,6 +250,15 @@ type CartographyData struct {
 // opcode: 0x0093
 type MapsUnlocked struct {
 	data []byte
+}
+
+// opcode: 0x0093
+type MapsUnlocked2 struct {
+	completedMissions []uint32
+	unk1              []uint32
+	unk2              []uint32
+	unk3              []uint32
+	maps              []uint32
 }
 
 // opcode: 0x004a
@@ -521,4 +530,32 @@ type MessageOfTheDay struct {
 	// Assertion: (codedString[0] & ~WORD_BIT_MORE) >= WORD_VALUE_BASE
 	// P:\Code\Engine\Text\TextApi.cpp(585)
 	motd string
+}
+
+// opcode: 0x01a4
+type TransferGameServerInfo struct {
+	socketData   []byte // len:24
+	worldId      int    //wire:uint32
+	region       int    //wire:uint8
+	mapId        int    //wire:uint16
+	isExplorable bool
+	playerId     int //wire:uint32
+}
+
+// opcode: 0x001ac
+type Unknown01ac struct {
+	/*
+		0x0204,
+		0x0404,
+		0x0104,
+		0x0104,
+		0x0104,
+		0x1417,
+	*/
+	unk1 int // wire:uint16
+	unk2 int //wire:uint32
+	unk3 int //wire:uint8
+	unk4 int //wire:uint8
+	unk5 int //wire:uint8
+	unk6 string
 }

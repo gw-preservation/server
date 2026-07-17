@@ -156,19 +156,8 @@ func (p *In) Opcode() int {
 	return int(p.data[0]) | (int(p.data[1]) << 8)
 }
 
-func prettyBytesString(in []byte) string {
-	out := "  "
-	for i := range in {
-		if i > 0 && i%16 == 0 {
-			out += "\n  "
-		}
-		out += fmt.Sprintf("%02x ", in[i])
-	}
-	return out
-}
-
 func (p In) String() string {
-	return fmt.Sprintf("[%04x] with %d bytes:\n%s", p.Opcode(), len(p.data), prettyBytesString(p.data))
+	return fmt.Sprintf("[%04x] with %d bytes", p.Opcode(), len(p.data))
 }
 
 /*

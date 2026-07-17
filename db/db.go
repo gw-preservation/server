@@ -4,10 +4,10 @@ import (
 	"errors"
 	"fmt"
 
+	_ "github.com/glebarez/sqlite" // actual pure Go SQLite driver
 	"github.com/rs/zerolog"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	_ "modernc.org/sqlite" // actual pure Go SQLite driver
 )
 
 var log zerolog.Logger

@@ -228,6 +228,9 @@ func ExtractCustomIdentity(field *ast.Field) (identity string) {
 		if _, ok := t.Elt.(*ast.Ident); ok && t.Elt.(*ast.Ident).Name == "uint16" {
 			identity = "[]uint16"
 		}
+		if _, ok := t.Elt.(*ast.Ident); ok && t.Elt.(*ast.Ident).Name == "uint32" {
+			identity = "[]uint32"
+		}
 	default:
 		panic("hi")
 	}
@@ -302,6 +305,11 @@ func WriteMarshalFunction(name string, structType *ast.StructType, docs []*ast.C
 			out += fmt.Sprintf("resp.Uint16(len(%s))\n", valToWrite)
 			out += fmt.Sprintf("for _, i := range %s {\n", valToWrite)
 			out += "resp.Uint16(int(i))\n"
+			out += "}\n"
+		case "[]uint32":
+			out += fmt.Sprintf("resp.Uint16(len(%s))\n", valToWrite)
+			out += fmt.Sprintf("for _, i := range %s {\n", valToWrite)
+			out += "resp.Uint32(int(i))\n"
 			out += "}\n"
 		case "VarUTF16":
 			out += fmt.Sprintf("resp.Uint16(len(%s) / 2)\n", valToWrite)

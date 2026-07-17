@@ -3,18 +3,24 @@ package crypt
 import (
 	"bytes"
 	"fmt"
+	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func prettyBytesString(in []byte) string {
-	out := ""
-	for i := range in {
+	var sb strings.Builder
+
+	for i, b := range in {
+		// If we are starting a new line (and it's not the very first byte)
 		if i > 0 && i%16 == 0 {
-			out += "\n"
+			sb.WriteString("\n")
 		}
-		out += fmt.Sprintf("%02x ", in[i])
+		// Append the hex representation followed by a space
+		sb.WriteString(fmt.Sprintf("%02x ", b))
 	}
-	return out
+	return sb.String()
 }
 
 func TestGenerateServerPubKey(t *testing.T) {
@@ -56,6 +62,22 @@ func TestKex(t *testing.T) {
 	}
 }
 
+func TestGenerateEncryptionKey(t *testing.T) {
+	seed := make([]byte, 64)
+	for i := range 64 {
+		seed[i] = byte(i)
+	}
+	rc4Key, publicBytes := GenerateEncryptionKeyWithRandomBytes([64]byte(seed), [20]byte{})
+	assert.Equal(t, [20]byte{
+		0x30, 0x52, 0x74, 0x16, 0xb8, 0xda, 0xfc, 0x9e, 0x62, 0x31, 0x8d, 0x15, 0x53, 0xad, 0x7a, 0x24, 0xd8, 0xe1, 0x2d, 0xc4,
+	}, rc4Key)
+	assert.Equal(t, [20]byte{
+		0x2d, 0xc8, 0x19, 0x5f, 0x13, 0x47, 0xfb, 0xe4, 0xea, 0x94, 0x3a, 0xc2, 0x63, 0x8f, 0xff, 0x9d, 0x2b, 0x34, 0xcd, 0xd1,
+	}, publicBytes)
+
+	GenerateEncryptionKey([64]byte(seed))
+}
+
 func TestHashFn(t *testing.T) {
 	//0102030405060708091011121314151617181920
 	var inputBytes = [20]byte{
@@ -68,7 +90,7 @@ func TestHashFn(t *testing.T) {
 		0x47, 0x14, 0x96, 0x26, 0x85, 0x94, 0xC4, 0xBA,
 		0xFD, 0x5D, 0xFC, 0x92,
 	}
-	hashed := GwHash(inputBytes)
+	hashed := KeyDerivation(inputBytes)
 	if !bytes.Equal(hashed[:], expectedOutput[:]) {
 		t.Fatalf("hashed:\n%s\nvs\n%s\n", prettyBytesString(hashed[:]), prettyBytesString(expectedOutput[:]))
 	}

@@ -163,7 +163,7 @@ func (h RespHeader) codeString() string {
 	case 200:
 		return "OK"
 	default:
-		return "Unknown"
+		return fmt.Sprintf("Unknown(%d)", h.Code)
 	}
 }
 
@@ -228,7 +228,7 @@ func UnmarshalReqMsg(data []byte) (ReqMsg, error) {
 		}
 	}
 	if headerEndLineNumber == -1 {
-		logger.Debug("lacking End-Of-Header line in Sts message")
+		logger.Error("lacking End-Of-Header line in Sts message")
 		return msg, io.ErrUnexpectedEOF
 	}
 	err := unmarshalReqHeader(lines[:headerEndLineNumber], &msg.Header)

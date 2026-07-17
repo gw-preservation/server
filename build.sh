@@ -1,2 +1,2 @@
 #!/bin/sh
-go build -ldflags="-s -w" -o server cmd/main/main.go
+CGO_ENABLED=0 go build -ldflags="-s -w" -trimpath -o server cmd/main/main.go

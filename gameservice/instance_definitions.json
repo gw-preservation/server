@@ -7,14 +7,30 @@
             "party_size": 0,
             "agents": []
         },
-        "158": {
-            "debug_name": "port_sledge",
+        "148": {
+            "debug_name": "ascalon_city",
             "explorable": false,
-            "map_file_id": 46599,
+            "map_file_id": 113021,
             "agents": [],
             "party_size": 1,
             "spawn_points": [
-                [-8000, -6000, 0]
+                [9826, 8077, 0]
+            ]
+        },
+        "164": {
+            "debug_name": "ashford_abbey",
+            "explorable": false,
+            "map_file_id": 113021,
+            "spawn_points": [
+                [-12667, -7200, 0]
+            ]
+        },
+        "163": {
+            "debug_name": "barradin_estate",
+            "explorable": false,
+            "map_file_id": 113190,
+            "spawn_points": [
+                [-6581, 1468, 0]
             ]
         },
         "165": {

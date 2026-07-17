@@ -22,7 +22,7 @@ type Character struct {
 	ProfessionPrimary   uint8   `gorm:"default:1"` // Just in case!
 	ProfessionSecondary uint8   `gorm:"default:0"`
 	UUID                []byte  `gorm:"type:binary(16);unique"`
-	LastOutpostID       uint16  `gorm:"default:165"` // Just in case!
+	LastOutpostID       uint16  `gorm:"default:148"` // Just in case!
 	AppearanceBits      uint32  `gorm:"default:0"`
 	AccountID           uint64  // Foreign key to Account
 	Account             Account `gorm:"foreignKey:AccountID"` // ForeignKey relation

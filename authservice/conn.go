@@ -41,8 +41,16 @@ func NewASConn(socket *net.TCPConn, logCtx zerolog.Logger) *ASConn {
 }
 
 func (conn *ASConn) DecryptBytes(data []byte) {
+	// Decrypt the data in place using the RC4 cipher if it has been initialized
 	if conn.dec != nil {
 		conn.dec.XORKeyStream(data, data)
+	}
+}
+
+func (conn *ASConn) EncryptBytes(data []byte) {
+	// Encrypt the data in place using the RC4 cipher if it has been initialized
+	if conn.enc != nil {
+		conn.enc.XORKeyStream(data, data)
 	}
 }
 
@@ -80,9 +88,7 @@ func (conn *ASConn) Read(buf []byte) (int, error) {
 
 func (conn *ASConn) WritePacket(packet *GwPacket.Out) error {
 	bts := packet.GetBytes()
-	if conn.enc != nil {
-		conn.enc.XORKeyStream(bts, bts)
-	}
+	conn.EncryptBytes(bts)
 	_, err := conn.socket.Write(bts)
 	return err
 }

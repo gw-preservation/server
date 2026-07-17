@@ -158,3 +158,12 @@ type Unknown8090 struct {
 	unk1 int //wire:uint8
 	unk2 int //wire:uint8
 }
+
+// opcode: 0x80b0
+type MapTravelToOutpost struct {
+	mapId    int //wire:uint16
+	region   int //wire:uint8
+	district int //wire:uint16
+	language int //wire:uint8
+	unk1     int //wire:uint8
+}

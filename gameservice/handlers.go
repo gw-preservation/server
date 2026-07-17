@@ -52,6 +52,7 @@ var packetHandlers = map[int]packetHandler{
 	0x8090: wrap(UnmarshalUnknown8090, (*GSConn).on8090),
 	0x8091: wrap(UnmarshalUnknown8091, (*GSConn).on8091),
 	0x80c0: wrap(UnmarshalUpdateTarget, (*GSConn).onUpdateTarget),
+	0x80b0: wrap(UnmarshalMapTravelToOutpost, (*GSConn).onMapTravelToOutpust),
 }
 
 func (conn *GSConn) onCreateCharRequestPlayer(payload *CreateCharRequestPlayer) error {
@@ -99,7 +100,7 @@ func (conn *GSConn) onCreateCharacterFinish(payload *CreateCharacterFinish) erro
 	char := db.AddDbChar(conn.player.dbAcc.ID, payload.name, int(appearance.PrimaryProfession), uint32(payload.appearance))
 
 	varbs := []byte{}
-	conn.EnqueuePacket(MarshalCharCreationFinish(char.UUID, payload.name, 165, varbs))
+	conn.EnqueuePacket(MarshalCharCreationFinish(char.UUID, payload.name, 148, varbs))
 
 	return nil
 }
@@ -203,6 +204,38 @@ func (conn *GSConn) onUpdateProfessionChoice(payload *UpdateProfessionChoice) er
 
 func (conn *GSConn) onDyeEquipment(payload *DyeEquipment) error {
 	conn.player.OnC2SDyeEquipment(*payload)
+	return nil
+}
 
+func (conn *GSConn) onMapTravelToOutpust(payload *MapTravelToOutpost) error {
+	conn.log.Info().Int("mapId", payload.mapId).Msg("MapTravel")
+	// TODO: check valid map
+	// TODO: check player has map unlocked
+	// TODO: check same continent
+	// TODO: check they are party leader
+	// TODO: also transport party
+
+	// First, remove player from current instance
+	conn.player.connectedInstance.RemovePlayer(&conn.player)
+	// Next, send packets to client
+
+	conn.EnqueuePacket(MarshalTransferGameServerInfo([]byte{
+		0x02, 0x00, // AF_INET
+		0x17, 0xe0, // Port 6112
+		0xc0, 0xa8, 0x01, 0x7c, // 192.168.1.124
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	}, 1, payload.region, payload.mapId, true, 1))
+	conn.EnqueuePacket(MarshalUpdateCurrentMapId(payload.mapId))
+	// Put in new instance:
+	inst, err := InstanceManager.GetOrCreateInstanceByMapId(payload.mapId)
+	if inst == nil || err != nil {
+		// something went wrong - decline connection
+		conn.player.log.Error().Err(err).Msg("unable to create instance")
+		conn.player.Disconnect()
+		return nil
+	}
+	conn.player.connectedInstance = inst
+	conn.log.Info().Msg("Switched instances")
 	return nil
 }

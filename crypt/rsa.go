@@ -83,7 +83,7 @@ func byteSwap(data []byte) []byte {
 	return reversed
 }
 
-func GwHash(data [20]byte) [20]byte {
+func KeyDerivation(data [20]byte) [20]byte {
 	var first, second, third, fourth, fifth uint32
 	first = binary.LittleEndian.Uint32(data[0:4])
 	second = binary.LittleEndian.Uint32(data[4:8])
@@ -191,24 +191,28 @@ func GwHash(data [20]byte) [20]byte {
 	return [20]byte(out)
 }
 
+// rol performs a left rotation on a 32-bit unsigned integer.
 func rol(x uint32, n uint) uint32 {
 	return (x << n) | (x >> (32 - n))
 }
 
-func GenerateEncryptionKey(clientBytes [64]byte) ([20]byte, [20]byte) {
+func GenerateEncryptionKeyWithRandomBytes(clientBytes [64]byte, randomBytes [20]byte) ([20]byte, [20]byte) {
 	// clientBytes are received LittleEndian, we use BigEndian
 	seedBI := bytesToBI(byteSwap(clientBytes[:]))
 	secretKey := modPow(seedBI, serverPrivateKeyBI, sharedPrimeBI).Bytes()
 	secretKeyByteSwapped := byteSwap(secretKey)
 
-	// Start RC4 key generation
-	var randomBytes [20]byte
-	rand.Read(randomBytes[:])
 	// Now we gotta do the hash thing on top of those bytes
-	rc4Key := GwHash(randomBytes)
+	rc4Key := KeyDerivation(randomBytes)
 	xored := make([]byte, len(randomBytes))
 	for i := range len(xored) {
 		xored[i] = randomBytes[i] ^ secretKeyByteSwapped[i]
 	}
 	return [20]byte(rc4Key), [20]byte(xored)
+}
+
+func GenerateEncryptionKey(clientBytes [64]byte) ([20]byte, [20]byte) {
+	var randomBytes [20]byte
+	rand.Read(randomBytes[:])
+	return GenerateEncryptionKeyWithRandomBytes(clientBytes, randomBytes)
 }
