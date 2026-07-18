@@ -313,3 +313,30 @@ func UnmarshalDeleteCharacter(in *GwPacket.In) (resp DeleteCharacter, err error)
 	}
 	return
 }
+func UnmarshalUnknown8009(in *GwPacket.In) (resp Unknown8009, err error) {
+	if in.Opcode() != 0x8009 {
+		err = errors.New("bad opcode")
+		return
+	}
+	resp.unk1, err = in.Uint32()
+	if err != nil {
+		err = fmt.Errorf("read unk1: %w", err)
+		return
+	}
+	resp.unk2, err = in.UTF16WithLengthPrefix()
+	if err != nil {
+		err = fmt.Errorf("read unk2: %w", err)
+		return
+	}
+	unk3Len, err := in.Uint16()
+	if err != nil {
+		err = fmt.Errorf("read unk3.len: %w", err)
+		return
+	}
+	resp.unk3, err = in.Bytes(unk3Len)
+	if err != nil {
+		err = fmt.Errorf("read unk3: %w", err)
+		return
+	}
+	return
+}

@@ -33,6 +33,7 @@ var packetHandlers = map[int]packetHandler{
 	0x8000: wrap(UnmarshalUnknown8000, (*ASConn).on8000),
 	0x8001: wrap(UnmarshalComputerInfo, (*ASConn).onComputerInfo),
 	0x8002: wrap(UnmarshalClientHashInfo, (*ASConn).onClientHashInfo),
+	0x8009: wrap(UnmarshalUnknown8009, (*ASConn).onUnknown8009),
 	0x800a: wrap(UnmarshalSetActiveCharacter, (*ASConn).onSetActiveCharacter),
 	0x800d: wrap(UnmarshalDisconnect, (*ASConn).onDisconnect),
 	0x800e: wrap(UnmarshalSetPlayerOnlineVisibilityStatus, (*ASConn).onSetPlayerOnlineVisibilityStatus),
@@ -106,6 +107,11 @@ func (conn *ASConn) on8000(payload *Unknown8000) error {
 
 func (conn *ASConn) on8023(payload *Unknown8023) error {
 	conn.EnqueuePacket(MarshalUnknown0000(0x8002e647, 0x17))
+	return nil
+}
+
+func (conn *ASConn) onUnknown8009(payload *Unknown8009) error {
+	conn.log.Info().Int("unk1", payload.unk1).Str("unk2", payload.unk2).Msg("Unknown8009")
 	return nil
 }
 

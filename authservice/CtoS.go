@@ -107,3 +107,18 @@ type DeleteCharacter struct {
 	reqNumber int // wire:uint32
 	name      string
 }
+
+// opcode: 0x8009
+type Unknown8009 struct {
+	/*
+		0x0009: {
+			0x0404,
+			0x1417,
+			0x400b,
+			0x0006,
+		},
+	*/
+	unk1 int // wire:uint32
+	unk2 string
+	unk3 VarByte
+}

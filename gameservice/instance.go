@@ -374,7 +374,7 @@ func (i *Instance) AddPlayer(player *Player) {
 		player.conn.sendWorldInstanceBody()
 		player.EnqueuePacket(MarshalUpdateCurrentMapId(i.mapId))
 		player.EnqueuePacket(MarshalReadyForMapSpawn())
-		player.EnqueuePacket(MarshalInstanceManifestDone(0, 1, 0))
+		player.EnqueuePacket(MarshalInstanceManifestDone(0, i.mapId, 0))
 
 		i.TransmitPlayerToOthers(player)
 	}
