@@ -169,3 +169,19 @@ func AddDbChar(forAccountId uint64, name string, primaryProfession int, appearan
 	database.Create(&char)
 	return
 }
+
+func SetLastOutpostForChar(charId uint64, outpostId uint16) error {
+	result := database.Model(&Character{}).
+		Where("id = ?", charId).
+		Update("last_outpost_id", outpostId)
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return errors.New("character not found")
+	}
+
+	return nil
+}

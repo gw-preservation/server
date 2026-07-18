@@ -318,14 +318,14 @@ func UnmarshalUnknown8009(in *GwPacket.In) (resp Unknown8009, err error) {
 		err = errors.New("bad opcode")
 		return
 	}
-	resp.unk1, err = in.Uint32()
+	resp.reqNumber, err = in.Uint32()
 	if err != nil {
-		err = fmt.Errorf("read unk1: %w", err)
+		err = fmt.Errorf("read reqNumber: %w", err)
 		return
 	}
-	resp.unk2, err = in.UTF16WithLengthPrefix()
+	resp.charName, err = in.UTF16WithLengthPrefix()
 	if err != nil {
-		err = fmt.Errorf("read unk2: %w", err)
+		err = fmt.Errorf("read charName: %w", err)
 		return
 	}
 	unk3Len, err := in.Uint16()

@@ -111,7 +111,8 @@ func (conn *ASConn) on8023(payload *Unknown8023) error {
 }
 
 func (conn *ASConn) onUnknown8009(payload *Unknown8009) error {
-	conn.log.Info().Int("unk1", payload.unk1).Str("unk2", payload.unk2).Msg("Unknown8009")
+	conn.log.Info().Str("charName", payload.charName).Hex("unk", payload.unk3).Msg("Unknown8009")
+	conn.EnqueuePacket(MarshalRequestResponse(payload.reqNumber, 0))
 	return nil
 }
 

@@ -236,6 +236,11 @@ func (conn *GSConn) onMapTravelToOutpust(payload *MapTravelToOutpost) error {
 		return nil
 	}
 	conn.player.connectedInstance = inst
-	conn.log.Info().Msg("Switched instances")
+	err = db.SetLastOutpostForChar(conn.player.dbChar.ID, uint16(payload.mapId))
+	if err != nil {
+		conn.player.log.Error().Err(err).Msg("unable to update last outpost")
+		return err
+	}
+	conn.log.Info().Msg("Switched instances and synced db")
 	return nil
 }
