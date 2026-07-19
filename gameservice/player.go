@@ -6,6 +6,7 @@ import (
 	"gw1/server/db"
 	GwPacket "gw1/server/gwpacket"
 	"math/rand"
+	"strings"
 
 	"github.com/rs/zerolog"
 )
@@ -467,23 +468,30 @@ func (p *Player) sendAttributeUpdateFloat(attributeId int) {
 }
 
 func (p *Player) sendCartographyData() {
-	resp := GwPacket.NewOut(0x008a)
-	resp.Uint32(64)
-	resp.Uint32(1280)
-	resp.Uint32(73)
-	p.EnqueuePacket(resp)
+	p.EnqueuePacket(MarshalCartographyDataStart())
+	cartographyData := []uint32{
+		0x001e0000,
+		0x3a0221ff,
+		0x39043a04,
+		0x34093505,
+		0x3707340a,
+		0x36073806,
+		0x320b340a,
 
-	p.EnqueuePacket(MarshalCartographyData([]byte{
-		0x13, 0x00, 0x00, 0x00, 0x1e, 0x00, 0xff, 0x21, // 8
-		0x02, 0x3a, 0x04, 0x3a, 0x04, 0x39, 0x05, 0x35, // 16
-		0x09, 0x34, 0x0a, 0x34, 0x07, 0x37, 0x06, 0x38, // 24
-		0x07, 0x36, 0x0a, 0x34, 0x0b, 0x32, 0x05, 0x00, // 32
-		0x07, 0x05, 0x02, 0x11, 0x1b, 0x00, 0x14, 0x05, // 40
-		0x04,
-		0x07, 0x03, 0x02, 0x25, 0x05, 0x05, 0x08, 0x01, 0x02, 0x25, 0x04, 0x08, 0x0b, 0x25, 0x03, 0x0b,
-		0x09, 0x37, 0x07, 0x3a, 0x03, 0xff, 0xff, 0x94, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		0x00, 0x00, 0xcc, 0xcc, 0xcc,
-	}))
+		0x05070005,
+		0x001b1102,
+		0x07040514,
+		0x05250203,
+		0x02010805,
+		0x0b080425,
+		0x090b0325,
+		0x033a0737,
+		0x0094ffff,
+		0x00000000,
+		0x00000000,
+		0x00cccccc,
+	}
+	p.EnqueuePacket(MarshalCartographyData(cartographyData))
 }
 
 func (p *Player) OnC2SChatMessage(payload ChatMessage) {
@@ -495,8 +503,86 @@ func (p *Player) OnC2SChatMessage(payload ChatMessage) {
 	// find channel by prefix char
 	var channel = payload.message[0]
 	var remainder = payload.message[1:]
-	if channel == '!' {
+	switch channel {
+	case '!':
 		p.connectedInstance.BroadcastLocalChat(p, remainder)
+	case '/':
+		// emote / command
+		// extract next command word
+		words := strings.Fields(remainder)
+		if len(words) == 0 {
+			p.SendChatWarning("Invalid command syntax")
+			return
+		}
+		command := words[0]
+		// check whether it is an emote command
+		if emote, exists := GetEmoteByCommand(command); exists {
+			p.connectedInstance.BroadcastGeneric(p, MarshalEmote(p.agentId, emote))
+			return
+		}
+		// not an emote, check for other commands
+		switch command {
+		case "gv":
+			if len(words) < 3 {
+				p.SendChatWarning("Usage: /gv <typ> <value>")
+				return
+			}
+			var msgType int
+			nParsed, err := fmt.Sscanf(words[1], "%d", &msgType)
+			if nParsed == 0 || err != nil {
+				p.SendChatWarning("Usage: /gv <typ> <value>")
+				return
+			}
+			var value int
+			nParsed, err = fmt.Sscanf(words[2], "%d", &value)
+			if nParsed == 0 || err != nil {
+				p.SendChatWarning("Usage: /gv <typ> <value>")
+				return
+			}
+			p.log.Info().Int("msgType", msgType).Int("value", value).Msg("Sending GenericValue message")
+			// 6 (AddEffect):
+			//   24 = Black effect from eyes
+			//   20 = Blue swirly
+			//   19 = Orb thingy
+			//   18 = Unknown thingy
+			//   17 = Big blue ring
+			//   15 = Blue swirly
+			p.conn.EnqueuePacket(MarshalAgentAttrUpdateInt(msgType, p.agentId, value))
+		case "color":
+			p.SendChatColorTest()
+		case "travel":
+			if len(words) < 2 {
+				p.SendChatWarning("Usage: /travel <mapId> or /travel \"<map_debug_name>\"")
+				return
+			}
+
+			var newMapId int
+			nParsed, err := fmt.Sscanf(words[1], "%d", &newMapId)
+			if nParsed == 0 || err != nil {
+				// maybe it's a name instead of an ID
+				var ok bool
+				newMapId, ok = GetMapIdForDebugName(words[1])
+				if !ok || newMapId == 0 {
+					p.log.Error().Err(err).Msg("failed to find map by id or debug name")
+					return
+				}
+			}
+			p.log.Info().Int("newMapId", newMapId).Msg("travel command")
+			// Is it a valid map?
+			if !HasInstanceDefinitionForMapId(newMapId) {
+				p.SendChatWarning(fmt.Sprintf("Map ID %d is not valid", newMapId))
+				return
+			}
+			// Transfer player to new map
+			err = p.connectedInstance.TransferPlayerToNewMap(p, newMapId)
+			if err != nil {
+				p.log.Error().Err(err).Int("newMapId", newMapId).Msg("failed to transfer player to new map")
+				return
+			}
+
+		default:
+			p.SendChatWarning(fmt.Sprintf("Unknown command: %s", remainder))
+		}
 	}
 }
 

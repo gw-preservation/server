@@ -85,7 +85,7 @@ func (conn *GSConn) sendWorldInstanceHead() {
 	conn.EnqueuePacket(MarshalInstancePlayerDataStart())
 
 	conn.EnqueuePacket(MarshalInstanceLoadPlayerName(conn.player.name))
-	conn.EnqueuePacket(MarshalInstanceLoadInfo(conn.player.playerId, conn.player.connectedInstance.mapId, false, 1, 0, false))
+	conn.EnqueuePacket(MarshalInstanceLoadInfo(conn.player.playerId, conn.player.connectedInstance.mapId, conn.player.connectedInstance.IsExplorable(), 1, 0, false))
 }
 
 func (conn *GSConn) sendWorldInstanceBody() {

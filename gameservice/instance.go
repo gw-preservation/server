@@ -3,6 +3,8 @@ package GameService
 import (
 	"encoding/json"
 	"fmt"
+	"gw1/server/db"
+	GwPacket "gw1/server/gwpacket"
 	"math/rand"
 	"os"
 	"slices"
@@ -96,6 +98,23 @@ func LoadInstanceDefinitionsFromDisk() error {
 	}
 	log.Info().Int("count", len(InstanceManager.instances)).Msg("persistent instances created")
 	return nil
+}
+
+func GetMapIdForDebugName(debugName string) (int, bool) {
+	for mapId, definition := range instanceDefinitions.Instances {
+		if definition.DebugName == debugName {
+			return mapId, true
+		}
+	}
+	return 0, false
+}
+
+func HasInstanceDefinitionForMapId(mapId int) bool {
+	if mapId == 0 {
+		return false // char creation instance is not a real map
+	}
+	_, ok := instanceDefinitions.Instances[mapId]
+	return ok
 }
 
 type instanceManager struct {
@@ -299,6 +318,20 @@ func (i *Instance) MovementTickLoop() {
 	}
 }
 
+func contains(slice []int, val any) bool {
+	for _, v := range slice {
+		if v == val {
+			return true
+		}
+	}
+	return false
+}
+
+func randomFloatAround(start, rangeVal float32) float32 {
+	offset := (rand.Float32() * 2 * rangeVal) - rangeVal
+	return start + offset
+}
+
 func (i *Instance) NextFreeAgentId() int {
 	return len(i.agents) + 1
 }
@@ -311,8 +344,8 @@ func (i *Instance) NextSpawnPoint() (x, y float32, plane int) {
 	// Choose a random spawn point:
 	randIndex := rand.Intn(nSpawnPoints)
 	spawnPoint := i.definition.SpawnPoints[randIndex]
-	x = spawnPoint[0]
-	y = spawnPoint[1]
+	x = randomFloatAround(spawnPoint[0], 100.0)
+	y = randomFloatAround(spawnPoint[1], 100.0)
 	plane = int(spawnPoint[2])
 	return
 }
@@ -378,20 +411,6 @@ func (i *Instance) AddPlayer(player *Player) {
 
 		i.TransmitPlayerToOthers(player)
 	}
-}
-
-func contains(slice []int, val any) bool {
-	for _, v := range slice {
-		if v == val {
-			return true
-		}
-	}
-	return false
-}
-
-func randomFloatAround(start, rangeVal float32) float32 {
-	offset := (rand.Float32() * 2 * rangeVal) - rangeVal
-	return start + offset
 }
 
 func (i *Instance) SendActiveAgents(to *Player) {
@@ -505,15 +524,19 @@ func (i *Instance) UpdateRequestedPlayerPos(player *Player, x float32, y float32
 	}
 }
 
-func (i *Instance) BroadcastLocalChat(from *Player, message string) {
+func (i *Instance) BroadcastGeneric(from *Player, packet GwPacket.Out) {
 	i.mu.RLock()
 	defer i.mu.RUnlock()
-	packet := MarshalChatMessageCore(message)
-	packet.Merge(MarshalChatMessageLocal(from.playerId, 3))
 
 	for _, other := range i.players {
 		other.EnqueuePacket(packet)
 	}
+}
+
+func (i *Instance) BroadcastLocalChat(from *Player, message string) {
+	packet := MarshalChatMessageCore(message)
+	packet.Merge(MarshalChatMessageLocal(from.playerId, 3))
+	i.BroadcastGeneric(from, packet)
 
 	// TODO: if nobody else in zone, send "No one hears you..."
 	/*
@@ -527,4 +550,46 @@ func (i *Instance) BroadcastLocalChat(from *Player, message string) {
 		unk2.Uint8(13)
 		packet.Merge(MarshalChatMessageServer(13))
 	*/
+}
+
+func (i *Instance) TransferPlayerToNewMap(player *Player, newMapId int) error {
+	// TODO: check valid map
+	// TODO: check player has map unlocked
+	// TODO: check same continent
+	// TODO: check they are party leader
+	// TODO: also transport party
+
+	// First, remove player from current instance
+	i.RemovePlayer(player)
+	// Next, send packets to client
+
+	region := 1
+	player.conn.EnqueuePacket(MarshalTransferGameServerInfo([]byte{
+		0x02, 0x00, // AF_INET
+		0x17, 0xe0, // Port 6112
+		0xc0, 0xa8, 0x01, 0x7c, // 192.168.1.124
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	}, 1, region, newMapId, i.IsExplorable(), 1))
+	player.conn.EnqueuePacket(MarshalUpdateCurrentMapId(newMapId))
+	// Put in new instance:
+	inst, err := InstanceManager.GetOrCreateInstanceByMapId(newMapId)
+	if inst == nil || err != nil {
+		// something went wrong - decline connection
+		player.log.Error().Err(err).Msg("unable to create instance")
+		player.Disconnect()
+		return nil
+	}
+	player.connectedInstance = inst
+	err = db.SetLastOutpostForChar(player.dbChar.ID, uint16(newMapId))
+	if err != nil {
+		player.log.Error().Err(err).Msg("unable to update last outpost")
+		return err
+	}
+	player.log.Info().Msg("Switched instances and synced db")
+	return nil
+}
+
+func (i *Instance) IsExplorable() bool {
+	return i.definition.Explorable
 }

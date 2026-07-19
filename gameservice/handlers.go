@@ -52,7 +52,7 @@ var packetHandlers = map[int]packetHandler{
 	0x8090: wrap(UnmarshalUnknown8090, (*GSConn).on8090),
 	0x8091: wrap(UnmarshalUnknown8091, (*GSConn).on8091),
 	0x80c0: wrap(UnmarshalUpdateTarget, (*GSConn).onUpdateTarget),
-	0x80b0: wrap(UnmarshalMapTravelToOutpost, (*GSConn).onMapTravelToOutpust),
+	0x80b0: wrap(UnmarshalMapTravelToOutpost, (*GSConn).onMapTravelToOutpost),
 }
 
 func (conn *GSConn) onCreateCharRequestPlayer(payload *CreateCharRequestPlayer) error {
@@ -207,40 +207,7 @@ func (conn *GSConn) onDyeEquipment(payload *DyeEquipment) error {
 	return nil
 }
 
-func (conn *GSConn) onMapTravelToOutpust(payload *MapTravelToOutpost) error {
+func (conn *GSConn) onMapTravelToOutpost(payload *MapTravelToOutpost) error {
 	conn.log.Info().Int("mapId", payload.mapId).Msg("MapTravel")
-	// TODO: check valid map
-	// TODO: check player has map unlocked
-	// TODO: check same continent
-	// TODO: check they are party leader
-	// TODO: also transport party
-
-	// First, remove player from current instance
-	conn.player.connectedInstance.RemovePlayer(&conn.player)
-	// Next, send packets to client
-
-	conn.EnqueuePacket(MarshalTransferGameServerInfo([]byte{
-		0x02, 0x00, // AF_INET
-		0x17, 0xe0, // Port 6112
-		0xc0, 0xa8, 0x01, 0x7c, // 192.168.1.124
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	}, 1, payload.region, payload.mapId, true, 1))
-	conn.EnqueuePacket(MarshalUpdateCurrentMapId(payload.mapId))
-	// Put in new instance:
-	inst, err := InstanceManager.GetOrCreateInstanceByMapId(payload.mapId)
-	if inst == nil || err != nil {
-		// something went wrong - decline connection
-		conn.player.log.Error().Err(err).Msg("unable to create instance")
-		conn.player.Disconnect()
-		return nil
-	}
-	conn.player.connectedInstance = inst
-	err = db.SetLastOutpostForChar(conn.player.dbChar.ID, uint16(payload.mapId))
-	if err != nil {
-		conn.player.log.Error().Err(err).Msg("unable to update last outpost")
-		return err
-	}
-	conn.log.Info().Msg("Switched instances and synced db")
-	return nil
+	return conn.player.connectedInstance.TransferPlayerToNewMap(&conn.player, payload.mapId)
 }

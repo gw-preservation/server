@@ -244,7 +244,7 @@ type CartographyDataStart struct {
 
 // opcode: 0x0089
 type CartographyData struct {
-	data []byte
+	data []uint32
 }
 
 // opcode: 0x0093
@@ -558,4 +558,10 @@ type Unknown01ac struct {
 	unk4 int //wire:uint8
 	unk5 int //wire:uint8
 	unk6 string
+}
+
+// opcode: 0x018f
+type JumboMessage struct {
+	typ   int // wire:uint8
+	value int // wire:uint32
 }

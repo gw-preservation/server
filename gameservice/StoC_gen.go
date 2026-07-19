@@ -272,9 +272,12 @@ func MarshalCartographyDataStart() (resp GwPacket.Out) {
 	return
 }
 
-func MarshalCartographyData(data []byte) (resp GwPacket.Out) {
+func MarshalCartographyData(data []uint32) (resp GwPacket.Out) {
 	resp = GwPacket.NewOut(0x89)
-	resp.Bytes(data)
+	resp.Uint16(len(data))
+	for _, i := range data {
+		resp.Uint32(int(i))
+	}
 	return
 }
 
@@ -639,5 +642,12 @@ func MarshalUnknown01ac(unk1 int, unk2 int, unk3 int, unk4 int, unk5 int, unk6 s
 	resp.Uint8(unk4)
 	resp.Uint8(unk5)
 	resp.UTF16WithLengthPrefix(unk6)
+	return
+}
+
+func MarshalJumboMessage(typ int, value int) (resp GwPacket.Out) {
+	resp = GwPacket.NewOut(0x18f)
+	resp.Uint8(typ)
+	resp.Uint32(value)
 	return
 }

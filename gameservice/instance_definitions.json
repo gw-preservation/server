@@ -19,7 +19,7 @@
         },
         "164": {
             "debug_name": "ashford_abbey",
-            "explorable": false,
+            "explorable": true,
             "map_file_id": 113021,
             "spawn_points": [
                 [-12667, -7200, 0]
