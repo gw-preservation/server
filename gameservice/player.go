@@ -522,6 +522,8 @@ func (p *Player) OnC2SChatMessage(payload ChatMessage) {
 		}
 		// not an emote, check for other commands
 		switch command {
+		case "motd":
+			p.EnqueuePacket(MarshalMessageOfTheDay("\u0155"))
 		case "gv":
 			if len(words) < 3 {
 				p.SendChatWarning("Usage: /gv <typ> <value>")

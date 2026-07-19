@@ -222,6 +222,14 @@ func TestOutUTF16WithLengthPrefix(t *testing.T) {
 	p := NewOut(0x1234)
 	p.UTF16WithLengthPrefix("hello")
 	assert.Equal(t, []byte{0x34, 0x12, 0x05, 0x00, 0x68, 0x00, 0x65, 0x00, 0x6c, 0x00, 0x6c, 0x00, 0x6f, 0x00}, p.buf.Bytes())
+
+	// Now make one with a non-ASCII character
+	p = NewOut(0x1234)
+	p.UTF16WithLengthPrefix("\u0155")
+	result := p.buf.Bytes()
+	assert.Equal(t, []byte{0x34, 0x12, 0x01, 0x00, 0x55, 0x01}, result)
+	// Length is in runes, NOT bytes, so check the length prefix (uint16) is correct:
+	assert.Equal(t, uint16(1), uint16(result[2])|uint16(result[3])<<8)
 }
 
 func TestOutMerge(t *testing.T) {

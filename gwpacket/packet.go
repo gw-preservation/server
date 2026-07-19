@@ -211,7 +211,7 @@ func (p *Out) UTF16(str string) {
 }
 
 func (p *Out) UTF16WithLengthPrefix(str string) {
-	p.Uint16(len(str))
+	p.Uint16(len(utf16.Encode([]rune(str))))
 	p.UTF16(str)
 }
 
