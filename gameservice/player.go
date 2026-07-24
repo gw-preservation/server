@@ -153,7 +153,7 @@ func (p *Player) OnC2SDyeEquipment(payload DyeEquipment) {
 func (p *Player) sendInstanceLoadSpawnPoint() {
 	p.log.Debug().Msg("InstanceLoadRequestSpawnPoint")
 	inst := *p.connectedInstance
-	p.EnqueuePacket(MarshalInstanceLoadSpawnPoint(inst.definition.MapFileId, p.posX, p.posY, p.plane, false, []byte{0xcd, 0x49, 0x03, 0xcc, 0x17, 0xa7, 0xdb, 0x01}))
+	p.EnqueuePacket(MarshalInstanceLoadSpawnPoint(int(inst.definition.MapFileId), p.posX, p.posY, p.plane, false, []byte{0xcd, 0x49, 0x03, 0xcc, 0x17, 0xa7, 0xdb, 0x01}))
 }
 
 func (p *Player) sendInstanceLoadRequestPlayers(payload InstanceLoadRequestPlayers) {
@@ -563,7 +563,7 @@ func (p *Player) OnC2SChatMessage(payload ChatMessage) {
 			if nParsed == 0 || err != nil {
 				// maybe it's a name instead of an ID
 				var ok bool
-				newMapId, ok = GetMapIdForDebugName(words[1])
+				newMapId, ok = GetMapIdForName(words[1])
 				if !ok || newMapId == 0 {
 					p.log.Error().Err(err).Msg("failed to find map by id or debug name")
 					return

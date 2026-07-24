@@ -1,0 +1,3587 @@
+// GS_CtoS Max = 193 (0xc1)
+var FieldsGS_CtoS = map[int][]uint32{
+	0x0000: {
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0001: {},
+	0x0002: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0003: {
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0004: {},
+	0x0005: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0006: {},
+	0x0007: {},
+	0x0008: {},
+	0x0009: {
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x000a: {
+		0x1005, // FixedBytes (type=5 bytes=16)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0c05, // FixedBytes (type=5 bytes=12)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x4017, // String16 (type=7 maxChars=64)
+		0x1417, // String16 (type=7 maxChars=20)
+	},
+	0x000b: {},
+	0x000c: {},
+	0x000d: {
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x000e: {
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x000f: {
+		0x0010, // AgentId (type=0 size=4)
+		0x102b, // Array32 (type=11 lengthBytes=4 maxCount=16)
+		0x0006, // Ignore (type=6)
+		0x102b, // Array32 (type=11 lengthBytes=4 maxCount=16)
+		0x0006, // Ignore (type=6)
+	},
+	0x0010: {
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0011: {
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0012: {},
+	0x0013: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0014: {
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0015: {
+		0x0010, // AgentId (type=0 size=4)
+		0x0010, // AgentId (type=0 size=4)
+	},
+	0x0016: {
+		0x0010, // AgentId (type=0 size=4)
+	},
+	0x0017: {
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0018: {
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0019: {
+		0x0010, // AgentId (type=0 size=4)
+		0x0012, // Vec2 (type=2 size=8)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x001a: {
+		0x0012, // Vec2 (type=2 size=8)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x001b: {
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0010, // AgentId (type=0 size=4)
+	},
+	0x001c: {
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x001d: {
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x001e: {
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x001f: {
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0020: {
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0021: {
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0022: {
+		0x0104, // Uint8 (type=4 size=1)
+		0x0010, // AgentId (type=0 size=4)
+	},
+	0x0023: {
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0024: {
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0025: {
+		0x0010, // AgentId (type=0 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0026: {
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0027: {},
+	0x0028: {
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0029: {
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x002a: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x102b, // Array32 (type=11 lengthBytes=4 maxCount=16)
+		0x0006, // Ignore (type=6)
+	},
+	0x002b: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x002d: {},
+	0x002e: {
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x002f: {
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0030: {
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0031: {
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0032: {
+		0x0010, // AgentId (type=0 size=4)
+	},
+	0x0033: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+		0x042b, // Array32 (type=11 lengthBytes=4 maxCount=4)
+		0x0006, // Ignore (type=6)
+	},
+	0x0034: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0035: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x2017, // String16 (type=7 maxChars=32)
+		0x0617, // String16 (type=7 maxChars=6)
+	},
+	0x0036: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x042b, // Array32 (type=11 lengthBytes=4 maxCount=4)
+		0x0006, // Ignore (type=6)
+	},
+	0x0037: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0038: {
+		0x0010, // AgentId (type=0 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0039: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x042b, // Array32 (type=11 lengthBytes=4 maxCount=4)
+		0x0006, // Ignore (type=6)
+	},
+	0x003a: {
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x003b: {
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x003c: {
+		0x0012, // Vec2 (type=2 size=8)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0012, // Vec2 (type=2 size=8)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x003d: {
+		0x0012, // Vec2 (type=2 size=8)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x003e: {
+		0x0010, // AgentId (type=0 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x003f: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0040: {
+		0x0010, // AgentId (type=0 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0041: {
+		0x0010, // AgentId (type=0 size=4)
+	},
+	0x0042: {
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0043: {
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0044: {
+		0x1000b, // Array8 (type=11 lengthBytes=1 maxCount=256)
+		0x0006,  // Ignore (type=6)
+	},
+	0x0045: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0010, // AgentId (type=0 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0046: {
+		0x0012, // Vec2 (type=2 size=8)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0047: {
+		0x0012, // Vec2 (type=2 size=8)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0048: {
+		0x0010, // AgentId (type=0 size=4)
+	},
+	0x0049: {
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+		0x102b, // Array32 (type=11 lengthBytes=4 maxCount=16)
+		0x0006, // Ignore (type=6)
+		0x0404, // Uint32 (type=4 size=4)
+		0x102b, // Array32 (type=11 lengthBytes=4 maxCount=16)
+		0x0006, // Ignore (type=6)
+	},
+	0x004a: {
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x004b: {
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+		0x102b, // Array32 (type=11 lengthBytes=4 maxCount=16)
+		0x0006, // Ignore (type=6)
+		0x0404, // Uint32 (type=4 size=4)
+		0x102b, // Array32 (type=11 lengthBytes=4 maxCount=16)
+		0x0006, // Ignore (type=6)
+	},
+	0x004c: {
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+		0x102b, // Array32 (type=11 lengthBytes=4 maxCount=16)
+		0x0006, // Ignore (type=6)
+		0x100b, // Array8 (type=11 lengthBytes=1 maxCount=16)
+		0x0006, // Ignore (type=6)
+		0x0404, // Uint32 (type=4 size=4)
+		0x102b, // Array32 (type=11 lengthBytes=4 maxCount=16)
+		0x0006, // Ignore (type=6)
+		0x100b, // Array8 (type=11 lengthBytes=1 maxCount=16)
+		0x0006, // Ignore (type=6)
+	},
+	0x004d: {
+		0x0104, // Uint8 (type=4 size=1)
+		0x7a17, // String16 (type=7 maxChars=122)
+	},
+	0x004e: {
+		0x0104, // Uint8 (type=4 size=1)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x004f: {
+		0x0010, // AgentId (type=0 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0050: {
+		0x0010, // AgentId (type=0 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0051: {
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0052: {
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0053: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0054: {
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0055: {
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0056: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0057: {
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0058: {},
+	0x0059: {},
+	0x005a: {
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x005b: {
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x005c: {
+		0x0010, // AgentId (type=0 size=4)
+		0x082b, // Array32 (type=11 lengthBytes=4 maxCount=8)
+		0x0006, // Ignore (type=6)
+	},
+	0x005d: {
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x005e: {
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x005f: {
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0060: {
+		0x2017, // String16 (type=7 maxChars=32)
+	},
+	0x0061: {
+		0x2017, // String16 (type=7 maxChars=32)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0062: {},
+	0x0063: {
+		0x0010, // AgentId (type=0 size=4)
+		0x8a17, // String16 (type=7 maxChars=138)
+	},
+	0x0064: {
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0065: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0066: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0067: {
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x0068: {
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0069: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x042b, // Array32 (type=11 lengthBytes=4 maxCount=4)
+		0x0006, // Ignore (type=6)
+	},
+	0x006a: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x006b: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x006c: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x006d: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x006e: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x006f: {
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0070: {
+		0x0104, // Uint8 (type=4 size=1)
+		0x060c, // Nested (type=12)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0071: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0072: {
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x0073: {
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0074: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0076: {
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0077: {},
+	0x0078: {},
+	0x0079: {},
+	0x007a: {
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x007b: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x007c: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x007d: {
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x007e: {
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x007f: {
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0080: {},
+	0x0081: {},
+	0x0082: {
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0083: {
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0084: {
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x0085: {
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+		0x041b, // Array16 (type=11 lengthBytes=2 maxCount=4)
+		0x0006, // Ignore (type=6)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0086: {
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0087: {},
+	0x0088: {},
+	0x0089: {},
+	0x008a: {
+		0x1417, // String16 (type=7 maxChars=20)
+		0x0805, // FixedBytes (type=5 bytes=8)
+	},
+	0x008b: {},
+	0x008c: {
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x008d: {
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x008e: {},
+	0x008f: {
+		0x1005, // FixedBytes (type=5 bytes=16)
+	},
+	0x0090: {
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0091: {
+		0x700b, // Array8 (type=11 lengthBytes=1 maxCount=112)
+		0x0006, // Ignore (type=6)
+	},
+	0x0092: {
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x0093: {
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0094: {
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0095: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0097: {},
+	0x0098: {},
+	0x0099: {},
+	0x009a: {
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x009b: {
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x009c: {
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x009d: {
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x009e: {
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x009f: {
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x00a0: {
+		0x1417, // String16 (type=7 maxChars=20)
+	},
+	0x00a1: {},
+	0x00a2: {},
+	0x00a3: {
+		0x0104, // Uint8 (type=4 size=1)
+		0x4017, // String16 (type=7 maxChars=64)
+	},
+	0x00a4: {
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x00a5: {
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x00a6: {},
+	0x00a7: {
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x00a8: {
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x00a9: {
+		0x0104, // Uint8 (type=4 size=1)
+		0x2017, // String16 (type=7 maxChars=32)
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x00aa: {},
+	0x00ab: {
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x00ac: {
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x00ad: {
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x00ae: {
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x00af: {
+		0x1005, // FixedBytes (type=5 bytes=16)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x00b0: {
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x00b1: {
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x00b2: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x1417, // String16 (type=7 maxChars=20)
+	},
+	0x00b3: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x1417, // String16 (type=7 maxChars=20)
+	},
+	0x00b4: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x2017, // String16 (type=7 maxChars=32)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x00b5: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x1005, // FixedBytes (type=5 bytes=16)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x00b6: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x1005, // FixedBytes (type=5 bytes=16)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x00b7: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x1417, // String16 (type=7 maxChars=20)
+	},
+	0x00b8: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x00b9: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x1417, // String16 (type=7 maxChars=20)
+	},
+	0x00ba: {
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00bb: {
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00bc: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x1417, // String16 (type=7 maxChars=20)
+	},
+	0x00bd: {
+		0x0404,  // Uint32 (type=4 size=4)
+		0x10017, // String16 (type=7 maxChars=256)
+	},
+	0x00be: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+		0x2017, // String16 (type=7 maxChars=32)
+	},
+	0x00bf: {
+		0x2017, // String16 (type=7 maxChars=32)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x00c0: {
+		0x0010, // AgentId (type=0 size=4)
+		0x0010, // AgentId (type=0 size=4)
+	},
+}
+
+// End GS_CtoS
+// GS_StoC Max = 485 (0x1e5)
+var FieldsGS_StoC = map[int][]uint32{
+	0x0000: { // FLen: 1, Handler: 007ee460
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0001: { // FLen: 1, Handler: 007ee320
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0002: { // FLen: 2, Handler: 007ee490
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0003: { // FLen: 1, Handler: 007ee370
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0004: { // FLen: 2, Handler: 007ee3a0
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0005: { // FLen: 1, Handler: 007ee3d0
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0006: { // FLen: 0, Handler: 007ee400
+	},
+	0x0007: { // FLen: 0, Handler: 007ee420
+	},
+	0x0008: { // FLen: 0, Handler: 007ee440
+	},
+	0x0009: { // FLen: 0, Handler: 007ee350
+	},
+	0x000a: { // FLen: 2, Handler: 0048b9b0
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x000b: { // FLen: 1, Handler: 0048b990
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x000c: { // FLen: 0, Handler: 0048b9d0
+	},
+	0x000d: { // FLen: 1, Handler: 0048ba20
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x000e: { // FLen: 4, Handler: 0048ba40
+		0x0404,  // Uint32 (type=4 size=4)
+		0x0404,  // Uint32 (type=4 size=4)
+		0x10017, // String16 (type=7 maxChars=256)
+		0x10017, // String16 (type=7 maxChars=256)
+	},
+	0x000f: { // FLen: 3, Handler: 00799df0
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x0010: { // FLen: 1, Handler: 00799e20
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0011: { // FLen: 1, Handler: 00799e50
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x0012: { // FLen: 1, Handler: 00799e80
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x0013: { // FLen: 1, Handler: 00799eb0
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0014: { // FLen: 3, Handler: 00799ed0
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0015: { // FLen: 2, Handler: 00799f00
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0016: { // FLen: 1, Handler: 00799f30
+		0x7a17, // String16 (type=7 maxChars=122)
+	},
+	0x0017: { // FLen: 5, Handler: 00799f50
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0018: { // FLen: 2, Handler: 00799f80
+		0x082b, // Array32 (type=11 lengthBytes=4 maxCount=8)
+		0x0006, // Ignore (type=6)
+	},
+	0x0019: { // FLen: 4, Handler: 00799fb0
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x400c, // Nested (type=12)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x001a: { // FLen: 3, Handler: 0079a040
+		0x0204, // Uint16 (type=4 size=2)
+		0x400c, // Nested (type=12)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x001b: { // FLen: 0, Handler: 0079a0d0
+	},
+	0x001c: { // FLen: 2, Handler: 0079a0f0
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x001d: { // FLen: 2, Handler: 0079a120
+		0x802b, // Array32 (type=11 lengthBytes=4 maxCount=128)
+		0x0006, // Ignore (type=6)
+	},
+	0x001e: { // FLen: 1, Handler: 005c4230
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x001f: { // FLen: 1, Handler: 005c42d0
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0020: { // FLen: 23, Handler: 005c4340
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0012, // Vec2 (type=2 size=8)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0002, // Vec2 (type=2 size=8)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0021, // Float32 (type=1 size=4)
+		0x0001, // Float32 (type=1 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0002, // Vec2 (type=2 size=8)
+		0x0012, // Vec2 (type=2 size=8)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0012, // Vec2 (type=2 size=8)
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x0021: { // FLen: 1, Handler: 005c4590
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0022: { // FLen: 2, Handler: 005c4620
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0023: { // FLen: 2, Handler: 005c4690
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0024: { // FLen: 2, Handler: 005c4720
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0025: { // FLen: 3, Handler: 005c47e0
+		0x0404, // Uint32 (type=4 size=4)
+		0x0002, // Vec2 (type=2 size=8)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0026: { // FLen: 2, Handler: 005c48e0
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0027: { // FLen: 2, Handler: 005c49a0
+		0x0404, // Uint32 (type=4 size=4)
+		0x0021, // Float32 (type=1 size=4)
+	},
+	0x0028: { // FLen: 1, Handler: 005c4a70
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0029: { // FLen: 4, Handler: 005c4b30
+		0x0404, // Uint32 (type=4 size=4)
+		0x0012, // Vec2 (type=2 size=8)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x002a: { // FLen: 5, Handler: 005c4bd0
+		0x0404, // Uint32 (type=4 size=4)
+		0x0012, // Vec2 (type=2 size=8)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x002b: { // FLen: 3, Handler: 005c4c70
+		0x0404, // Uint32 (type=4 size=4)
+		0x0001, // Float32 (type=1 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x002c: { // FLen: 3, Handler: 005c4cf0
+		0x0404, // Uint32 (type=4 size=4)
+		0x0012, // Vec2 (type=2 size=8)
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x002d: { // FLen: 1, Handler: 005c4e10
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x002e: { // FLen: 3, Handler: 005c4f00
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x002f: { // FLen: 2, Handler: 005c5010
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0030: { // FLen: 7, Handler: 0088a870
+		0x2017, // String16 (type=7 maxChars=32)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0031: { // FLen: 1, Handler: 0088a8a0
+		0x2017, // String16 (type=7 maxChars=32)
+	},
+	0x0032: { // FLen: 6, Handler: 0088a8c0
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0033: { // FLen: 1, Handler: 0088a8f0
+		0x4017, // String16 (type=7 maxChars=64)
+	},
+	0x0034: { // FLen: 2, Handler: 0088a910
+		0x0204, // Uint16 (type=4 size=2)
+		0x0010, // AgentId (type=0 size=4)
+	},
+	0x0035: { // FLen: 3, Handler: 0088a930
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0036: { // FLen: 2, Handler: 0088a960
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0037: { // FLen: 3, Handler: 0088a980
+		0x0010, // AgentId (type=0 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0038: { // FLen: 2, Handler: 0088a9a0
+		0x0010, // AgentId (type=0 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0039: { // FLen: 2, Handler: 0088a9c0
+		0x0010, // AgentId (type=0 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x003a: { // FLen: 3, Handler: 0088a9e0
+		0x0010, // AgentId (type=0 size=4)
+		0x302b, // Array32 (type=11 lengthBytes=4 maxCount=48)
+		0x0006, // Ignore (type=6)
+	},
+	0x003b: { // FLen: 4, Handler: 0088aa20
+		0x0010, // AgentId (type=0 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x003c: { // FLen: 4, Handler: 0088aa50
+		0x0817, // String16 (type=7 maxChars=8)
+		0x8017, // String16 (type=7 maxChars=128)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x003d: { // FLen: 1, Handler: 0088aa80
+		0x0010, // AgentId (type=0 size=4)
+	},
+	0x003e: { // FLen: 5, Handler: 0088aaa0
+		0x0010, // AgentId (type=0 size=4)
+		0x0010, // AgentId (type=0 size=4)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x003f: { // FLen: 2, Handler: 0088aad0
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0040: { // FLen: 5, Handler: 0088aaf0
+		0x0010, // AgentId (type=0 size=4)
+		0x0010, // AgentId (type=0 size=4)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0041: { // FLen: 5, Handler: 0088ab20
+		0x0010, // AgentId (type=0 size=4)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0042: { // FLen: 4, Handler: 0088ab50
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0043: { // FLen: 2, Handler: 0088ab80
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0044: { // FLen: 2, Handler: 0088aba0
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0045: { // FLen: 3, Handler: 0088abd0
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0010, // AgentId (type=0 size=4)
+	},
+	0x0046: { // FLen: 4, Handler: 0088ac00
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0012, // Vec2 (type=2 size=8)
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x0047: { // FLen: 2, Handler: 0088ac50
+		0x0010, // AgentId (type=0 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0048: { // FLen: 9, Handler: 0088ac70
+		0x0404, // Uint32 (type=4 size=4)
+		0x0012, // Vec2 (type=2 size=8)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0817, // String16 (type=7 maxChars=8)
+		0x0817, // String16 (type=7 maxChars=8)
+		0x0817, // String16 (type=7 maxChars=8)
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x0049: { // FLen: 1, Handler: 0088acc0
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x004a: { // FLen: 2, Handler: 0088ace0
+		0x402b, // Array32 (type=11 lengthBytes=4 maxCount=64)
+		0x0006, // Ignore (type=6)
+	},
+	0x004b: { // FLen: 3, Handler: 0088ad00
+		0x0404, // Uint32 (type=4 size=4)
+		0x8017, // String16 (type=7 maxChars=128)
+		0x8017, // String16 (type=7 maxChars=128)
+	},
+	0x004c: { // FLen: 4, Handler: 0088ad30
+		0x0404, // Uint32 (type=4 size=4)
+		0x0012, // Vec2 (type=2 size=8)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x004d: { // FLen: 3, Handler: 0088ada0
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x004f: { // FLen: 6, Handler: 0088ad70
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0817, // String16 (type=7 maxChars=8)
+		0x0817, // String16 (type=7 maxChars=8)
+		0x0817, // String16 (type=7 maxChars=8)
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x0050: { // FLen: 4, Handler: 0088adc0
+		0x0404, // Uint32 (type=4 size=4)
+		0x0012, // Vec2 (type=2 size=8)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x0051: { // FLen: 1, Handler: 0088ae00
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0052: { // FLen: 4, Handler: 0088ae20
+		0x0404, // Uint32 (type=4 size=4)
+		0x0012, // Vec2 (type=2 size=8)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x0053: { // FLen: 2, Handler: 0088ae60
+		0x0404, // Uint32 (type=4 size=4)
+		0x8017, // String16 (type=7 maxChars=128)
+	},
+	0x0055: { // FLen: 9, Handler: 0088ae80
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0817, // String16 (type=7 maxChars=8)
+	},
+	0x0056: { // FLen: 3, Handler: 0088af00
+		0x0404, // Uint32 (type=4 size=4)
+		0x082b, // Array32 (type=11 lengthBytes=4 maxCount=8)
+		0x0006, // Ignore (type=6)
+	},
+	0x0057: { // FLen: 2, Handler: 0088af70
+		0x0404, // Uint32 (type=4 size=4)
+		0x2017, // String16 (type=7 maxChars=32)
+	},
+	0x0058: { // FLen: 7, Handler: 0088af90
+		0x0404, // Uint32 (type=4 size=4)
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x2017, // String16 (type=7 maxChars=32)
+	},
+	0x0059: { // FLen: 1, Handler: 0088b000
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x005a: { // FLen: 1, Handler: 0088b020
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x005b: { // FLen: 3, Handler: 0088b040
+		0x0010, // AgentId (type=0 size=4)
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x005c: { // FLen: 1, Handler: 0088b060
+		0x7a17, // String16 (type=7 maxChars=122)
+	},
+	0x005d: { // FLen: 2, Handler: 0088b080
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x005e: { // FLen: 3, Handler: 0088b0a0
+		0x0010, // AgentId (type=0 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0817, // String16 (type=7 maxChars=8)
+	},
+	0x005f: { // FLen: 3, Handler: 0088b0c0
+		0x0104, // Uint8 (type=4 size=1)
+		0x2017, // String16 (type=7 maxChars=32)
+		0x0617, // String16 (type=7 maxChars=6)
+	},
+	0x0060: { // FLen: 2, Handler: 0088b0e0
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0061: { // FLen: 2, Handler: 0088b100
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0062: { // FLen: 2, Handler: 0088b120
+		0x0010, // AgentId (type=0 size=4)
+		0x0010, // AgentId (type=0 size=4)
+	},
+	0x0063: { // FLen: 3, Handler: 0088b140
+		0x0010, // AgentId (type=0 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0064: { // FLen: 2, Handler: 0088b160
+		0x0010, // AgentId (type=0 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0065: { // FLen: 3, Handler: 0088b180
+		0x0010, // AgentId (type=0 size=4)
+		0x0012, // Vec2 (type=2 size=8)
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x0066: { // FLen: 2, Handler: 0088b1c0
+		0x0012, // Vec2 (type=2 size=8)
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x0067: { // FLen: 3, Handler: 0088b200
+		0x0010, // AgentId (type=0 size=4)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0068: { // FLen: 1, Handler: 0088b220
+		0x0010, // AgentId (type=0 size=4)
+	},
+	0x0069: { // FLen: 1, Handler: 0088b240
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x006a: { // FLen: 2, Handler: 0088b260
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x006b: { // FLen: 3, Handler: 0088b280
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x006c: { // FLen: 3, Handler: 0088b2a0
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x006d: { // FLen: 10, Handler: 0088b2c0
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x006e: { // FLen: 3, Handler: 0088b2e0
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x006f: { // FLen: 1, Handler: 0088b300
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0070: { // FLen: 1, Handler: 0088b320
+		0x0010, // AgentId (type=0 size=4)
+	},
+	0x0071: { // FLen: 4, Handler: 0088b340
+		0x0204, // Uint16 (type=4 size=2)
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0072: { // FLen: 8, Handler: 0088b370
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0073: { // FLen: 20, Handler: 0088b3f0
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x2017, // String16 (type=7 maxChars=32)
+	},
+	0x0074: { // FLen: 1, Handler: 0088b490
+		0x0010, // AgentId (type=0 size=4)
+	},
+	0x0075: { // FLen: 1, Handler: 0088b4b0
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x0076: { // FLen: 1, Handler: 0088b4d0
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x0077: { // FLen: 7, Handler: 0088b4f0
+		0x0104, // Uint8 (type=4 size=1)
+		0x200c, // Nested (type=12)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0078: { // FLen: 2, Handler: 0088b750
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0079: { // FLen: 5, Handler: 0088b770
+		0x0404, // Uint32 (type=4 size=4)
+		0x0817, // String16 (type=7 maxChars=8)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x007a: { // FLen: 1, Handler: 0088b7a0
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x007b: { // FLen: 1, Handler: 0088b7c0
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x007c: { // FLen: 1, Handler: 0088b8d0
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x007d: { // FLen: 4, Handler: 0088b7e0
+		0x0104, // Uint8 (type=4 size=1)
+		0x8017, // String16 (type=7 maxChars=128)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x007f: { // FLen: 1, Handler: 0088b820
+		0x7a17, // String16 (type=7 maxChars=122)
+	},
+	0x0080: { // FLen: 1, Handler: 0088b840
+		0x0010, // AgentId (type=0 size=4)
+	},
+	0x0081: { // FLen: 2, Handler: 0088b860
+		0x0010, // AgentId (type=0 size=4)
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x0082: { // FLen: 3, Handler: 0088b880
+		0x0010, // AgentId (type=0 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0083: { // FLen: 2, Handler: 0088a330
+		0x102b, // Array32 (type=11 lengthBytes=4 maxCount=16)
+		0x0006, // Ignore (type=6)
+	},
+	0x0084: { // FLen: 1, Handler: 0088b8f0
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0085: { // FLen: 1, Handler: 0088b910
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0086: { // FLen: 18, Handler: 0088b930
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0087: { // FLen: 1, Handler: 0088b960
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0088: { // FLen: 3, Handler: 0088b980
+		0x0104, // Uint8 (type=4 size=1)
+		0x0003, // Vec3 (type=3 size=12)
+		0x0012, // Vec2 (type=2 size=8)
+	},
+	0x0089: { // FLen: 2, Handler: 0088b9a0
+		0x402b, // Array32 (type=11 lengthBytes=4 maxCount=64)
+		0x0006, // Ignore (type=6)
+	},
+	0x008a: { // FLen: 3, Handler: 0088b9c0
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x008b: { // FLen: 2, Handler: 0088b9f0
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x008c: { // FLen: 7, Handler: 0088ba20
+		0x0404, // Uint32 (type=4 size=4)
+		0x0012, // Vec2 (type=2 size=8)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0817, // String16 (type=7 maxChars=8)
+	},
+	0x008d: { // FLen: 1, Handler: 0088ba70
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x008e: { // FLen: 2, Handler: 0088ba90
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x008f: { // FLen: 2, Handler: 0088bab0
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0090: { // FLen: 4, Handler: 0088bad0
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+		0x102b, // Array32 (type=11 lengthBytes=4 maxCount=16)
+		0x0006, // Ignore (type=6)
+	},
+	0x0091: { // FLen: 2, Handler: 0088bb60
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0092: { // FLen: 2, Handler: 0088bb90
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0093: { // FLen: 10, Handler: 0088bbb0
+		0x202b, // Array32 (type=11 lengthBytes=4 maxCount=32)
+		0x0006, // Ignore (type=6)
+		0x202b, // Array32 (type=11 lengthBytes=4 maxCount=32)
+		0x0006, // Ignore (type=6)
+		0x202b, // Array32 (type=11 lengthBytes=4 maxCount=32)
+		0x0006, // Ignore (type=6)
+		0x202b, // Array32 (type=11 lengthBytes=4 maxCount=32)
+		0x0006, // Ignore (type=6)
+		0x202b, // Array32 (type=11 lengthBytes=4 maxCount=32)
+		0x0006, // Ignore (type=6)
+	},
+	0x0094: { // FLen: 2, Handler: 0088bc20
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0095: { // FLen: 5, Handler: 0088bc40
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0096: { // FLen: 2, Handler: 0088bc70
+		0x0104, // Uint8 (type=4 size=1)
+		0x8017, // String16 (type=7 maxChars=128)
+	},
+	0x0097: { // FLen: 4, Handler: 0088bc90
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0098: { // FLen: 2, Handler: 0088bcc0
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0099: { // FLen: 2, Handler: 0088bce0
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x009a: { // FLen: 2, Handler: 0088bd00
+		0x0010, // AgentId (type=0 size=4)
+		0x2017, // String16 (type=7 maxChars=32)
+	},
+	0x009b: { // FLen: 2, Handler: 0088bd20
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x009c: { // FLen: 3, Handler: 0088bd40
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x009d: { // FLen: 4, Handler: 0088bd70
+		0x0010, // AgentId (type=0 size=4)
+		0x2017, // String16 (type=7 maxChars=32)
+		0x0104, // Uint8 (type=4 size=1)
+		0x7a17, // String16 (type=7 maxChars=122)
+	},
+	0x009e: { // FLen: 3, Handler: 0088bda0
+		0x0404, // Uint32 (type=4 size=4)
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x009f: { // FLen: 4, Handler: 0088bdc0
+		0x0404, // Uint32 (type=4 size=4)
+		0x0010, // AgentId (type=0 size=4)
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00a0: { // FLen: 6, Handler: 0088bdf0
+		0x0012, // Vec2 (type=2 size=8)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0010, // AgentId (type=0 size=4)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x00a1: { // FLen: 3, Handler: 0088be40
+		0x0404, // Uint32 (type=4 size=4)
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00a2: { // FLen: 4, Handler: 0088be70
+		0x0404, // Uint32 (type=4 size=4)
+		0x0010, // AgentId (type=0 size=4)
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00a3: { // FLen: 7, Handler: 0088bea0
+		0x0010, // AgentId (type=0 size=4)
+		0x0012, // Vec2 (type=2 size=8)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x00a4: { // FLen: 2, Handler: 0088bef0
+		0x0010, // AgentId (type=0 size=4)
+		0x7a17, // String16 (type=7 maxChars=122)
+	},
+	0x00a5: { // FLen: 3, Handler: 0088bf10
+		0x0010, // AgentId (type=0 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x00a6: { // FLen: 3, Handler: 0088bf30
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00a7: { // FLen: 3, Handler: 0088bf50
+		0x0012, // Vec2 (type=2 size=8)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00a8: { // FLen: 2, Handler: 0088bf90
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00a9: { // FLen: 3, Handler: 0088bfb0
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00aa: { // FLen: 0, Handler: 0088bfd0
+	},
+	0x00ab: { // FLen: 2, Handler: 0088bfe0
+		0x0010, // AgentId (type=0 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x00ac: { // FLen: 2, Handler: 0088c000
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x00ad: { // FLen: 2, Handler: 0088c020
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00ae: { // FLen: 1, Handler: 0088c040
+		0x2017, // String16 (type=7 maxChars=32)
+	},
+	0x00af: { // FLen: 2, Handler: 0088c060
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x00b0: { // FLen: 2, Handler: 0088c0f0
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x00b1: { // FLen: 6, Handler: 0088c080
+		0x0010, // AgentId (type=0 size=4)
+		0x0010, // AgentId (type=0 size=4)
+		0x2017, // String16 (type=7 maxChars=32)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00b2: { // FLen: 1, Handler: 0088c0b0
+		0x0010, // AgentId (type=0 size=4)
+	},
+	0x00b3: { // FLen: 2, Handler: 0088c0d0
+		0x0010, // AgentId (type=0 size=4)
+		0x2017, // String16 (type=7 maxChars=32)
+	},
+	0x00b4: { // FLen: 2, Handler: 0088c110
+		0x1000b, // Array8 (type=11 lengthBytes=1 maxCount=256)
+		0x0006,  // Ignore (type=6)
+	},
+	0x00b5: { // FLen: 2, Handler: 0088c130
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00b6: { // FLen: 4, Handler: 0088c150
+		0x0010, // AgentId (type=0 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x00b7: { // FLen: 0, Handler: 0088c180
+	},
+	0x00b8: { // FLen: 2, Handler: 0088c190
+		0x8017, // String16 (type=7 maxChars=128)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00b9: { // FLen: 0, Handler: 0088c1b0
+	},
+	0x00ba: { // FLen: 3, Handler: 0088c1c0
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x8017, // String16 (type=7 maxChars=128)
+	},
+	0x00bb: { // FLen: 1, Handler: 0088c1e0
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00bc: { // FLen: 2, Handler: 0088c200
+		0x0404, // Uint32 (type=4 size=4)
+		0x8017, // String16 (type=7 maxChars=128)
+	},
+	0x00bd: { // FLen: 1, Handler: 0088c220
+		0x0010, // AgentId (type=0 size=4)
+	},
+	0x00be: { // FLen: 2, Handler: 0088c240
+		0x402b, // Array32 (type=11 lengthBytes=4 maxCount=64)
+		0x0006, // Ignore (type=6)
+	},
+	0x00bf: { // FLen: 5, Handler: 0088c260
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x8017, // String16 (type=7 maxChars=128)
+		0x8017, // String16 (type=7 maxChars=128)
+	},
+	0x00c0: { // FLen: 2, Handler: 0088c290
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00c1: { // FLen: 2, Handler: 0088c2b0
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00c2: { // FLen: 2, Handler: 0088c2d0
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00c3: { // FLen: 1, Handler: 0088c2f0
+		0x0010, // AgentId (type=0 size=4)
+	},
+	0x00c4: { // FLen: 2, Handler: 0088c310
+		0x0104, // Uint8 (type=4 size=1)
+		0x7a17, // String16 (type=7 maxChars=122)
+	},
+	0x00c5: { // FLen: 2, Handler: 0088c330
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00c6: { // FLen: 4, Handler: 0088c390
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+		0x102b, // Array32 (type=11 lengthBytes=4 maxCount=16)
+		0x0006, // Ignore (type=6)
+	},
+	0x00c7: { // FLen: 3, Handler: 0088c350
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00c8: { // FLen: 2, Handler: 0088c370
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x00c9: { // FLen: 2, Handler: 0088c3e0
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00ca: { // FLen: 1, Handler: 0088c400
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x00cb: { // FLen: 1, Handler: 0088c420
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x00cc: { // FLen: 4, Handler: 0088c440
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x00cd: { // FLen: 2, Handler: 0088c470
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00ce: { // FLen: 2, Handler: 0088c490
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00cf: { // FLen: 1, Handler: 0088c4b0
+		0x0010, // AgentId (type=0 size=4)
+	},
+	0x00d0: { // FLen: 4, Handler: 0088c4d0
+		0x0010, // AgentId (type=0 size=4)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00d1: { // FLen: 3, Handler: 0088a290
+		0x0010, // AgentId (type=0 size=4)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00d2: { // FLen: 2, Handler: 0088a2b0
+		0x802b, // Array32 (type=11 lengthBytes=4 maxCount=128)
+		0x0006, // Ignore (type=6)
+	},
+	0x00d3: { // FLen: 0, Handler: 0088a2d0
+	},
+	0x00d4: { // FLen: 0, Handler: 0088a300
+	},
+	0x00d5: { // FLen: 3, Handler: 0088a310
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00d6: { // FLen: 2, Handler: 0088a330
+		0x082b, // Array32 (type=11 lengthBytes=4 maxCount=8)
+		0x0006, // Ignore (type=6)
+	},
+	0x00d7: { // FLen: 2, Handler: 0088a2e0
+		0x042b, // Array32 (type=11 lengthBytes=4 maxCount=4)
+		0x0006, // Ignore (type=6)
+	},
+	0x00d8: { // FLen: 4, Handler: 0088a350
+		0x0010, // AgentId (type=0 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00d9: { // FLen: 6, Handler: 0088a380
+		0x0010, // AgentId (type=0 size=4)
+		0x082b, // Array32 (type=11 lengthBytes=4 maxCount=8)
+		0x0006, // Ignore (type=6)
+		0x082b, // Array32 (type=11 lengthBytes=4 maxCount=8)
+		0x0006, // Ignore (type=6)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x00da: { // FLen: 2, Handler: 0088a3b0
+		0x802b, // Array32 (type=11 lengthBytes=4 maxCount=128)
+		0x0006, // Ignore (type=6)
+	},
+	0x00db: { // FLen: 2, Handler: 0088a3d0
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00dc: { // FLen: 2, Handler: 0088a3f0
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00dd: { // FLen: 1, Handler: 0088a410
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x00de: { // FLen: 2, Handler: 0088a430
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00df: { // FLen: 3, Handler: 0088a450
+		0x0104, // Uint8 (type=4 size=1)
+		0x102b, // Array32 (type=11 lengthBytes=4 maxCount=16)
+		0x0006, // Ignore (type=6)
+	},
+	0x00e0: { // FLen: 1, Handler: 0088a480
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x00e1: { // FLen: 3, Handler: 0088a4a0
+		0x0010, // AgentId (type=0 size=4)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00e2: { // FLen: 3, Handler: 0088a4a0
+		0x0010, // AgentId (type=0 size=4)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00e3: { // FLen: 3, Handler: 0088a4c0
+		0x0010, // AgentId (type=0 size=4)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00e4: { // FLen: 4, Handler: 0088a4e0
+		0x0010, // AgentId (type=0 size=4)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00e5: { // FLen: 3, Handler: 0088a510
+		0x0010, // AgentId (type=0 size=4)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00e6: { // FLen: 3, Handler: 0088a530
+		0x0010, // AgentId (type=0 size=4)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00e7: { // FLen: 5, Handler: 0088a550
+		0x0010, // AgentId (type=0 size=4)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00e8: { // FLen: 15, Handler: 0088a580
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00e9: { // FLen: 1, Handler: 0088a5a0
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00ea: { // FLen: 1, Handler: 0088a5c0
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00eb: { // FLen: 1, Handler: 0088a5e0
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00ec: { // FLen: 1, Handler: 0088a600
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00ed: { // FLen: 2, Handler: 0088a620
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00ee: { // FLen: 2, Handler: 0088a640
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00ef: { // FLen: 2, Handler: 0088a660
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00f0: { // FLen: 2, Handler: 0088a680
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00f1: { // FLen: 1, Handler: 0088a6a0
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00f2: { // FLen: 4, Handler: 0088a6c0
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0817, // String16 (type=7 maxChars=8)
+	},
+	0x00f3: { // FLen: 2, Handler: 0088a700
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00f4: { // FLen: 2, Handler: 0088a720
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00f5: { // FLen: 11, Handler: 0088a740
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0817, // String16 (type=7 maxChars=8)
+		0x0817, // String16 (type=7 maxChars=8)
+	},
+	0x00f6: { // FLen: 2, Handler: 0088a7b0
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00f7: { // FLen: 1, Handler: 0088a7d0
+		0x0010, // AgentId (type=0 size=4)
+	},
+	0x00f8: { // FLen: 2, Handler: 0088a2e0
+		0x102b, // Array32 (type=11 lengthBytes=4 maxCount=16)
+		0x0006, // Ignore (type=6)
+	},
+	0x00f9: { // FLen: 2, Handler: 0088a7f0
+		0x202b, // Array32 (type=11 lengthBytes=4 maxCount=32)
+		0x0006, // Ignore (type=6)
+	},
+	0x00fa: { // FLen: 3, Handler: 0088a810
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00fb: { // FLen: 2, Handler: 0088a830
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x00fc: { // FLen: 2, Handler: 0088a850
+		0x2017, // String16 (type=7 maxChars=32)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x00fd: { // FLen: 0, Handler: 0088e360
+	},
+	0x00fe: { // FLen: 2, Handler: 0088e370
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x00ff: { // FLen: 1, Handler: 0088e390
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0100: { // FLen: 1, Handler: 0088e3b0
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0101: { // FLen: 3, Handler: 0088e3d0
+		0x0404, // Uint32 (type=4 size=4)
+		0x0204, // Uint16 (type=4 size=2)
+		0x5017, // String16 (type=7 maxChars=80)
+	},
+	0x0102: { // FLen: 0, Handler: 0088e3f0
+	},
+	0x0103: { // FLen: 2, Handler: 0088e400
+		0x4000b, // Array8 (type=11 lengthBytes=1 maxCount=1024)
+		0x0006,  // Ignore (type=6)
+	},
+	0x0104: { // FLen: 0, Handler: 0088e420
+	},
+	0x0105: { // FLen: 1, Handler: 007c2100
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0106: { // FLen: 5, Handler: 0088e4d0
+		0x0010, // AgentId (type=0 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+		0x2017, // String16 (type=7 maxChars=32)
+	},
+	0x0107: { // FLen: 1, Handler: 0088e520
+		0x0010, // AgentId (type=0 size=4)
+	},
+	0x0108: { // FLen: 2, Handler: 0088e540
+		0x0404, // Uint32 (type=4 size=4)
+		0x7a17, // String16 (type=7 maxChars=122)
+	},
+	0x0109: { // FLen: 4, Handler: 0088e560
+		0x0104, // Uint8 (type=4 size=1)
+		0x7a17, // String16 (type=7 maxChars=122)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x010a: { // FLen: 1, Handler: 0088e5a0
+		0x7a17, // String16 (type=7 maxChars=122)
+	},
+	0x010b: { // FLen: 1, Handler: 0088e6f0
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x010c: { // FLen: 1, Handler: 0088e750
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x010d: { // FLen: 3, Handler: 0088e770
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x010e: { // FLen: 2, Handler: 0088e790
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x010f: { // FLen: 2, Handler: 0088e7b0
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0110: { // FLen: 3, Handler: 0088e7d0
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0111: { // FLen: 2, Handler: 0088e7f0
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0112: { // FLen: 2, Handler: 0088e810
+		0x0404, // Uint32 (type=4 size=4)
+		0x2017, // String16 (type=7 maxChars=32)
+	},
+	0x0113: { // FLen: 2, Handler: 0088e830
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0114: { // FLen: 2, Handler: 0088e850
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0115: { // FLen: 4, Handler: 007d2740
+		0x0204, // Uint16 (type=4 size=2)
+		0x1005, // FixedBytes (type=5 bytes=16)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0116: { // FLen: 1, Handler: 007d27d0
+		0x1005, // FixedBytes (type=5 bytes=16)
+	},
+	0x0117: { // FLen: 3, Handler: 007d2a20
+		0x0204, // Uint16 (type=4 size=2)
+		0x1005, // FixedBytes (type=5 bytes=16)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0118: { // FLen: 0, Handler: 007d2b10
+	},
+	0x0119: { // FLen: 13, Handler: 007d2830
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+		0x2017, // String16 (type=7 maxChars=32)
+		0x0617, // String16 (type=7 maxChars=6)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x011a: { // FLen: 2, Handler: 007d28b0
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x011b: { // FLen: 0, Handler: 007d2920
+	},
+	0x011c: { // FLen: 1, Handler: 007d28e0
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x011d: { // FLen: 2, Handler: 007d2960
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x011e: { // FLen: 2, Handler: 007d29e0
+		0x0404, // Uint32 (type=4 size=4)
+		0x4017, // String16 (type=7 maxChars=64)
+	},
+	0x011f: { // FLen: 15, Handler: 007d2b90
+		0x0204, // Uint16 (type=4 size=2)
+		0x1005, // FixedBytes (type=5 bytes=16)
+		0x2017, // String16 (type=7 maxChars=32)
+		0x0617, // String16 (type=7 maxChars=6)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0120: { // FLen: 19, Handler: 007d2c60
+		0x0204, // Uint16 (type=4 size=2)
+		0x1005, // FixedBytes (type=5 bytes=16)
+		0x2017, // String16 (type=7 maxChars=32)
+		0x0617, // String16 (type=7 maxChars=6)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0121: { // FLen: 3, Handler: 007d2d50
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0122: { // FLen: 7, Handler: 007d3030
+		0x1005, // FixedBytes (type=5 bytes=16)
+		0x2017, // String16 (type=7 maxChars=32)
+		0x0617, // String16 (type=7 maxChars=6)
+		0x1417, // String16 (type=7 maxChars=20)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0123: { // FLen: 2, Handler: 007d3080
+		0x1005, // FixedBytes (type=5 bytes=16)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0124: { // FLen: 2, Handler: 007d2dd0
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0125: { // FLen: 2, Handler: 007d2e50
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0126: { // FLen: 9, Handler: 007d30c0
+		0x1417, // String16 (type=7 maxChars=20)
+		0x1417, // String16 (type=7 maxChars=20)
+		0x1417, // String16 (type=7 maxChars=20)
+		0x4017, // String16 (type=7 maxChars=64)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0127: { // FLen: 1, Handler: 007d3130
+		0x1417, // String16 (type=7 maxChars=20)
+	},
+	0x0128: { // FLen: 1, Handler: 007d3170
+		0x1417, // String16 (type=7 maxChars=20)
+	},
+	0x0129: { // FLen: 1, Handler: 007d31d0
+		0x1417, // String16 (type=7 maxChars=20)
+	},
+	0x012a: { // FLen: 2, Handler: 007d32e0
+		0x0404, // Uint32 (type=4 size=4)
+		0x4017, // String16 (type=7 maxChars=64)
+	},
+	0x012b: { // FLen: 2, Handler: 007d3340
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x012c: { // FLen: 1, Handler: 007d33b0
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x012d: { // FLen: 1, Handler: 007d2ed0
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x012e: { // FLen: 2, Handler: 007d3400
+		0x10017, // String16 (type=7 maxChars=256)
+		0x1417,  // String16 (type=7 maxChars=20)
+	},
+	0x012f: { // FLen: 2, Handler: 007d2f10
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0130: { // FLen: 0, Handler: 007d2f90
+	},
+	0x0131: { // FLen: 2, Handler: 007d34a0
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0132: { // FLen: 1, Handler: 007d34e0
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0133: { // FLen: 0, Handler: 007d3010
+	},
+	0x0134: { // FLen: 3, Handler: 007d7dc0
+		0x0404, // Uint32 (type=4 size=4)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0135: { // FLen: 1, Handler: 007d7e60
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0136: { // FLen: 2, Handler: 007d7e90
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0137: { // FLen: 6, Handler: 007d7ed0
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0817, // String16 (type=7 maxChars=8)
+		0x0817, // String16 (type=7 maxChars=8)
+		0x0817, // String16 (type=7 maxChars=8)
+		0x0817, // String16 (type=7 maxChars=8)
+	},
+	0x0138: { // FLen: 2, Handler: 007d7f10
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0139: { // FLen: 2, Handler: 007d8060
+		0x0404, // Uint32 (type=4 size=4)
+		0x2017, // String16 (type=7 maxChars=32)
+	},
+	0x013a: { // FLen: 2, Handler: 007d8110
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x013b: { // FLen: 2, Handler: 007d8140
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x013c: { // FLen: 3, Handler: 0046be50
+		0x0404, // Uint32 (type=4 size=4)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x013d: { // FLen: 4, Handler: 007d8180
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x013e: { // FLen: 6, Handler: 007d8240
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x013f: { // FLen: 2, Handler: 007d8320
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0140: { // FLen: 2, Handler: 007d8370
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0141: { // FLen: 1, Handler: 007d83c0
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x0142: { // FLen: 2, Handler: 007d83f0
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x0143: { // FLen: 2, Handler: 007d8460
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0144: { // FLen: 1, Handler: 007d84b0
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x0145: { // FLen: 5, Handler: 007d8500
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0146: { // FLen: 4, Handler: 007d85c0
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0147: { // FLen: 2, Handler: 007d8650
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0148: { // FLen: 3, Handler: 007d86a0
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x014a: { // FLen: 4, Handler: 007d8720
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x014b: { // FLen: 3, Handler: 007d87d0
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x014c: { // FLen: 2, Handler: 007d8830
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x014d: { // FLen: 2, Handler: 007d88b0
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x014e: { // FLen: 2, Handler: 007d8930
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x014f: { // FLen: 2, Handler: 007d8980
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0150: { // FLen: 2, Handler: 007d89d0
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0151: { // FLen: 3, Handler: 007d8a40
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0152: { // FLen: 4, Handler: 007d8af0
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0153: { // FLen: 3, Handler: 007d8ba0
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0154: { // FLen: 2, Handler: 007d8be0
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0155: { // FLen: 1, Handler: 007d8c40
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0156: { // FLen: 4, Handler: 007d8cc0
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0157: { // FLen: 2, Handler: 007d8c90
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0158: { // FLen: 2, Handler: 007d8cf0
+		0x0404, // Uint32 (type=4 size=4)
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x0159: { // FLen: 2, Handler: 007d8d60
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x015a: { // FLen: 2, Handler: 007d8db0
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x015b: { // FLen: 9, Handler: 007d8de0
+		0x0204, // Uint16 (type=4 size=2)
+		0x070c, // Nested (type=12)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x015c: { // FLen: 2, Handler: 007d8e90
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x015d: { // FLen: 9, Handler: 007d9190
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x015e: { // FLen: 9, Handler: 007d9250
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x015f: { // FLen: 6, Handler: 007d9150
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x4017, // String16 (type=7 maxChars=64)
+		0x400c, // Nested (type=12)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0160: { // FLen: 14, Handler: 007d8f60
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x4017, // String16 (type=7 maxChars=64)
+		0x400c, // Nested (type=12)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0161: { // FLen: 14, Handler: 007d9040
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x4017, // String16 (type=7 maxChars=64)
+		0x400c, // Nested (type=12)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0162: { // FLen: 4, Handler: 007d9330
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+		0x032b, // Array32 (type=11 lengthBytes=4 maxCount=3)
+		0x0006, // Ignore (type=6)
+	},
+	0x0163: { // FLen: 0, Handler: 007d9390
+	},
+	0x0164: { // FLen: 0, Handler: 007d93b0
+	},
+	0x0165: { // FLen: 0, Handler: 007d93d0
+	},
+	0x0166: { // FLen: 1, Handler: 007d93f0
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0167: { // FLen: 2, Handler: 007d9420
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x0168: { // FLen: 2, Handler: 007d9440
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0169: { // FLen: 4, Handler: 007d9480
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+		0x032b, // Array32 (type=11 lengthBytes=4 maxCount=3)
+		0x0006, // Ignore (type=6)
+	},
+	0x016a: { // FLen: 0, Handler: 007d94e0
+	},
+	0x016b: { // FLen: 0, Handler: 007d9500
+	},
+	0x016c: { // FLen: 1, Handler: 007d9520
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x016d: { // FLen: 1, Handler: 007e0250
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x016e: { // FLen: 0, Handler: 007e02d0
+	},
+	0x016f: { // FLen: 0, Handler: 007e02f0
+	},
+	0x0170: { // FLen: 23, Handler: 007e0310
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0171: { // FLen: 1, Handler: 007e0400
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0172: { // FLen: 1, Handler: 007e0420
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0173: { // FLen: 23, Handler: 007e0440
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0174: { // FLen: 4, Handler: 007e0530
+		0x0404, // Uint32 (type=4 size=4)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x4017, // String16 (type=7 maxChars=64)
+	},
+	0x0175: { // FLen: 2, Handler: 007e0560
+		0x0404, // Uint32 (type=4 size=4)
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x0176: { // FLen: 4, Handler: 007e0580
+		0x0404, // Uint32 (type=4 size=4)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x4017, // String16 (type=7 maxChars=64)
+	},
+	0x0177: { // FLen: 20, Handler: 007e05b0
+		0x0204, // Uint16 (type=4 size=2)
+		0x4017, // String16 (type=7 maxChars=64)
+		0x0617, // String16 (type=7 maxChars=6)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0178: { // FLen: 3, Handler: 007e06d0
+		0x0404, // Uint32 (type=4 size=4)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0179: { // FLen: 1, Handler: 007e0700
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x017a: { // FLen: 0, Handler: 007e07a0
+	},
+	0x017b: { // FLen: 4, Handler: 007e0820
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x017c: { // FLen: 1, Handler: 007e0860
+		0x1417, // String16 (type=7 maxChars=20)
+	},
+	0x017d: { // FLen: 0, Handler: 007e0890
+	},
+	0x017e: { // FLen: 1, Handler: 007e08b0
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x017f: { // FLen: 4, Handler: 007e08e0
+		0x7a17, // String16 (type=7 maxChars=122)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0180: { // FLen: 1, Handler: 007e0920
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0181: { // FLen: 2, Handler: 007e0950
+		0x7a17, // String16 (type=7 maxChars=122)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0182: { // FLen: 2, Handler: 007e09a0
+		0x8017, // String16 (type=7 maxChars=128)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0183: { // FLen: 2, Handler: 007e09c0
+		0x8017,  // String16 (type=7 maxChars=128)
+		0x10017, // String16 (type=7 maxChars=256)
+	},
+	0x0184: { // FLen: 2, Handler: 007e09e0
+		0x8017, // String16 (type=7 maxChars=128)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0185: { // FLen: 0, Handler: 007e0980
+	},
+	0x0186: { // FLen: 1, Handler: 007e0a00
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0187: { // FLen: 5, Handler: 007e0a20
+		0x1005,  // FixedBytes (type=5 bytes=16)
+		0x1417,  // String16 (type=7 maxChars=20)
+		0x0204,  // Uint16 (type=4 size=2)
+		0x4000b, // Array8 (type=11 lengthBytes=1 maxCount=1024)
+		0x0006,  // Ignore (type=6)
+	},
+	0x0188: { // FLen: 0, Handler: 007e0a90
+	},
+	0x0189: { // FLen: 0, Handler: 007e0ac0
+	},
+	0x018a: { // FLen: 1, Handler: 007e0ae0
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x018b: { // FLen: 1, Handler: 007e0b10
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x018c: { // FLen: 1, Handler: 0046be50
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x018d: { // FLen: 0, Handler: 007e0b40
+	},
+	0x018e: { // FLen: 3, Handler: 007e0b80
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x018f: { // FLen: 2, Handler: 007e0c70
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0190: { // FLen: 1, Handler: 007e0bd0
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x0191: { // FLen: 8, Handler: 007e0ca0
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+		0x4017, // String16 (type=7 maxChars=64)
+		0x080c, // Nested (type=12)
+		0x1417, // String16 (type=7 maxChars=20)
+	},
+	0x0192: { // FLen: 2, Handler: 007e0d30
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0193: { // FLen: 1, Handler: 007e0d60
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0194: { // FLen: 6, Handler: 007e0da0
+		0x0404, // Uint32 (type=4 size=4)
+		0x0012, // Vec2 (type=2 size=8)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0805, // FixedBytes (type=5 bytes=8)
+	},
+	0x0195: { // FLen: 2, Handler: 007e0e50
+		0x4000b, // Array8 (type=11 lengthBytes=1 maxCount=1024)
+		0x0006,  // Ignore (type=6)
+	},
+	0x0196: { // FLen: 3, Handler: 007e0e80
+		0x0104, // Uint8 (type=4 size=1)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0197: { // FLen: 1, Handler: 007e0eb0
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0198: { // FLen: 6, Handler: 007e0ee0
+		0x0050, // AgentId (type=0 size=4)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0199: { // FLen: 2, Handler: 007e0f60
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x019a: { // FLen: 1, Handler: 007e0f80
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x019b: { // FLen: 1, Handler: 007e0fa0
+		0x7a17, // String16 (type=7 maxChars=122)
+	},
+	0x019c: { // FLen: 17, Handler: 007e0fd0
+		0x0404, // Uint32 (type=4 size=4)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x020c, // Nested (type=12)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x3017, // String16 (type=7 maxChars=48)
+	},
+	0x019d: { // FLen: 0, Handler: 007e0ff0
+	},
+	0x019e: { // FLen: 3, Handler: 007e1020
+		0x100c, // Nested (type=12)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x019f: { // FLen: 8, Handler: 007e1050
+		0x0104, // Uint8 (type=4 size=1)
+		0x7a17, // String16 (type=7 maxChars=122)
+		0x7a17, // String16 (type=7 maxChars=122)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x01a0: { // FLen: 1, Handler: 007e10e0
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x01a1: { // FLen: 6, Handler: 007e1110
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x01a2: { // FLen: 3, Handler: 007e1190
+		0x0104, // Uint8 (type=4 size=1)
+		0x7a17, // String16 (type=7 maxChars=122)
+		0x7a17, // String16 (type=7 maxChars=122)
+	},
+	0x01a3: { // FLen: 13, Handler: 007e1200
+		0x0050, // AgentId (type=0 size=4)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0012, // Vec2 (type=2 size=8)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x1417, // String16 (type=7 maxChars=20)
+		0x0805, // FixedBytes (type=5 bytes=8)
+	},
+	0x01a4: { // FLen: 6, Handler: 007e1320
+		0x1805, // FixedBytes (type=5 bytes=24)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x01a5: { // FLen: 9, Handler: 007e1470
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+		0x7a17, // String16 (type=7 maxChars=122)
+		0x0404, // Uint32 (type=4 size=4)
+		0x7a17, // String16 (type=7 maxChars=122)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x01a6: { // FLen: 1, Handler: 007e1500
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x01a7: { // FLen: 2, Handler: 007e1410
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x01a8: { // FLen: 2, Handler: 007e1440
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x01a9: { // FLen: 1, Handler: 007e1550
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x01aa: { // FLen: 1, Handler: 007e15d0
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x01ab: { // FLen: 4, Handler: 007e1600
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x1417, // String16 (type=7 maxChars=20)
+	},
+	0x01ac: { // FLen: 6, Handler: 007e1630
+		0x0204, // Uint16 (type=4 size=2)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x1417, // String16 (type=7 maxChars=20)
+	},
+	0x01ad: { // FLen: 12, Handler: 007e1670
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x2017, // String16 (type=7 maxChars=32)
+		0x0617, // String16 (type=7 maxChars=6)
+	},
+	0x01ae: { // FLen: 1, Handler: 007e16f0
+		0x7a17, // String16 (type=7 maxChars=122)
+	},
+	0x01af: { // FLen: 1, Handler: 007e1780
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x01b0: { // FLen: 3, Handler: 007e17b0
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x01b1: { // FLen: 2, Handler: 007e87b0
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x01b2: { // FLen: 6, Handler: 007e87e0
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x2017, // String16 (type=7 maxChars=32)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x01b3: { // FLen: 0, Handler: 007e8810
+	},
+	0x01b4: { // FLen: 6, Handler: 007e8830
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x2017, // String16 (type=7 maxChars=32)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x01b5: { // FLen: 0, Handler: 007e8860
+	},
+	0x01b6: { // FLen: 1, Handler: 007e8880
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x01b7: { // FLen: 1, Handler: 007e88a0
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x01b8: { // FLen: 0, Handler: 007e88c0
+	},
+	0x01b9: { // FLen: 0, Handler: 007e88e0
+	},
+	0x01ba: { // FLen: 3, Handler: 007e8900
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x7a17, // String16 (type=7 maxChars=122)
+	},
+	0x01bb: { // FLen: 1, Handler: 007e8930
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x01bc: { // FLen: 1, Handler: 007e8950
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x01bd: { // FLen: 1, Handler: 007e8970
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x01be: { // FLen: 5, Handler: 007e8990
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+		0x1417, // String16 (type=7 maxChars=20)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x01bf: { // FLen: 2, Handler: 007e89c0
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x01c0: { // FLen: 1, Handler: 007e89f0
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x01c1: { // FLen: 5, Handler: 007e8a10
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x01c2: { // FLen: 3, Handler: 007e8a40
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x01c3: { // FLen: 1, Handler: 007e8b10
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x01c4: { // FLen: 1, Handler: 007e8af0
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x01c5: { // FLen: 1, Handler: 007e8a90
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x01c6: { // FLen: 1, Handler: 007e8a70
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x01c7: { // FLen: 1, Handler: 007e8ad0
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x01c8: { // FLen: 1, Handler: 007e8ab0
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x01c9: { // FLen: 1, Handler: 007e8b30
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x01ca: { // FLen: 3, Handler: 007e8b50
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x01cb: { // FLen: 2, Handler: 007e8b80
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x01cc: { // FLen: 2, Handler: 007e8bb0
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x01cd: { // FLen: 2, Handler: 007e8be0
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x01ce: { // FLen: 2, Handler: 007e8c10
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x01cf: { // FLen: 2, Handler: 007e8c40
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x01d0: { // FLen: 3, Handler: 007e8c70
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x01d1: { // FLen: 1, Handler: 007e8ca0
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x01d2: { // FLen: 1, Handler: 007e8cc0
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x01d3: { // FLen: 1, Handler: 007e0fa0
+		0x7a17, // String16 (type=7 maxChars=122)
+	},
+	0x01d4: { // FLen: 0, Handler: 007e8ce0
+	},
+	0x01d5: { // FLen: 1, Handler: 007e8d00
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x01d6: { // FLen: 6, Handler: 007e8d20
+		0x101b, // Array16 (type=11 lengthBytes=2 maxCount=16)
+		0x0006, // Ignore (type=6)
+		0x100c, // Nested (type=12)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x01d7: { // FLen: 0, Handler: 007e8fa0
+	},
+	0x01d8: { // FLen: 3, Handler: 007e8fc0
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x7a17, // String16 (type=7 maxChars=122)
+	},
+	0x01d9: { // FLen: 2, Handler: 007e9000
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x01da: { // FLen: 2, Handler: 007e9070
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x01db: { // FLen: 2, Handler: 007e90a0
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x01dc: { // FLen: 13, Handler: 007e90d0
+		0x0204, // Uint16 (type=4 size=2)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x2017, // String16 (type=7 maxChars=32)
+		0x1417, // String16 (type=7 maxChars=20)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x01dd: { // FLen: 1, Handler: 007e9140
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x01de: { // FLen: 1, Handler: 007e9170
+		0x0204, // Uint16 (type=4 size=2)
+	},
+	0x01df: { // FLen: 3, Handler: 007e91a0
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x01e0: { // FLen: 3, Handler: 007e91d0
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x01e1: { // FLen: 1, Handler: 007e9200
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x01e2: { // FLen: 1, Handler: 007e9220
+		0x7a17, // String16 (type=7 maxChars=122)
+	},
+	0x01e3: { // FLen: 1, Handler: 007e9250
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x01e4: { // FLen: 1, Handler: 007e9270
+		0x0104, // Uint8 (type=4 size=1)
+	},
+}
+
+// End GS_StoC
+// AS_CtoS Max = 57 (0x39)
+var FieldsAS_CtoS = map[int][]uint32{
+	0x0000: {
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0001: {
+		0x2017, // String16 (type=7 maxChars=32)
+		0x2017, // String16 (type=7 maxChars=32)
+	},
+	0x0002: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x1005, // FixedBytes (type=5 bytes=16)
+	},
+	0x0003: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x4017, // String16 (type=7 maxChars=64)
+		0x1409, // FixedBytes (type=9 bytes=20)
+		0x1a17, // String16 (type=7 maxChars=26)
+	},
+	0x0005: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x1409, // FixedBytes (type=9 bytes=20)
+		0x1409, // FixedBytes (type=9 bytes=20)
+		0x4017, // String16 (type=7 maxChars=64)
+	},
+	0x0006: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0007: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x1417, // String16 (type=7 maxChars=20)
+	},
+	0x0008: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x1417, // String16 (type=7 maxChars=20)
+	},
+	0x0009: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x1417, // String16 (type=7 maxChars=20)
+		0x400b, // Array8 (type=11 lengthBytes=1 maxCount=64)
+		0x0006, // Ignore (type=6)
+	},
+	0x000a: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x1417, // String16 (type=7 maxChars=20)
+	},
+	0x000b: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x000c: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x1005, // FixedBytes (type=5 bytes=16)
+	},
+	0x000d: {
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x000e: {
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0010: {
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0011: {
+		0x10017, // String16 (type=7 maxChars=256)
+	},
+	0x0014: {
+		0x0404,  // Uint32 (type=4 size=4)
+		0x0404,  // Uint32 (type=4 size=4)
+		0x4017,  // String16 (type=7 maxChars=64)
+		0x4017,  // String16 (type=7 maxChars=64)
+		0x10017, // String16 (type=7 maxChars=256)
+	},
+	0x0015: {
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0016: {
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0017: {
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0018: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x4017, // String16 (type=7 maxChars=64)
+	},
+	0x0019: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x1409, // FixedBytes (type=9 bytes=20)
+		0x1409, // FixedBytes (type=9 bytes=20)
+	},
+	0x001a: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x1417, // String16 (type=7 maxChars=20)
+		0x1417, // String16 (type=7 maxChars=20)
+	},
+	0x001b: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x1005, // FixedBytes (type=5 bytes=16)
+		0x1417, // String16 (type=7 maxChars=20)
+	},
+	0x001c: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x1a17, // String16 (type=7 maxChars=26)
+	},
+	0x001d: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x001e: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x1a17, // String16 (type=7 maxChars=26)
+	},
+	0x001f: {
+		0x0404,  // Uint32 (type=4 size=4)
+		0x0404,  // Uint32 (type=4 size=4)
+		0x0404,  // Uint32 (type=4 size=4)
+		0x0404,  // Uint32 (type=4 size=4)
+		0x0404,  // Uint32 (type=4 size=4)
+		0x0404,  // Uint32 (type=4 size=4)
+		0x4017,  // String16 (type=7 maxChars=64)
+		0x1017,  // String16 (type=7 maxChars=16)
+		0x10017, // String16 (type=7 maxChars=256)
+		0x2017,  // String16 (type=7 maxChars=32)
+		0x1c17,  // String16 (type=7 maxChars=28)
+		0x1c17,  // String16 (type=7 maxChars=28)
+		0x2017,  // String16 (type=7 maxChars=32)
+		0x2017,  // String16 (type=7 maxChars=32)
+		0x1c17,  // String16 (type=7 maxChars=28)
+		0x0417,  // String16 (type=7 maxChars=4)
+		0x2017,  // String16 (type=7 maxChars=32)
+		0x0417,  // String16 (type=7 maxChars=4)
+		0x1c17,  // String16 (type=7 maxChars=28)
+		0x0c17,  // String16 (type=7 maxChars=12)
+		0x1417,  // String16 (type=7 maxChars=20)
+		0x4017,  // String16 (type=7 maxChars=64)
+	},
+	0x0020: {
+		0x0404,  // Uint32 (type=4 size=4)
+		0x2000b, // Array8 (type=11 lengthBytes=1 maxCount=512)
+		0x0006,  // Ignore (type=6)
+	},
+	0x0021: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0022: {
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0023: {
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0024: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x4017, // String16 (type=7 maxChars=64)
+		0x1017, // String16 (type=7 maxChars=16)
+	},
+	0x0025: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x1005, // FixedBytes (type=5 bytes=16)
+	},
+	0x0026: {
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x0027: {
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0028: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x1c17, // String16 (type=7 maxChars=28)
+		0x1c17, // String16 (type=7 maxChars=28)
+		0x2017, // String16 (type=7 maxChars=32)
+		0x2017, // String16 (type=7 maxChars=32)
+		0x0c17, // String16 (type=7 maxChars=12)
+		0x1c17, // String16 (type=7 maxChars=28)
+		0x1c17, // String16 (type=7 maxChars=28)
+	},
+	0x0029: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x002a: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x1417, // String16 (type=7 maxChars=20)
+		0x1417, // String16 (type=7 maxChars=20)
+	},
+	0x002b: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x802b, // Array32 (type=11 lengthBytes=4 maxCount=128)
+		0x0006, // Ignore (type=6)
+		0x802b, // Array32 (type=11 lengthBytes=4 maxCount=128)
+		0x0006, // Ignore (type=6)
+	},
+	0x002c: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x2017, // String16 (type=7 maxChars=32)
+		0x4017, // String16 (type=7 maxChars=64)
+		0x4017, // String16 (type=7 maxChars=64)
+		0x1c17, // String16 (type=7 maxChars=28)
+		0x0417, // String16 (type=7 maxChars=4)
+		0x0417, // String16 (type=7 maxChars=4)
+		0x0c17, // String16 (type=7 maxChars=12)
+		0x0817, // String16 (type=7 maxChars=8)
+		0x2017, // String16 (type=7 maxChars=32)
+		0x1c17, // String16 (type=7 maxChars=28)
+		0x4017, // String16 (type=7 maxChars=64)
+		0x4017, // String16 (type=7 maxChars=64)
+		0x0a17, // String16 (type=7 maxChars=10)
+		0x0617, // String16 (type=7 maxChars=6)
+		0x802b, // Array32 (type=11 lengthBytes=4 maxCount=128)
+		0x0006, // Ignore (type=6)
+		0x802b, // Array32 (type=11 lengthBytes=4 maxCount=128)
+		0x0006, // Ignore (type=6)
+	},
+	0x002d: {
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x002e: {},
+	0x0030: {
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0031: {
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0032: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0a17, // String16 (type=7 maxChars=10)
+	},
+	0x0033: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x1217, // String16 (type=7 maxChars=18)
+	},
+	0x0034: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0035: {
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0036: {
+		0x0404,  // Uint32 (type=4 size=4)
+		0x0404,  // Uint32 (type=4 size=4)
+		0x0404,  // Uint32 (type=4 size=4)
+		0x0404,  // Uint32 (type=4 size=4)
+		0x0404,  // Uint32 (type=4 size=4)
+		0x0404,  // Uint32 (type=4 size=4)
+		0x10005, // FixedBytes (type=5 bytes=256)
+		0x2017,  // String16 (type=7 maxChars=32)
+		0x4017,  // String16 (type=7 maxChars=64)
+		0x4017,  // String16 (type=7 maxChars=64)
+		0x1c17,  // String16 (type=7 maxChars=28)
+		0x0417,  // String16 (type=7 maxChars=4)
+		0x0417,  // String16 (type=7 maxChars=4)
+		0x0c17,  // String16 (type=7 maxChars=12)
+		0x0817,  // String16 (type=7 maxChars=8)
+		0x2017,  // String16 (type=7 maxChars=32)
+		0x1c17,  // String16 (type=7 maxChars=28)
+		0x4017,  // String16 (type=7 maxChars=64)
+		0x4017,  // String16 (type=7 maxChars=64)
+		0x0a17,  // String16 (type=7 maxChars=10)
+		0x802b,  // Array32 (type=11 lengthBytes=4 maxCount=128)
+		0x0006,  // Ignore (type=6)
+		0x802b,  // Array32 (type=11 lengthBytes=4 maxCount=128)
+		0x0006,  // Ignore (type=6)
+	},
+	0x0037: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x1417, // String16 (type=7 maxChars=20)
+		0x1417, // String16 (type=7 maxChars=20)
+	},
+	0x0038: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x1005, // FixedBytes (type=5 bytes=16)
+		0x1005, // FixedBytes (type=5 bytes=16)
+		0x1417, // String16 (type=7 maxChars=20)
+	},
+}
+
+// End AS_CtoS
+// AS_StoC Max = 39 (0x27)
+var FieldsAS_StoC = map[int][]uint32{
+	0x0000: {
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0001: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0002: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0003: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0004: {
+		0x0404,  // Uint32 (type=4 size=4)
+		0x80017, // String16 (type=7 maxChars=2048)
+	},
+	0x0006: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0805, // FixedBytes (type=5 bytes=8)
+		0x0805, // FixedBytes (type=5 bytes=8)
+		0x0805, // FixedBytes (type=5 bytes=8)
+		0x0805, // FixedBytes (type=5 bytes=8)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0007: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x1005, // FixedBytes (type=5 bytes=16)
+		0x0404, // Uint32 (type=4 size=4)
+		0x1417, // String16 (type=7 maxChars=20)
+		0x400b, // Array8 (type=11 lengthBytes=1 maxCount=64)
+		0x0006, // Ignore (type=6)
+	},
+	0x0008: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x1805, // FixedBytes (type=5 bytes=24)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0009: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x1805, // FixedBytes (type=5 bytes=24)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x000a: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x1005, // FixedBytes (type=5 bytes=16)
+		0x1417, // String16 (type=7 maxChars=20)
+	},
+	0x000b: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x1005, // FixedBytes (type=5 bytes=16)
+		0x1417, // String16 (type=7 maxChars=20)
+		0x1417, // String16 (type=7 maxChars=20)
+	},
+	0x000c: {
+		0x0404,  // Uint32 (type=4 size=4)
+		0x1417,  // String16 (type=7 maxChars=20)
+		0x10017, // String16 (type=7 maxChars=256)
+	},
+	0x000d: {
+		0x0404,  // Uint32 (type=4 size=4)
+		0x0404,  // Uint32 (type=4 size=4)
+		0x10017, // String16 (type=7 maxChars=256)
+		0x10017, // String16 (type=7 maxChars=256)
+	},
+	0x000e: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x200b, // Array8 (type=11 lengthBytes=1 maxCount=32)
+		0x0006, // Ignore (type=6)
+	},
+	0x0010: {
+		0x0404,  // Uint32 (type=4 size=4)
+		0x0404,  // Uint32 (type=4 size=4)
+		0x1005,  // FixedBytes (type=5 bytes=16)
+		0x1417,  // String16 (type=7 maxChars=20)
+		0x1417,  // String16 (type=7 maxChars=20)
+		0x10017, // String16 (type=7 maxChars=256)
+	},
+	0x0011: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0805, // FixedBytes (type=5 bytes=8)
+		0x0805, // FixedBytes (type=5 bytes=8)
+		0x1005, // FixedBytes (type=5 bytes=16)
+		0x1005, // FixedBytes (type=5 bytes=16)
+		0x0404, // Uint32 (type=4 size=4)
+		0xc80b, // Array8 (type=11 lengthBytes=1 maxCount=200)
+		0x0006, // Ignore (type=6)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0012: {
+		0x0404,  // Uint32 (type=4 size=4)
+		0x0404,  // Uint32 (type=4 size=4)
+		0x1005,  // FixedBytes (type=5 bytes=16)
+		0x1417,  // String16 (type=7 maxChars=20)
+		0x1417,  // String16 (type=7 maxChars=20)
+		0x10017, // String16 (type=7 maxChars=256)
+	},
+	0x0013: {
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0014: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0015: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0805, // FixedBytes (type=5 bytes=8)
+		0x0805, // FixedBytes (type=5 bytes=8)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x0016: {
+		0x0404,  // Uint32 (type=4 size=4)
+		0x8000b, // Array8 (type=11 lengthBytes=1 maxCount=2048)
+		0x0006,  // Ignore (type=6)
+	},
+	0x0017: {
+		0x10000b, // Array8 (type=11 lengthBytes=1 maxCount=4096)
+		0x0006,   // Ignore (type=6)
+	},
+	0x0018: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0805, // FixedBytes (type=5 bytes=8)
+		0x0805, // FixedBytes (type=5 bytes=8)
+		0xc80b, // Array8 (type=11 lengthBytes=1 maxCount=200)
+		0x0006, // Ignore (type=6)
+	},
+	0x001a: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0b0c, // Nested (type=12)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+	},
+	0x001b: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x001c: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x001d: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x001e: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+	0x001f: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x102b, // Array32 (type=11 lengthBytes=4 maxCount=16)
+		0x0006, // Ignore (type=6)
+		0x102b, // Array32 (type=11 lengthBytes=4 maxCount=16)
+		0x0006, // Ignore (type=6)
+	},
+	0x0020: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x1417, // String16 (type=7 maxChars=20)
+	},
+	0x0021: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0204, // Uint16 (type=4 size=2)
+		0x0104, // Uint8 (type=4 size=1)
+		0x0104, // Uint8 (type=4 size=1)
+		0x1417, // String16 (type=7 maxChars=20)
+	},
+	0x0022: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0c05, // FixedBytes (type=5 bytes=12)
+	},
+	0x0023: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x1005, // FixedBytes (type=5 bytes=16)
+		0x1005, // FixedBytes (type=5 bytes=16)
+		0x1005, // FixedBytes (type=5 bytes=16)
+		0x1017, // String16 (type=7 maxChars=16)
+	},
+	0x0024: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+		0x0417, // String16 (type=7 maxChars=4)
+		0x1417, // String16 (type=7 maxChars=20)
+		0x1017, // String16 (type=7 maxChars=16)
+	},
+	0x0026: {
+		0x0404, // Uint32 (type=4 size=4)
+		0x0404, // Uint32 (type=4 size=4)
+	},
+}
+
+// End AS_StoC

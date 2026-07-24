@@ -25,6 +25,27 @@ func init() {
 	log = log.With().Timestamp().Logger()
 }
 
+type HexStr int
+
+func (h *HexStr) UnmarshalJSON(data []byte) error {
+	// First unmarshal the JSON string
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+
+	// Optional: allow both "0x..." and plain hex
+	s = strings.TrimPrefix(strings.ToLower(s), "0x")
+
+	v, err := strconv.ParseInt(s, 16, 0)
+	if err != nil {
+		return err
+	}
+
+	*h = HexStr(v)
+	return nil
+}
+
 type agentSpawnInfo struct {
 	Name       string     `json:"name"`
 	Level      int        `json:"level"`
@@ -32,10 +53,10 @@ type agentSpawnInfo struct {
 }
 
 type instanceDefinition struct {
-	DebugName   string           `json:"debug_name"`
+	Name        string           `json:"name"`
 	Explorable  bool             `json:"explorable"`
-	MapFileId   int              `json:"map_file_id"`
-	PartySize   int              `json:"party_size"`
+	MapFileId   HexStr           `json:"map_file_id"`
+	PartySize   int              `json:"party_size,omitempty"`
 	Agents      []agentSpawnInfo `json:"agents"`
 	SpawnPoints [][]float32      `json:"spawn_points,omitempty"`
 }
@@ -61,7 +82,7 @@ var instanceDefinitions = struct {
 }
 
 func LoadInstanceDefinitionsFromDisk() error {
-	file, err := os.Open("gameservice/instance_definitions.json")
+	file, err := os.Open("data/instance_definitions.json")
 	if err != nil {
 		return fmt.Errorf("failed to load instance definitions file: %w", err)
 	}
@@ -90,7 +111,7 @@ func LoadInstanceDefinitionsFromDisk() error {
 
 		nSpawnPoints := len(definition.SpawnPoints)
 		if nSpawnPoints == 0 {
-			panic(fmt.Errorf("instance for map id %d has no spawn points", mapId))
+			log.Error().Int("mapId", mapId).Msg("map definition has no spawn points")
 		}
 
 		inst := NewInstance(mapId, definition)
@@ -100,9 +121,9 @@ func LoadInstanceDefinitionsFromDisk() error {
 	return nil
 }
 
-func GetMapIdForDebugName(debugName string) (int, bool) {
+func GetMapIdForName(name string) (int, bool) {
 	for mapId, definition := range instanceDefinitions.Instances {
-		if definition.DebugName == debugName {
+		if definition.Name == name {
 			return mapId, true
 		}
 	}
@@ -260,7 +281,7 @@ func NewInstance(mapId int, definition instanceDefinition) (i Instance) {
 			unkPropertiesBytes:  agentDefinition.UnkPropertiesBytes, // Really what is this? you can set to all 0 and it seems the same?
 		}
 		i.agents = append(i.agents, ag)
-		log.Info().Str("name", agentToSpawn.Name).Int("agentId", ag.agentId).Msg("added agent!")
+		//log.Info().Str("name", agentToSpawn.Name).Int("agentId", ag.agentId).Msg("added agent!")
 	}
 	return
 }
@@ -341,6 +362,13 @@ func (i *Instance) NextFreePlayerId() int {
 
 func (i *Instance) NextSpawnPoint() (x, y float32, plane int) {
 	nSpawnPoints := len(i.definition.SpawnPoints)
+	// Special case for dev:
+	if nSpawnPoints == 0 {
+		x = 0.0
+		y = 0.0
+		plane = 0
+		return
+	}
 	// Choose a random spawn point:
 	randIndex := rand.Intn(nSpawnPoints)
 	spawnPoint := i.definition.SpawnPoints[randIndex]

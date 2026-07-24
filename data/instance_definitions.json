@@ -1,0 +1,2597 @@
+{
+    "instances": {
+        "2": {
+            "map_file_id": "0x2fed",
+            "expansion": "core",
+            "name": "DEV Test Arena (1v1)",
+            "is_pvp": true
+        },
+        "3": {
+            "map_file_id": "0x340c6",
+            "expansion": "core",
+            "name": "Test Map",
+            "is_pvp": false
+        },
+        "6": {
+            "map_file_id": "0x1f22c",
+            "expansion": "core",
+            "name": "Wizards Isle",
+            "is_pvp": false
+        },
+        "7": {
+            "map_file_id": "0x1f1fc",
+            "expansion": "core",
+            "name": "Warriors Isle",
+            "is_pvp": false
+        },
+        "8": {
+            "map_file_id": "0x1f208",
+            "expansion": "core",
+            "name": "Hunters Isle",
+            "is_pvp": false
+        },
+        "9": {
+            "map_file_id": "0x1f22c",
+            "expansion": "core",
+            "name": "Wizards Isle",
+            "is_pvp": false
+        },
+        "10": {
+            "map_file_id": "0x34db",
+            "expansion": "prophecies",
+            "name": "Bloodstone Fen",
+            "is_pvp": false
+        },
+        "11": {
+            "map_file_id": "0x9f5c",
+            "expansion": "prophecies",
+            "name": "The Wilds",
+            "is_pvp": false
+        },
+        "12": {
+            "map_file_id": "0x3331",
+            "expansion": "prophecies",
+            "name": "Aurora Glade",
+            "is_pvp": false
+        },
+        "13": {
+            "map_file_id": "0x3a58",
+            "expansion": "prophecies",
+            "name": "Diessa Lowlands",
+            "is_pvp": false
+        },
+        "14": {
+            "map_file_id": "0x8a33",
+            "expansion": "prophecies",
+            "name": "Gates of Kryta",
+            "is_pvp": false
+        },
+        "15": {
+            "map_file_id": "0x837f",
+            "expansion": "prophecies",
+            "name": "D'Alessio Seaboard",
+            "is_pvp": false
+        },
+        "16": {
+            "map_file_id": "0x8381",
+            "expansion": "prophecies",
+            "name": "Divine Coast",
+            "is_pvp": false
+        },
+        "17": {
+            "map_file_id": "0x84f7",
+            "expansion": "prophecies",
+            "name": "Talmark Wilderness",
+            "is_pvp": false
+        },
+        "18": {
+            "map_file_id": "0x84fd",
+            "expansion": "prophecies",
+            "name": "The Black Curtain",
+            "is_pvp": false
+        },
+        "19": {
+            "map_file_id": "0x9160",
+            "expansion": "prophecies",
+            "name": "Sanctum Cay",
+            "is_pvp": false
+        },
+        "20": {
+            "map_file_id": "0x836a",
+            "expansion": "prophecies",
+            "name": "Droknar's Forge",
+            "is_pvp": false
+        },
+        "21": {
+            "map_file_id": "0x33d1",
+            "expansion": "prophecies",
+            "name": "The Frost Gate",
+            "is_pvp": false
+        },
+        "22": {
+            "map_file_id": "0x2f08",
+            "expansion": "prophecies",
+            "name": "Ice Caves of Sorrow",
+            "is_pvp": false
+        },
+        "23": {
+            "map_file_id": "0x2d2d",
+            "expansion": "prophecies",
+            "name": "Thunderhead Keep",
+            "is_pvp": false
+        },
+        "24": {
+            "map_file_id": "0xba2c",
+            "expansion": "prophecies",
+            "name": "Iron Mines of Moladune",
+            "is_pvp": false
+        },
+        "25": {
+            "map_file_id": "0x32db",
+            "expansion": "prophecies",
+            "name": "Borlis Pass",
+            "is_pvp": false
+        },
+        "26": {
+            "map_file_id": "0xb5fd",
+            "expansion": "prophecies",
+            "name": "Talus Chute",
+            "is_pvp": false
+        },
+        "28": {
+            "map_file_id": "0x3600",
+            "expansion": "prophecies",
+            "name": "The Great Northern Wall",
+            "is_pvp": false
+        },
+        "29": {
+            "map_file_id": "0x3652",
+            "expansion": "prophecies",
+            "name": "Fort Ranik",
+            "is_pvp": false
+        },
+        "30": {
+            "map_file_id": "0x3653",
+            "expansion": "prophecies",
+            "name": "Ruins of Surmia",
+            "is_pvp": false
+        },
+        "31": {
+            "map_file_id": "0x265f0",
+            "expansion": "prophecies",
+            "name": "Xaquang Skyway",
+            "is_pvp": false
+        },
+        "32": {
+            "map_file_id": "0x3659",
+            "expansion": "prophecies",
+            "name": "Nolani Academy",
+            "is_pvp": false
+        },
+        "33": {
+            "map_file_id": "0x3a59",
+            "expansion": "prophecies",
+            "name": "Old Ascalon",
+            "is_pvp": false
+        },
+        "34": {
+            "map_file_id": "0xf652",
+            "expansion": "prophecies",
+            "name": "The Fissure of Woe",
+            "is_pvp": false
+        },
+        "35": {
+            "map_file_id": "0xd90b",
+            "expansion": "prophecies",
+            "name": "Ember Light Camp",
+            "is_pvp": false
+        },
+        "36": {
+            "map_file_id": "0x3a58",
+            "expansion": "prophecies",
+            "name": "Grendich Courthouse",
+            "is_pvp": false
+        },
+        "37": {
+            "map_file_id": "0x252c9",
+            "expansion": "prophecies",
+            "name": "Glints Challenge",
+            "is_pvp": false
+        },
+        "38": {
+            "map_file_id": "0xce65",
+            "expansion": "prophecies",
+            "name": "Augury Rock",
+            "is_pvp": false
+        },
+        "39": {
+            "map_file_id": "0x3a59",
+            "expansion": "prophecies",
+            "name": "Sardelac Sanitarium",
+            "is_pvp": false
+        },
+        "40": {
+            "map_file_id": "0xc775",
+            "expansion": "prophecies",
+            "name": "Piken Square",
+            "is_pvp": false
+        },
+        "41": {
+            "map_file_id": "0x9f63",
+            "expansion": "prophecies",
+            "name": "Sage Lands",
+            "is_pvp": false
+        },
+        "42": {
+            "map_file_id": "0x9f69",
+            "expansion": "prophecies",
+            "name": "Mamnoon Lagoon",
+            "is_pvp": false
+        },
+        "43": {
+            "map_file_id": "0x9f6c",
+            "expansion": "prophecies",
+            "name": "Silverwood",
+            "is_pvp": false
+        },
+        "44": {
+            "map_file_id": "0x9f5e",
+            "expansion": "prophecies",
+            "name": "Ettins Back",
+            "is_pvp": false
+        },
+        "45": {
+            "map_file_id": "0x9f62",
+            "expansion": "prophecies",
+            "name": "Reed Bog",
+            "is_pvp": false
+        },
+        "46": {
+            "map_file_id": "0x9f68",
+            "expansion": "prophecies",
+            "name": "The Falls",
+            "is_pvp": false
+        },
+        "47": {
+            "map_file_id": "0x9f61",
+            "expansion": "prophecies",
+            "name": "Dry Top",
+            "is_pvp": false
+        },
+        "48": {
+            "map_file_id": "0x9f6b",
+            "expansion": "prophecies",
+            "name": "Tangle Root",
+            "is_pvp": false
+        },
+        "49": {
+            "map_file_id": "0x9f37",
+            "expansion": "prophecies",
+            "name": "Henge of Denravi",
+            "is_pvp": false
+        },
+        "51": {
+            "map_file_id": "0x265f0",
+            "expansion": "factions",
+            "name": "Senji's Corner",
+            "is_pvp": false
+        },
+        "52": {
+            "map_file_id": "0x1f24d",
+            "expansion": "core",
+            "name": "Burning Isle",
+            "is_pvp": false
+        },
+        "53": {
+            "map_file_id": "0xa0e8",
+            "expansion": "prophecies",
+            "name": "Tears of the Fallen",
+            "is_pvp": false
+        },
+        "54": {
+            "map_file_id": "0xa0e9",
+            "expansion": "prophecies",
+            "name": "Scoundrels Rise",
+            "is_pvp": false
+        },
+        "55": {
+            "map_file_id": "0x34fd",
+            "expansion": "prophecies",
+            "name": "Lion's Arch",
+            "is_pvp": false
+        },
+        "56": {
+            "map_file_id": "0x85a8",
+            "expansion": "prophecies",
+            "name": "Cursed Lands",
+            "is_pvp": false
+        },
+        "57": {
+            "map_file_id": "0x85a8",
+            "expansion": "prophecies",
+            "name": "Bergen Hot Springs",
+            "is_pvp": false
+        },
+        "58": {
+            "map_file_id": "0x4e706",
+            "expansion": "prophecies",
+            "name": "North Kryta Province",
+            "is_pvp": false
+        },
+        "59": {
+            "map_file_id": "0x85a8",
+            "expansion": "prophecies",
+            "name": "Nebo Terrace",
+            "is_pvp": false
+        },
+        "60": {
+            "map_file_id": "0x8610",
+            "expansion": "prophecies",
+            "name": "Majestys Rest",
+            "is_pvp": false
+        },
+        "61": {
+            "map_file_id": "0x8611",
+            "expansion": "prophecies",
+            "name": "Twin Serpent Lakes",
+            "is_pvp": false
+        },
+        "62": {
+            "map_file_id": "0x85ae",
+            "expansion": "prophecies",
+            "name": "Watchtower Coast",
+            "is_pvp": false
+        },
+        "63": {
+            "map_file_id": "0x85e9",
+            "expansion": "prophecies",
+            "name": "Stingray Strand",
+            "is_pvp": false
+        },
+        "64": {
+            "map_file_id": "0x85b1",
+            "expansion": "prophecies",
+            "name": "Kessex Peak",
+            "is_pvp": false
+        },
+        "67": {
+            "map_file_id": "0x1f24d",
+            "expansion": "core",
+            "name": "Burning Isle",
+            "is_pvp": false
+        },
+        "68": {
+            "map_file_id": "0x1f265",
+            "expansion": "core",
+            "name": "Frozen Isle",
+            "is_pvp": false
+        },
+        "69": {
+            "map_file_id": "0x1f268",
+            "expansion": "core",
+            "name": "Nomads Isle",
+            "is_pvp": false
+        },
+        "70": {
+            "map_file_id": "0x1f27a",
+            "expansion": "core",
+            "name": "Druid's Isle",
+            "is_pvp": true
+        },
+        "71": {
+            "map_file_id": "0x1f29b",
+            "expansion": "core",
+            "name": "Isle of the Dead",
+            "is_pvp": false
+        },
+        "72": {
+            "map_file_id": "0xf653",
+            "expansion": "prophecies",
+            "name": "The Underworld",
+            "is_pvp": false
+        },
+        "73": {
+            "map_file_id": "0x29ba",
+            "expansion": "prophecies",
+            "name": "Riverside Province",
+            "is_pvp": false
+        },
+        "75": {
+            "map_file_id": "0x36b4",
+            "expansion": "core",
+            "name": "The Hall of Heroes",
+            "is_pvp": true
+        },
+        "77": {
+            "map_file_id": "0x25e13",
+            "expansion": "factions",
+            "name": "House zu Heltzer",
+            "is_pvp": false
+        },
+        "78": {
+            "map_file_id": "0x36a5",
+            "expansion": "core",
+            "name": "The Courtyard",
+            "is_pvp": true
+        },
+        "80": {
+            "map_file_id": "0x3bb2",
+            "expansion": "core",
+            "name": "Burial Mounds",
+            "is_pvp": true
+        },
+        "81": {
+            "map_file_id": "0x5624",
+            "expansion": "prophecies",
+            "name": "Ascalon City",
+            "is_pvp": false
+        },
+        "82": {
+            "map_file_id": "0x288a0",
+            "expansion": "prophecies",
+            "name": "Tomb of the Primeval Kings",
+            "is_pvp": false
+        },
+        "84": {
+            "map_file_id": "0x402c",
+            "expansion": "core",
+            "name": "The Underworld",
+            "is_pvp": true
+        },
+        "87": {
+            "map_file_id": "0xb5ff",
+            "expansion": "prophecies",
+            "name": "Icedome",
+            "is_pvp": false
+        },
+        "88": {
+            "map_file_id": "0xb600",
+            "expansion": "prophecies",
+            "name": "Iron Horse Mine",
+            "is_pvp": false
+        },
+        "89": {
+            "map_file_id": "0xb601",
+            "expansion": "prophecies",
+            "name": "Anvil Rock",
+            "is_pvp": false
+        },
+        "90": {
+            "map_file_id": "0xb602",
+            "expansion": "prophecies",
+            "name": "Lornars Pass",
+            "is_pvp": false
+        },
+        "91": {
+            "map_file_id": "0x2fd4",
+            "expansion": "prophecies",
+            "name": "Snake Dance",
+            "is_pvp": false
+        },
+        "92": {
+            "map_file_id": "0xb605",
+            "expansion": "prophecies",
+            "name": "Tascas Demise",
+            "is_pvp": false
+        },
+        "94": {
+            "map_file_id": "0xb606",
+            "expansion": "prophecies",
+            "name": "Ice Floe",
+            "is_pvp": false
+        },
+        "95": {
+            "map_file_id": "0xb607",
+            "expansion": "prophecies",
+            "name": "Witmans Folly",
+            "is_pvp": false
+        },
+        "96": {
+            "map_file_id": "0xb608",
+            "expansion": "prophecies",
+            "name": "Mineral Springs",
+            "is_pvp": false
+        },
+        "97": {
+            "map_file_id": "0xb609",
+            "expansion": "prophecies",
+            "name": "Dreadnoughts Drift",
+            "is_pvp": false
+        },
+        "98": {
+            "map_file_id": "0xb60a",
+            "expansion": "prophecies",
+            "name": "Frozen Forest",
+            "is_pvp": false
+        },
+        "99": {
+            "map_file_id": "0xb60b",
+            "expansion": "prophecies",
+            "name": "Travelers Vale",
+            "is_pvp": false
+        },
+        "100": {
+            "map_file_id": "0xb60c",
+            "expansion": "prophecies",
+            "name": "Deldrimor Bowl",
+            "is_pvp": false
+        },
+        "101": {
+            "map_file_id": "0xc774",
+            "expansion": "prophecies",
+            "name": "Regent Valley",
+            "is_pvp": false
+        },
+        "102": {
+            "map_file_id": "0xc775",
+            "expansion": "prophecies",
+            "name": "The Breach",
+            "is_pvp": false
+        },
+        "103": {
+            "map_file_id": "0xc776",
+            "expansion": "prophecies",
+            "name": "Ascalon Foothills",
+            "is_pvp": false
+        },
+        "104": {
+            "map_file_id": "0xc777",
+            "expansion": "prophecies",
+            "name": "Pockmark Flats",
+            "is_pvp": false
+        },
+        "105": {
+            "map_file_id": "0xc778",
+            "expansion": "prophecies",
+            "name": "Dragons Gullet",
+            "is_pvp": false
+        },
+        "106": {
+            "map_file_id": "0xc778",
+            "expansion": "prophecies",
+            "name": "Flame Temple Corridor",
+            "is_pvp": false
+        },
+        "107": {
+            "map_file_id": "0xc77a",
+            "expansion": "prophecies",
+            "name": "Eastern Frontier",
+            "is_pvp": false
+        },
+        "108": {
+            "map_file_id": "0xcbc6",
+            "expansion": "prophecies",
+            "name": "The Scar",
+            "is_pvp": false
+        },
+        "109": {
+            "map_file_id": "0xceb6",
+            "expansion": "prophecies",
+            "name": "The Amnoon Oasis",
+            "is_pvp": false
+        },
+        "110": {
+            "map_file_id": "0xce55",
+            "expansion": "prophecies",
+            "name": "Diviners Ascent",
+            "is_pvp": false
+        },
+        "111": {
+            "map_file_id": "0xce56",
+            "expansion": "prophecies",
+            "name": "Vulture Drifts",
+            "is_pvp": false
+        },
+        "112": {
+            "map_file_id": "0xce5e",
+            "expansion": "prophecies",
+            "name": "The Arid Sea",
+            "is_pvp": false
+        },
+        "113": {
+            "map_file_id": "0xce63",
+            "expansion": "prophecies",
+            "name": "Prophets Path",
+            "is_pvp": false
+        },
+        "114": {
+            "map_file_id": "0xce64",
+            "expansion": "prophecies",
+            "name": "Salt Flats",
+            "is_pvp": false
+        },
+        "115": {
+            "map_file_id": "0xce65",
+            "expansion": "prophecies",
+            "name": "Skyward Reach",
+            "is_pvp": false
+        },
+        "116": {
+            "map_file_id": "0xce66",
+            "expansion": "prophecies",
+            "name": "Dunes of Despair",
+            "is_pvp": false
+        },
+        "117": {
+            "map_file_id": "0xce67",
+            "expansion": "prophecies",
+            "name": "Thirsty River",
+            "is_pvp": false
+        },
+        "118": {
+            "map_file_id": "0xce68",
+            "expansion": "prophecies",
+            "name": "Elona Reach",
+            "is_pvp": false
+        },
+        "119": {
+            "map_file_id": "0xce65",
+            "expansion": "prophecies",
+            "name": "Augury Rock",
+            "is_pvp": false
+        },
+        "120": {
+            "map_file_id": "0xce6a",
+            "expansion": "prophecies",
+            "name": "The Dragons Lair",
+            "is_pvp": false
+        },
+        "121": {
+            "map_file_id": "0xd90b",
+            "expansion": "prophecies",
+            "name": "Perdition Rock",
+            "is_pvp": false
+        },
+        "122": {
+            "map_file_id": "0xd900",
+            "expansion": "prophecies",
+            "name": "Ring Of Fire",
+            "is_pvp": false
+        },
+        "123": {
+            "map_file_id": "0xd907",
+            "expansion": "prophecies",
+            "name": "Abaddon's Mouth",
+            "is_pvp": false
+        },
+        "124": {
+            "map_file_id": "0xd908",
+            "expansion": "prophecies",
+            "name": "Hell's Precipice",
+            "is_pvp": false
+        },
+        "126": {
+            "map_file_id": "0xd941",
+            "expansion": "core",
+            "name": "Golden Gates",
+            "is_pvp": true
+        },
+        "128": {
+            "map_file_id": "0x25e1d",
+            "expansion": "factions",
+            "name": "The Eternal Grove",
+            "is_pvp": false
+        },
+        "129": {
+            "map_file_id": "0x25bde",
+            "expansion": "factions",
+            "name": "Lutgardis Conservatory",
+            "is_pvp": false
+        },
+        "130": {
+            "map_file_id": "0x25e1d",
+            "expansion": "factions",
+            "name": "Vasburg Armory",
+            "is_pvp": false
+        },
+        "131": {
+            "map_file_id": "0xc777",
+            "expansion": "prophecies",
+            "name": "Serenity Temple",
+            "is_pvp": false
+        },
+        "132": {
+            "map_file_id": "0xb601",
+            "expansion": "prophecies",
+            "name": "Ice Tooth Cave",
+            "is_pvp": false
+        },
+        "133": {
+            "map_file_id": "0xb602",
+            "expansion": "prophecies",
+            "name": "Beacon's Perch",
+            "is_pvp": false
+        },
+        "134": {
+            "map_file_id": "0xb60b",
+            "expansion": "prophecies",
+            "name": "Yak's bend",
+            "is_pvp": false
+        },
+        "135": {
+            "map_file_id": "0xc77a",
+            "expansion": "prophecies",
+            "name": "Frontier Gate",
+            "is_pvp": false
+        },
+        "136": {
+            "map_file_id": "0x85ae",
+            "expansion": "prophecies",
+            "name": "Beetletun",
+            "is_pvp": false
+        },
+        "137": {
+            "map_file_id": "0x85e9",
+            "expansion": "prophecies",
+            "name": "Fisherman's Haven",
+            "is_pvp": false
+        },
+        "138": {
+            "map_file_id": "0x84fd",
+            "expansion": "prophecies",
+            "name": "Temple of the Ages",
+            "is_pvp": false
+        },
+        "139": {
+            "map_file_id": "0x9f5e",
+            "expansion": "prophecies",
+            "name": "Ventari's Refuge",
+            "is_pvp": false
+        },
+        "140": {
+            "map_file_id": "0x9f63",
+            "expansion": "prophecies",
+            "name": "Druid's OVerlook",
+            "is_pvp": false
+        },
+        "141": {
+            "map_file_id": "0x9f6b",
+            "expansion": "prophecies",
+            "name": "Maguuma Stade",
+            "is_pvp": false
+        },
+        "142": {
+            "map_file_id": "0x9f6c",
+            "expansion": "prophecies",
+            "name": "Quarrel Falls",
+            "is_pvp": false
+        },
+        "144": {
+            "map_file_id": "0x25e1f",
+            "expansion": "factions",
+            "name": "Gyala Hatchery",
+            "is_pvp": false
+        },
+        "145": {
+            "map_file_id": "0x1c530",
+            "expansion": "presearing",
+            "name": "The Catacombs",
+            "is_pvp": false
+        },
+        "146": {
+            "map_file_id": "0x1b97d",
+            "expansion": "presearing",
+            "name": "Lakeside County",
+            "is_pvp": false
+        },
+        "147": {
+            "map_file_id": "0x1c539",
+            "expansion": "presearing",
+            "name": "The Northlands",
+            "is_pvp": false
+        },
+        "148": {
+            "map_file_id": "0x1b97d",
+            "expansion": "presearing",
+            "name": "Pre Ascalon City",
+            "is_pvp": false,
+            "spawn_points": [
+                [
+                    9826,
+                    8077,
+                    0
+                ]
+            ]
+        },
+        "152": {
+            "map_file_id": "0xce63",
+            "expansion": "prophecies",
+            "name": "Heroes' Audience",
+            "is_pvp": false
+        },
+        "153": {
+            "map_file_id": "0xce64",
+            "expansion": "prophecies",
+            "name": "Seeker's Passage",
+            "is_pvp": false
+        },
+        "154": {
+            "map_file_id": "0xcbc6",
+            "expansion": "prophecies",
+            "name": "Destiny's Gorge",
+            "is_pvp": false
+        },
+        "155": {
+            "map_file_id": "0x2fd4",
+            "expansion": "prophecies",
+            "name": "Camp Rankor",
+            "is_pvp": false
+        },
+        "156": {
+            "map_file_id": "0xb605",
+            "expansion": "prophecies",
+            "name": "The Granite Citadel",
+            "is_pvp": false
+        },
+        "157": {
+            "map_file_id": "0xb606",
+            "expansion": "prophecies",
+            "name": "Marhan's Grotto",
+            "is_pvp": false
+        },
+        "158": {
+            "map_file_id": "0xb607",
+            "expansion": "prophecies",
+            "name": "Port Sledge",
+            "is_pvp": false
+        },
+        "159": {
+            "map_file_id": "0xb60a",
+            "expansion": "prophecies",
+            "name": "Copperhammer Mines",
+            "is_pvp": false
+        },
+        "162": {
+            "map_file_id": "0x1bb1d",
+            "expansion": "presearing",
+            "name": "Regent Valley",
+            "is_pvp": false
+        },
+        "163": {
+            "map_file_id": "0x1ba26",
+            "expansion": "presearing",
+            "name": "The Barradin Estate",
+            "is_pvp": false,
+            "spawn_points": [
+                [
+                    -6581,
+                    1468,
+                    0
+                ]
+            ]
+        },
+        "164": {
+            "map_file_id": "0x1b97d",
+            "expansion": "presearing",
+            "name": "Ashford Abbey",
+            "is_pvp": false,
+            "spawn_points": [
+                [
+                    -12667,
+                    -7200,
+                    0
+                ]
+            ]
+        },
+        "165": {
+            "map_file_id": "0x1bacb",
+            "expansion": "presearing",
+            "name": "Foible's Fair",
+            "is_pvp": false,
+            "agents": [
+                {
+                    "name": "ralena_stormbringer",
+                    "level": 2,
+                    "spawn_point": [
+                        -659,
+                        11180,
+                        0
+                    ]
+                },
+                {
+                    "name": "vassar",
+                    "level": 2,
+                    "spawn_point": [
+                        -326,
+                        11072,
+                        0
+                    ]
+                },
+                {
+                    "name": "laren_merchant",
+                    "level": 2,
+                    "spawn_point": [
+                        -973,
+                        10754,
+                        0
+                    ]
+                }
+            ],
+            "spawn_points": [
+                [
+                    -473,
+                    9089,
+                    0
+                ]
+            ]
+        },
+        "166": {
+            "map_file_id": "0x1bb1d",
+            "expansion": "presearing",
+            "name": "Pre Fort Ranik",
+            "is_pvp": false,
+            "agents": [
+                {
+                    "name": "lord_darrin",
+                    "level": 7,
+                    "spawn_point": [
+                        21647,
+                        12613,
+                        0
+                    ]
+                },
+                {
+                    "name": "gram_merchant",
+                    "level": 2,
+                    "spawn_point": [
+                        24562,
+                        10317,
+                        0
+                    ]
+                },
+                {
+                    "name": "hatcher_collector",
+                    "level": 2,
+                    "spawn_point": [
+                        24594,
+                        15032
+                    ]
+                },
+                {
+                    "name": "ascalon_guard",
+                    "level": 2,
+                    "spawn_point": [
+                        23681,
+                        10442,
+                        0
+                    ]
+                },
+                {
+                    "name": "ascalon_guard",
+                    "level": 2,
+                    "spawn_point": [
+                        24286,
+                        14174,
+                        0
+                    ]
+                },
+                {
+                    "name": "ascalon_guard",
+                    "level": 2,
+                    "spawn_point": [
+                        22523,
+                        9612,
+                        0
+                    ]
+                },
+                {
+                    "name": "ascalon_guard",
+                    "level": 2,
+                    "spawn_point": [
+                        20695,
+                        13021,
+                        0
+                    ]
+                },
+                {
+                    "name": "ascalon_guard",
+                    "level": 2,
+                    "spawn_point": [
+                        20695,
+                        10754,
+                        0
+                    ]
+                }
+            ],
+            "spawn_points": [
+                [
+                    22218,
+                    11409,
+                    0
+                ]
+            ]
+        },
+        "181": {
+            "map_file_id": "0xb60b",
+            "expansion": "prophecies",
+            "name": "Shiverpeak Arena",
+            "is_pvp": false
+        },
+        "185": {
+            "map_file_id": "0x402c",
+            "expansion": "core",
+            "name": "The Underworld",
+            "is_pvp": true
+        },
+        "186": {
+            "map_file_id": "0x402c",
+            "expansion": "core",
+            "name": "The Underworld",
+            "is_pvp": true
+        },
+        "187": {
+            "map_file_id": "0x402c",
+            "expansion": "core",
+            "name": "The Underworld",
+            "is_pvp": true
+        },
+        "188": {
+            "map_file_id": "0x284db",
+            "expansion": "core",
+            "name": "Random Arenas",
+            "is_pvp": false
+        },
+        "189": {
+            "map_file_id": "0x28538",
+            "expansion": "core",
+            "name": "Team Arenas",
+            "is_pvp": false
+        },
+        "191": {
+            "map_file_id": "0x25289",
+            "expansion": "prophecies",
+            "name": "Grenths Footprint",
+            "is_pvp": false
+        },
+        "193": {
+            "map_file_id": "0x25e15",
+            "expansion": "factions",
+            "name": "Cavalon",
+            "is_pvp": false
+        },
+        "194": {
+            "map_file_id": "0x265f7",
+            "expansion": "factions",
+            "name": "Kaineng Center",
+            "is_pvp": false
+        },
+        "195": {
+            "map_file_id": "0x25b9f",
+            "expansion": "factions",
+            "name": "Drazach Thicket",
+            "is_pvp": false
+        },
+        "196": {
+            "map_file_id": "0x26526",
+            "expansion": "factions",
+            "name": "Jaya Bluffs",
+            "is_pvp": false
+        },
+        "197": {
+            "map_file_id": "0x265f1",
+            "expansion": "factions",
+            "name": "Shenzun Tunnels",
+            "is_pvp": false
+        },
+        "198": {
+            "map_file_id": "0x25dc3",
+            "expansion": "factions",
+            "name": "Archipelagos",
+            "is_pvp": false
+        },
+        "199": {
+            "map_file_id": "0x25d0d",
+            "expansion": "factions",
+            "name": "Maishang Hills",
+            "is_pvp": false
+        },
+        "200": {
+            "map_file_id": "0x25dd1",
+            "expansion": "factions",
+            "name": "Mount Qinkai",
+            "is_pvp": false
+        },
+        "201": {
+            "map_file_id": "0x25bde",
+            "expansion": "factions",
+            "name": "Melandrus Hope",
+            "is_pvp": false
+        },
+        "202": {
+            "map_file_id": "0x25df1",
+            "expansion": "factions",
+            "name": "Rheas Crater",
+            "is_pvp": false
+        },
+        "203": {
+            "map_file_id": "0x25e0e",
+            "expansion": "factions",
+            "name": "Silent Surf",
+            "is_pvp": false
+        },
+        "204": {
+            "map_file_id": "0x25e20",
+            "expansion": "factions",
+            "name": "Unwaking Waters",
+            "is_pvp": false
+        },
+        "205": {
+            "map_file_id": "0x25c0e",
+            "expansion": "factions",
+            "name": "Morostav Trail",
+            "is_pvp": false
+        },
+        "206": {
+            "map_file_id": "0x25289",
+            "expansion": "prophecies",
+            "name": "Deldrimor War Camp",
+            "is_pvp": false
+        },
+        "209": {
+            "map_file_id": "0x2663a",
+            "expansion": "factions",
+            "name": "Mourning Veil Falls",
+            "is_pvp": false
+        },
+        "210": {
+            "map_file_id": "0x25c34",
+            "expansion": "factions",
+            "name": "Ferndale",
+            "is_pvp": false
+        },
+        "211": {
+            "map_file_id": "0x25e0f",
+            "expansion": "factions",
+            "name": "Pongmei Valley",
+            "is_pvp": false
+        },
+        "212": {
+            "map_file_id": "0x26529",
+            "expansion": "factions",
+            "name": "Monastery Overlook",
+            "is_pvp": false
+        },
+        "213": {
+            "map_file_id": "0x264d2",
+            "expansion": "factions",
+            "name": "Zen Daijun",
+            "is_pvp": false
+        },
+        "214": {
+            "map_file_id": "0x2649b",
+            "expansion": "factions",
+            "name": "Minister Cho's Estate",
+            "is_pvp": false
+        },
+        "215": {
+            "map_file_id": "0x265f8",
+            "expansion": "factions",
+            "name": "Vizunah Square",
+            "is_pvp": false
+        },
+        "216": {
+            "map_file_id": "0x265f9",
+            "expansion": "factions",
+            "name": "Nahpui Quarter",
+            "is_pvp": false
+        },
+        "217": {
+            "map_file_id": "0x265fa",
+            "expansion": "factions",
+            "name": "Tahnnakai Temple",
+            "is_pvp": false
+        },
+        "218": {
+            "map_file_id": "0x25e16",
+            "expansion": "factions",
+            "name": "Arborstone",
+            "is_pvp": false
+        },
+        "219": {
+            "map_file_id": "0x25e17",
+            "expansion": "factions",
+            "name": "Boreas Seabed",
+            "is_pvp": false
+        },
+        "220": {
+            "map_file_id": "0x265fb",
+            "expansion": "factions",
+            "name": "Sunjiang District",
+            "is_pvp": false
+        },
+        "222": {
+            "map_file_id": "0x25e1d",
+            "expansion": "factions",
+            "name": "The Eternal Grove",
+            "is_pvp": false
+        },
+        "224": {
+            "map_file_id": "0x25e1f",
+            "expansion": "factions",
+            "name": "Gyala Hatchery",
+            "is_pvp": false
+        },
+        "225": {
+            "map_file_id": "0x2661c",
+            "expansion": "factions",
+            "name": "Raisu Palace",
+            "is_pvp": false
+        },
+        "226": {
+            "map_file_id": "0x2661d",
+            "expansion": "factions",
+            "name": "Imperial Sanctum",
+            "is_pvp": false
+        },
+        "227": {
+            "map_file_id": "0x25e20",
+            "expansion": "factions",
+            "name": "Unwaking Waters",
+            "is_pvp": false
+        },
+        "230": {
+            "map_file_id": "0x25e24",
+            "expansion": "factions",
+            "name": "Amatz Basin",
+            "is_pvp": false
+        },
+        "232": {
+            "map_file_id": "0x265f8",
+            "expansion": "factions",
+            "name": "Shadows Passage",
+            "is_pvp": false
+        },
+        "233": {
+            "map_file_id": "0x2661c",
+            "expansion": "factions",
+            "name": "Raisu Palace",
+            "is_pvp": false
+        },
+        "234": {
+            "map_file_id": "0x25e28",
+            "expansion": "factions",
+            "name": "The Aurios Mines",
+            "is_pvp": false
+        },
+        "235": {
+            "map_file_id": "0x2655d",
+            "expansion": "factions",
+            "name": "Panjiang Peninsula",
+            "is_pvp": false
+        },
+        "236": {
+            "map_file_id": "0x26578",
+            "expansion": "factions",
+            "name": "Kinya Province",
+            "is_pvp": false
+        },
+        "237": {
+            "map_file_id": "0x26597",
+            "expansion": "factions",
+            "name": "Haiju Lagoon",
+            "is_pvp": false
+        },
+        "238": {
+            "map_file_id": "0x2659f",
+            "expansion": "factions",
+            "name": "Sunqua Vale",
+            "is_pvp": false
+        },
+        "239": {
+            "map_file_id": "0x265ef",
+            "expansion": "factions",
+            "name": "Wajjun Bazaar",
+            "is_pvp": false
+        },
+        "240": {
+            "map_file_id": "0x4e70b",
+            "expansion": "factions",
+            "name": "Bukdek Byway",
+            "is_pvp": false
+        },
+        "241": {
+            "map_file_id": "0x265f4",
+            "expansion": "factions",
+            "name": "The Undercity",
+            "is_pvp": false
+        },
+        "242": {
+            "map_file_id": "0x3ef18",
+            "expansion": "factions",
+            "name": "Shing Jea Monastery",
+            "is_pvp": false
+        },
+        "243": {
+            "map_file_id": "0x2661e",
+            "expansion": "factions",
+            "name": "Shing Jea Arena",
+            "is_pvp": false
+        },
+        "244": {
+            "map_file_id": "0x25e16",
+            "expansion": "factions",
+            "name": "Arborstone",
+            "is_pvp": false
+        },
+        "245": {
+            "map_file_id": "0x2649b",
+            "expansion": "factions",
+            "name": "Minister Chos Estate",
+            "is_pvp": false
+        },
+        "246": {
+            "map_file_id": "0x264d2",
+            "expansion": "factions",
+            "name": "Zen Daijun",
+            "is_pvp": false
+        },
+        "247": {
+            "map_file_id": "0x25e17",
+            "expansion": "factions",
+            "name": "Boreas Seabed",
+            "is_pvp": false
+        },
+        "248": {
+            "map_file_id": "0x287b3",
+            "expansion": "core",
+            "name": "Great Temple of Balthazar",
+            "is_pvp": false
+        },
+        "249": {
+            "map_file_id": "0x2659f",
+            "expansion": "factions",
+            "name": "Tsumei Village",
+            "is_pvp": false
+        },
+        "250": {
+            "map_file_id": "0x26529",
+            "expansion": "factions",
+            "name": "Seitung Harbor",
+            "is_pvp": false
+        },
+        "251": {
+            "map_file_id": "0x26578",
+            "expansion": "factions",
+            "name": "Ran Musu Gardens",
+            "is_pvp": false
+        },
+        "252": {
+            "map_file_id": "0x26529",
+            "expansion": "factions",
+            "name": "Linnok Courtyard",
+            "is_pvp": false
+        },
+        "256": {
+            "map_file_id": "0x8a33",
+            "expansion": "prophecies",
+            "name": "Gates of Kryta",
+            "is_pvp": false
+        },
+        "265": {
+            "map_file_id": "0x265f9",
+            "expansion": "factions",
+            "name": "Nahpui Quarter",
+            "is_pvp": false
+        },
+        "266": {
+            "map_file_id": "0x28fb4",
+            "expansion": "factions",
+            "name": "Urgozs Warren",
+            "is_pvp": false
+        },
+        "269": {
+            "map_file_id": "0x265fa",
+            "expansion": "factions",
+            "name": "Tahnnakai Temple",
+            "is_pvp": false
+        },
+        "272": {
+            "map_file_id": "0x25e13",
+            "expansion": "factions",
+            "name": "Altrumm Ruins",
+            "is_pvp": false
+        },
+        "273": {
+            "map_file_id": "0x25e15",
+            "expansion": "factions",
+            "name": "Zos Shrivros Channel",
+            "is_pvp": false
+        },
+        "274": {
+            "map_file_id": "0x28fb8",
+            "expansion": "factions",
+            "name": "Dragon's Throat",
+            "is_pvp": false
+        },
+        "277": {
+            "map_file_id": "0x25e20",
+            "expansion": "factions",
+            "name": "Harvest Temple",
+            "is_pvp": false
+        },
+        "278": {
+            "map_file_id": "0x25dd1",
+            "expansion": "factions",
+            "name": "Breaker Hollow",
+            "is_pvp": false
+        },
+        "279": {
+            "map_file_id": "0x25e1f",
+            "expansion": "factions",
+            "name": "Leviathan Pits",
+            "is_pvp": false
+        },
+        "280": {
+            "map_file_id": "0x287b3",
+            "expansion": "core",
+            "name": "Isle of the Nameless",
+            "is_pvp": false
+        },
+        "281": {
+            "map_file_id": "0x287c2",
+            "expansion": "core",
+            "name": "Zaishen Challenge",
+            "is_pvp": false
+        },
+        "282": {
+            "map_file_id": "0x287d2",
+            "expansion": "core",
+            "name": "Zaishen Elite",
+            "is_pvp": false
+        },
+        "283": {
+            "map_file_id": "0x25e0f",
+            "expansion": "factions",
+            "name": "Maatu Keep",
+            "is_pvp": false
+        },
+        "284": {
+            "map_file_id": "0x265fa",
+            "expansion": "factions",
+            "name": "ZinKu Corridor",
+            "is_pvp": false
+        },
+        "286": {
+            "map_file_id": "0x25b9f",
+            "expansion": "factions",
+            "name": "Brauer Academy",
+            "is_pvp": false
+        },
+        "287": {
+            "map_file_id": "0x2663a",
+            "expansion": "factions",
+            "name": "Durheim Archives",
+            "is_pvp": false
+        },
+        "288": {
+            "map_file_id": "0x25d0d",
+            "expansion": "factions",
+            "name": "Bai Paasu Reach",
+            "is_pvp": false
+        },
+        "289": {
+            "map_file_id": "0x25df1",
+            "expansion": "factions",
+            "name": "Seafarer's Rest",
+            "is_pvp": false
+        },
+        "290": {
+            "map_file_id": "0x265f7",
+            "expansion": "factions",
+            "name": "Bejunkan Pier",
+            "is_pvp": false
+        },
+        "291": {
+            "map_file_id": "0x265f8",
+            "expansion": "factions",
+            "name": "Vizunah Square (Local Quarter)",
+            "is_pvp": false
+        },
+        "292": {
+            "map_file_id": "0x265f8",
+            "expansion": "factions",
+            "name": "Vizunah Square (Foreign Quarter)",
+            "is_pvp": false
+        },
+        "293": {
+            "map_file_id": "0x25e1c",
+            "expansion": "factions",
+            "name": "Fort Aspenwood (Luxon)",
+            "is_pvp": false
+        },
+        "294": {
+            "map_file_id": "0x25e1c",
+            "expansion": "factions",
+            "name": "Fort Aspenwood (Kurzick)",
+            "is_pvp": false
+        },
+        "295": {
+            "map_file_id": "0x25e1e",
+            "expansion": "factions",
+            "name": "The Jade Quarry (Luxon)",
+            "is_pvp": false
+        },
+        "296": {
+            "map_file_id": "0x25e1e",
+            "expansion": "factions",
+            "name": "The Jade Quarry (Kurzick)",
+            "is_pvp": false
+        },
+        "297": {
+            "map_file_id": "0x25e20",
+            "expansion": "factions",
+            "name": "Unwaking Waters (Luxon)",
+            "is_pvp": false
+        },
+        "298": {
+            "map_file_id": "0x25e20",
+            "expansion": "factions",
+            "name": "Unwaking Waters (Kurzick)",
+            "is_pvp": false
+        },
+        "301": {
+            "map_file_id": "0x2661c",
+            "expansion": "factions",
+            "name": "Raisu Pavilion",
+            "is_pvp": false
+        },
+        "302": {
+            "map_file_id": "0x265ef",
+            "expansion": "factions",
+            "name": "Kaineng Docks",
+            "is_pvp": false
+        },
+        "303": {
+            "map_file_id": "0x265ef",
+            "expansion": "factions",
+            "name": "The Marketplace",
+            "is_pvp": false
+        },
+        "307": {
+            "map_file_id": "0x2e195",
+            "expansion": "factions",
+            "name": "The Deep",
+            "is_pvp": false
+        },
+        "313": {
+            "map_file_id": "0x26529",
+            "expansion": "factions",
+            "name": "Saoshang Trail",
+            "is_pvp": false
+        },
+        "318": {
+            "map_file_id": "0x1f1c4",
+            "expansion": "prophecies",
+            "name": "DAlessio Arena",
+            "is_pvp": false
+        },
+        "319": {
+            "map_file_id": "0xceb6",
+            "expansion": "prophecies",
+            "name": "Amnoon Arena",
+            "is_pvp": false
+        },
+        "320": {
+            "map_file_id": "0xe9f6",
+            "expansion": "prophecies",
+            "name": "Fort Koga",
+            "is_pvp": false
+        },
+        "321": {
+            "map_file_id": "0x25a0b",
+            "expansion": "prophecies",
+            "name": "Heroes Crypt",
+            "is_pvp": false
+        },
+        "322": {
+            "map_file_id": "0xb60b",
+            "expansion": "prophecies",
+            "name": "Shiverpeak Arena",
+            "is_pvp": false
+        },
+        "330": {
+            "map_file_id": "0x2879c",
+            "expansion": "core",
+            "name": "Heroes' Ascent",
+            "is_pvp": false
+        },
+        "344": {
+            "map_file_id": "0x36b4",
+            "expansion": "core",
+            "name": "The Hall of Heroes",
+            "is_pvp": true
+        },
+        "345": {
+            "map_file_id": "0x36a5",
+            "expansion": "core",
+            "name": "The Courtyard",
+            "is_pvp": true
+        },
+        "347": {
+            "map_file_id": "0x402c",
+            "expansion": "core",
+            "name": "The Underworld",
+            "is_pvp": true
+        },
+        "348": {
+            "map_file_id": "0x25e0f",
+            "expansion": "factions",
+            "name": "Tanglewood Copse",
+            "is_pvp": false
+        },
+        "349": {
+            "map_file_id": "0x25c34",
+            "expansion": "factions",
+            "name": "Saint Anjeka's Shrine",
+            "is_pvp": false
+        },
+        "350": {
+            "map_file_id": "0x25d0d",
+            "expansion": "factions",
+            "name": "Eredon Terrace",
+            "is_pvp": false
+        },
+        "360": {
+            "map_file_id": "0x28784",
+            "expansion": "core",
+            "name": "Isle Of Meditation",
+            "is_pvp": false
+        },
+        "361": {
+            "map_file_id": "0x2661f",
+            "expansion": "core",
+            "name": "Isle of Weeping Stone",
+            "is_pvp": false
+        },
+        "362": {
+            "map_file_id": "0x26625",
+            "expansion": "core",
+            "name": "Isle of Jade",
+            "is_pvp": false
+        },
+        "363": {
+            "map_file_id": "0x28736",
+            "expansion": "core",
+            "name": "Imperial Isle",
+            "is_pvp": false
+        },
+        "364": {
+            "map_file_id": "0x28784",
+            "expansion": "core",
+            "name": "Isle of Meditation",
+            "is_pvp": false
+        },
+        "366": {
+            "map_file_id": "0x2661e",
+            "expansion": "factions",
+            "name": "Shing Jea Arena",
+            "is_pvp": false
+        },
+        "369": {
+            "map_file_id": "0x353e3",
+            "expansion": "nightfall",
+            "name": "Jahai Bluffs",
+            "is_pvp": false
+        },
+        "371": {
+            "map_file_id": "0x33f27",
+            "expansion": "nightfall",
+            "name": "Marga Coast",
+            "is_pvp": false
+        },
+        "373": {
+            "map_file_id": "0x33f6c",
+            "expansion": "nightfall",
+            "name": "Sunward Marches",
+            "is_pvp": false
+        },
+        "375": {
+            "map_file_id": "0x33ff0",
+            "expansion": "nightfall",
+            "name": "Barbarous Shore",
+            "is_pvp": false
+        },
+        "376": {
+            "map_file_id": "0x33ff0",
+            "expansion": "nightfall",
+            "name": "Camp Hojanu",
+            "is_pvp": false
+        },
+        "377": {
+            "map_file_id": "0x34913",
+            "expansion": "nightfall",
+            "name": "Bahdok Caverns",
+            "is_pvp": false
+        },
+        "379": {
+            "map_file_id": "0x34897",
+            "expansion": "nightfall",
+            "name": "Dejarin Estate",
+            "is_pvp": false
+        },
+        "380": {
+            "map_file_id": "0x356df",
+            "expansion": "nightfall",
+            "name": "Arkjok Ward",
+            "is_pvp": false
+        },
+        "382": {
+            "map_file_id": "0x34873",
+            "expansion": "nightfall",
+            "name": "Gandara, the Moon Fortress",
+            "is_pvp": false
+        },
+        "384": {
+            "map_file_id": "0x34435",
+            "expansion": "nightfall",
+            "name": "The Floodplain of Mahnkelon",
+            "is_pvp": false
+        },
+        "386": {
+            "map_file_id": "0x3572d",
+            "expansion": "nightfall",
+            "name": "Turais Procession",
+            "is_pvp": false
+        },
+        "387": {
+            "map_file_id": "0x34c38",
+            "expansion": "nightfall",
+            "name": "Sunspear Sanctuary",
+            "is_pvp": false
+        },
+        "388": {
+            "map_file_id": "0x25e1c",
+            "expansion": "factions",
+            "name": "Aspenwood Gate (Kurzick)",
+            "is_pvp": false
+        },
+        "389": {
+            "map_file_id": "0x25e1c",
+            "expansion": "factions",
+            "name": "Aspenwood Gate (Luxon)",
+            "is_pvp": false
+        },
+        "390": {
+            "map_file_id": "0x25e1e",
+            "expansion": "factions",
+            "name": "Jade Flats (Kurzick)",
+            "is_pvp": false
+        },
+        "391": {
+            "map_file_id": "0x25e1e",
+            "expansion": "factions",
+            "name": "Jade Flats (Luxon)",
+            "is_pvp": false
+        },
+        "392": {
+            "map_file_id": "0x3385e",
+            "expansion": "nightfall",
+            "name": "Yatendi Canyons",
+            "is_pvp": false
+        },
+        "393": {
+            "map_file_id": "0x3385e",
+            "expansion": "nightfall",
+            "name": "Chantry of Secrets",
+            "is_pvp": false
+        },
+        "394": {
+            "map_file_id": "0x34a54",
+            "expansion": "nightfall",
+            "name": "Garden of Seborhin",
+            "is_pvp": false
+        },
+        "395": {
+            "map_file_id": "0x34f33",
+            "expansion": "nightfall",
+            "name": "Holdings of Chokhin",
+            "is_pvp": false
+        },
+        "396": {
+            "map_file_id": "0x33883",
+            "expansion": "nightfall",
+            "name": "Mihanu Township",
+            "is_pvp": false
+        },
+        "397": {
+            "map_file_id": "0x3503d",
+            "expansion": "nightfall",
+            "name": "Vehjin Mines",
+            "is_pvp": false
+        },
+        "398": {
+            "map_file_id": "0x33bf5",
+            "expansion": "nightfall",
+            "name": "Basalt Grotto",
+            "is_pvp": false
+        },
+        "399": {
+            "map_file_id": "0x3513b",
+            "expansion": "nightfall",
+            "name": "Forum Highlands",
+            "is_pvp": false
+        },
+        "402": {
+            "map_file_id": "0x33dc4",
+            "expansion": "nightfall",
+            "name": "Resplendent Makuun",
+            "is_pvp": false
+        },
+        "403": {
+            "map_file_id": "0x33dc4",
+            "expansion": "nightfall",
+            "name": "Honur Hill",
+            "is_pvp": false
+        },
+        "404": {
+            "map_file_id": "0x34b0a",
+            "expansion": "nightfall",
+            "name": "Wilderness of Bahdza",
+            "is_pvp": false
+        },
+        "406": {
+            "map_file_id": "0x35363",
+            "expansion": "nightfall",
+            "name": "Vehtendi Valley",
+            "is_pvp": false
+        },
+        "407": {
+            "map_file_id": "0x33dd6",
+            "expansion": "nightfall",
+            "name": "Yahnur Market",
+            "is_pvp": false
+        },
+        "413": {
+            "map_file_id": "0x33e11",
+            "expansion": "nightfall",
+            "name": "The Hidden City of Ahdashim",
+            "is_pvp": false
+        },
+        "414": {
+            "map_file_id": "0x34c07",
+            "expansion": "nightfall",
+            "name": "The Kodash Bazaar",
+            "is_pvp": false
+        },
+        "415": {
+            "map_file_id": "0x2f9fa",
+            "expansion": "prophecies",
+            "name": "Lions Gate",
+            "is_pvp": false
+        },
+        "416": {
+            "map_file_id": "0x26529",
+            "expansion": "factions",
+            "name": "Monastery Overlook",
+            "is_pvp": false
+        },
+        "419": {
+            "map_file_id": "0x33bdf",
+            "expansion": "nightfall",
+            "name": "The Mirror of Lyss",
+            "is_pvp": false
+        },
+        "424": {
+            "map_file_id": "0x33e6a",
+            "expansion": "nightfall",
+            "name": "Kodonur Crossroads",
+            "is_pvp": false
+        },
+        "425": {
+            "map_file_id": "0x34435",
+            "expansion": "nightfall",
+            "name": "Rilohn Refuge",
+            "is_pvp": false
+        },
+        "426": {
+            "map_file_id": "0x340df",
+            "expansion": "nightfall",
+            "name": "Pogahn Passage",
+            "is_pvp": false
+        },
+        "427": {
+            "map_file_id": "0x34913",
+            "expansion": "nightfall",
+            "name": "Moddok Crevice",
+            "is_pvp": false
+        },
+        "428": {
+            "map_file_id": "0x3513b",
+            "expansion": "nightfall",
+            "name": "Tihark Orchard",
+            "is_pvp": false
+        },
+        "429": {
+            "map_file_id": "0x345cc",
+            "expansion": "nightfall",
+            "name": "Consulate",
+            "is_pvp": false
+        },
+        "430": {
+            "map_file_id": "0x4e70d",
+            "expansion": "nightfall",
+            "name": "Plains of Jarin",
+            "is_pvp": false
+        },
+        "431": {
+            "map_file_id": "0x33651",
+            "expansion": "nightfall",
+            "name": "Sunspear Great Hall",
+            "is_pvp": false
+        },
+        "433": {
+            "map_file_id": "0x33dcc",
+            "expansion": "nightfall",
+            "name": "Dzagonur Bastion",
+            "is_pvp": false
+        },
+        "434": {
+            "map_file_id": "0x33e11",
+            "expansion": "nightfall",
+            "name": "Dasha Vestibule",
+            "is_pvp": false
+        },
+        "435": {
+            "map_file_id": "0x33bdf",
+            "expansion": "nightfall",
+            "name": "Grand Court of Sebelkeh",
+            "is_pvp": false
+        },
+        "436": {
+            "map_file_id": "0x34c38",
+            "expansion": "nightfall",
+            "name": "Command Post",
+            "is_pvp": false
+        },
+        "437": {
+            "map_file_id": "0x33516",
+            "expansion": "nightfall",
+            "name": "Jokos Domain",
+            "is_pvp": false
+        },
+        "438": {
+            "map_file_id": "0x33516",
+            "expansion": "nightfall",
+            "name": "Bone Palace",
+            "is_pvp": false
+        },
+        "439": {
+            "map_file_id": "0x33574",
+            "expansion": "nightfall",
+            "name": "The Ruptured Heart",
+            "is_pvp": false
+        },
+        "440": {
+            "map_file_id": "0x33574",
+            "expansion": "nightfall",
+            "name": "The Mouth of Torment",
+            "is_pvp": false
+        },
+        "441": {
+            "map_file_id": "0x34ce4",
+            "expansion": "nightfall",
+            "name": "The Shattered Ravines",
+            "is_pvp": false
+        },
+        "442": {
+            "map_file_id": "0x33583",
+            "expansion": "nightfall",
+            "name": "Lair of the Forgotten",
+            "is_pvp": false
+        },
+        "443": {
+            "map_file_id": "0x34cf1",
+            "expansion": "nightfall",
+            "name": "Poisoned Outcrops",
+            "is_pvp": false
+        },
+        "444": {
+            "map_file_id": "0x34b79",
+            "expansion": "nightfall",
+            "name": "The Sulfurous Wastes",
+            "is_pvp": false
+        },
+        "446": {
+            "map_file_id": "0x33594",
+            "expansion": "nightfall",
+            "name": "The Alkali Pan",
+            "is_pvp": false
+        },
+        "449": {
+            "map_file_id": "0x345cc",
+            "expansion": "nightfall",
+            "name": "Kamadan, Jewel of Istan",
+            "is_pvp": false,
+            "spawn_points": [
+                [
+                    -9298,
+                    15969,
+                    0
+                ]
+            ]
+        },
+        "450": {
+            "map_file_id": "0x3452b",
+            "expansion": "nightfall",
+            "name": "Gate of Torment",
+            "is_pvp": false
+        },
+        "456": {
+            "map_file_id": "0x3cdc9",
+            "expansion": "nightfall",
+            "name": "Churrhir Fields",
+            "is_pvp": false
+        },
+        "461": {
+            "map_file_id": "0x402c",
+            "expansion": "core",
+            "name": "The Underworld",
+            "is_pvp": true
+        },
+        "463": {
+            "map_file_id": "0x402c",
+            "expansion": "core",
+            "name": "The Underworld",
+            "is_pvp": true
+        },
+        "468": {
+            "map_file_id": "0x35832",
+            "expansion": "nightfall",
+            "name": "Domain of Fear",
+            "is_pvp": false
+        },
+        "469": {
+            "map_file_id": "0x3452b",
+            "expansion": "nightfall",
+            "name": "Gate of Fear",
+            "is_pvp": false
+        },
+        "470": {
+            "map_file_id": "0x34bcc",
+            "expansion": "nightfall",
+            "name": "Domain of Pain",
+            "is_pvp": false
+        },
+        "473": {
+            "map_file_id": "0x3452b",
+            "expansion": "nightfall",
+            "name": "Gate of Secrets",
+            "is_pvp": false
+        },
+        "474": {
+            "map_file_id": "0x3452b",
+            "expansion": "nightfall",
+            "name": "Gate of Anguish",
+            "is_pvp": false
+        },
+        "476": {
+            "map_file_id": "0x33c20",
+            "expansion": "nightfall",
+            "name": "Jennurs Horde",
+            "is_pvp": false
+        },
+        "477": {
+            "map_file_id": "0x33f27",
+            "expansion": "nightfall",
+            "name": "Nundu Bay",
+            "is_pvp": false
+        },
+        "478": {
+            "map_file_id": "0x3443c",
+            "expansion": "nightfall",
+            "name": "Gate of Desolation",
+            "is_pvp": false
+        },
+        "479": {
+            "map_file_id": "0x336b4",
+            "expansion": "nightfall",
+            "name": "Champions Dawn",
+            "is_pvp": false
+        },
+        "480": {
+            "map_file_id": "0x33594",
+            "expansion": "nightfall",
+            "name": "Ruins of Morah",
+            "is_pvp": false
+        },
+        "481": {
+            "map_file_id": "0x34d11",
+            "expansion": "nightfall",
+            "name": "Fahranur, The First City",
+            "is_pvp": false
+        },
+        "482": {
+            "map_file_id": "0x4706b",
+            "expansion": "eotn",
+            "name": "Bjora Marches",
+            "is_pvp": false
+        },
+        "483": {
+            "map_file_id": "0x34d1f",
+            "expansion": "nightfall",
+            "name": "Zehlon Reach",
+            "is_pvp": false
+        },
+        "484": {
+            "map_file_id": "0x34d34",
+            "expansion": "nightfall",
+            "name": "Lahtenda Bog",
+            "is_pvp": false
+        },
+        "485": {
+            "map_file_id": "0x4621e",
+            "expansion": "eotn",
+            "name": "Arbor Bay",
+            "is_pvp": false
+        },
+        "486": {
+            "map_file_id": "0x33727",
+            "expansion": "nightfall",
+            "name": "Issnur Isles",
+            "is_pvp": false
+        },
+        "487": {
+            "map_file_id": "0x33727",
+            "expansion": "nightfall",
+            "name": "Beknur Harbor",
+            "is_pvp": false
+        },
+        "488": {
+            "map_file_id": "0x34d44",
+            "expansion": "nightfall",
+            "name": "Mehtani Keys",
+            "is_pvp": false
+        },
+        "489": {
+            "map_file_id": "0x3372c",
+            "expansion": "nightfall",
+            "name": "Kodlonu Hamlet",
+            "is_pvp": false
+        },
+        "491": {
+            "map_file_id": "0x336bf",
+            "expansion": "nightfall",
+            "name": "Jokanur Diggings",
+            "is_pvp": false
+        },
+        "492": {
+            "map_file_id": "0x336c5",
+            "expansion": "nightfall",
+            "name": "Blacktide Den",
+            "is_pvp": false
+        },
+        "493": {
+            "map_file_id": "0x345cc",
+            "expansion": "nightfall",
+            "name": "Consulate Docks",
+            "is_pvp": false
+        },
+        "494": {
+            "map_file_id": "0x3452b",
+            "expansion": "nightfall",
+            "name": "Gate of Pain",
+            "is_pvp": false
+        },
+        "495": {
+            "map_file_id": "0x3452b",
+            "expansion": "nightfall",
+            "name": "Gate of Madness",
+            "is_pvp": false
+        },
+        "496": {
+            "map_file_id": "0x34498",
+            "expansion": "nightfall",
+            "name": "Abaddons Gate",
+            "is_pvp": false
+        },
+        "497": {
+            "map_file_id": "0x34c4c",
+            "expansion": "nightfall",
+            "name": "Sunspear Arena",
+            "is_pvp": false
+        },
+        "499": {
+            "map_file_id": "0x4662b",
+            "expansion": "eotn",
+            "name": "Ice Cliff Chasms",
+            "is_pvp": false
+        },
+        "501": {
+            "map_file_id": "0x47051",
+            "expansion": "eotn",
+            "name": "Riven Earth",
+            "is_pvp": false
+        },
+        "502": {
+            "map_file_id": "0x336c2",
+            "expansion": "nightfall",
+            "name": "The Astralarium",
+            "is_pvp": false
+        },
+        "513": {
+            "map_file_id": "0x46801",
+            "expansion": "eotn",
+            "name": "Drakkar Lake",
+            "is_pvp": false
+        },
+        "531": {
+            "map_file_id": "0x33056",
+            "expansion": "core",
+            "name": "Uncharted Isle",
+            "is_pvp": false
+        },
+        "532": {
+            "map_file_id": "0x3321c",
+            "expansion": "core",
+            "name": "Isle of Wurms",
+            "is_pvp": false
+        },
+        "537": {
+            "map_file_id": "0x3314e",
+            "expansion": "core",
+            "name": "Corrupted Isle",
+            "is_pvp": false
+        },
+        "539": {
+            "map_file_id": "0x3314e",
+            "expansion": "core",
+            "name": "Corrupted Isle",
+            "is_pvp": false
+        },
+        "540": {
+            "map_file_id": "0x334a2",
+            "expansion": "core",
+            "name": "Isle of Solitude",
+            "is_pvp": false
+        },
+        "543": {
+            "map_file_id": "0x345cc",
+            "expansion": "nightfall",
+            "name": "Sun Docks",
+            "is_pvp": false
+        },
+        "544": {
+            "map_file_id": "0x3cdc9",
+            "expansion": "nightfall",
+            "name": "Chahbek Village",
+            "is_pvp": false
+        },
+        "545": {
+            "map_file_id": "0x3358c",
+            "expansion": "nightfall",
+            "name": "Remains of Sahlahja",
+            "is_pvp": false
+        },
+        "546": {
+            "map_file_id": "0x4707f",
+            "expansion": "eotn",
+            "name": "Jaga Moraine",
+            "is_pvp": false
+        },
+        "548": {
+            "map_file_id": "0x4693f",
+            "expansion": "eotn",
+            "name": "Norrhart Domains",
+            "is_pvp": false
+        },
+        "549": {
+            "map_file_id": "0x3c3ee",
+            "expansion": "core",
+            "name": "Hero Battles",
+            "is_pvp": false
+        },
+        "553": {
+            "map_file_id": "0x46b50",
+            "expansion": "eotn",
+            "name": "Varajar Fells",
+            "is_pvp": false
+        },
+        "554": {
+            "map_file_id": "0x33f38",
+            "expansion": "nightfall",
+            "name": "Dajkah Inlet",
+            "is_pvp": false
+        },
+        "558": {
+            "map_file_id": "0x46305",
+            "expansion": "eotn",
+            "name": "Sparkfly Swamp",
+            "is_pvp": false
+        },
+        "559": {
+            "map_file_id": "0x3452b",
+            "expansion": "nightfall",
+            "name": "Gate of the Nightfallen Lands",
+            "is_pvp": false
+        },
+        "566": {
+            "map_file_id": "0x463ba",
+            "expansion": "eotn",
+            "name": "Verdant Cascades",
+            "is_pvp": false
+        },
+        "569": {
+            "map_file_id": "0x46427",
+            "expansion": "eotn",
+            "name": "Magus Stones",
+            "is_pvp": false
+        },
+        "572": {
+            "map_file_id": "0x46547",
+            "expansion": "eotn",
+            "name": "Alcazia Tangle",
+            "is_pvp": false
+        },
+        "593": {
+            "map_file_id": "0x46d8a",
+            "expansion": "core",
+            "name": "Fetid River",
+            "is_pvp": true
+        },
+        "598": {
+            "map_file_id": "0x46db8",
+            "expansion": "core",
+            "name": "The Antechamber",
+            "is_pvp": true
+        },
+        "600": {
+            "map_file_id": "0x36b4",
+            "expansion": "core",
+            "name": "The Hall of Heroes",
+            "is_pvp": true
+        },
+        "607": {
+            "map_file_id": "0x474fa",
+            "expansion": "eotn",
+            "name": "Heart of the Shiverpeaks",
+            "is_pvp": false
+        },
+        "624": {
+            "map_file_id": "0x4621e",
+            "expansion": "eotn",
+            "name": "Vloxs Falls",
+            "is_pvp": false
+        },
+        "625": {
+            "map_file_id": "0x475cc",
+            "expansion": "eotn",
+            "name": "Battledepths",
+            "is_pvp": false
+        },
+        "638": {
+            "map_file_id": "0x46305",
+            "expansion": "eotn",
+            "name": "Gadds Encampment",
+            "is_pvp": false
+        },
+        "639": {
+            "map_file_id": "0x463ba",
+            "expansion": "eotn",
+            "name": "Umbral Grotto",
+            "is_pvp": false
+        },
+        "640": {
+            "map_file_id": "0x46427",
+            "expansion": "eotn",
+            "name": "Rata Sum",
+            "is_pvp": false
+        },
+        "641": {
+            "map_file_id": "0x46547",
+            "expansion": "eotn",
+            "name": "Tarnished Haven",
+            "is_pvp": false
+        },
+        "642": {
+            "map_file_id": "0x4662b",
+            "expansion": "eotn",
+            "name": "Eye of the North",
+            "is_pvp": false
+        },
+        "643": {
+            "map_file_id": "0x46801",
+            "expansion": "eotn",
+            "name": "Sifhalla",
+            "is_pvp": false
+        },
+        "644": {
+            "map_file_id": "0x4693f",
+            "expansion": "eotn",
+            "name": "Gunnars Hold",
+            "is_pvp": false
+        },
+        "645": {
+            "map_file_id": "0x46b50",
+            "expansion": "eotn",
+            "name": "Olafstead",
+            "is_pvp": false
+        },
+        "646": {
+            "map_file_id": "0x4662b",
+            "expansion": "eotn",
+            "name": "Hall of Monuments",
+            "is_pvp": false
+        },
+        "647": {
+            "map_file_id": "0x46ca8",
+            "expansion": "eotn",
+            "name": "Dalada Uplands",
+            "is_pvp": false
+        },
+        "648": {
+            "map_file_id": "0x46ca8",
+            "expansion": "eotn",
+            "name": "Doomlore Shrine",
+            "is_pvp": false
+        },
+        "649": {
+            "map_file_id": "0x46d85",
+            "expansion": "eotn",
+            "name": "Grothmar Wardowns",
+            "is_pvp": false
+        },
+        "650": {
+            "map_file_id": "0x46d85",
+            "expansion": "eotn",
+            "name": "Longeyes Ledge",
+            "is_pvp": false
+        },
+        "651": {
+            "map_file_id": "0x47144",
+            "expansion": "eotn",
+            "name": "Sacnoth Valley",
+            "is_pvp": false
+        },
+        "652": {
+            "map_file_id": "0x46d86",
+            "expansion": "eotn",
+            "name": "Central Transfer Chamber",
+            "is_pvp": false
+        },
+        "673": {
+            "map_file_id": "0x4f717",
+            "expansion": "eotn",
+            "name": "A Time for Heroes",
+            "is_pvp": false
+        },
+        "675": {
+            "map_file_id": "0x4662b",
+            "expansion": "eotn",
+            "name": "Boreal Station",
+            "is_pvp": false
+        },
+        "682": {
+            "map_file_id": "0x4f71c",
+            "expansion": "eotn",
+            "name": "Cinematic Eye Vision A",
+            "is_pvp": false
+        },
+        "683": {
+            "map_file_id": "0x4f71c",
+            "expansion": "eotn",
+            "name": "Cinematic Eye Vision B",
+            "is_pvp": false
+        },
+        "684": {
+            "map_file_id": "0x4f71c",
+            "expansion": "eotn",
+            "name": "Cinematic Eye Vision C",
+            "is_pvp": false
+        },
+        "685": {
+            "map_file_id": "0x4f71c",
+            "expansion": "eotn",
+            "name": "Cinematic Eye Vision D",
+            "is_pvp": false
+        },
+        "691": {
+            "map_file_id": "0x47566",
+            "expansion": "eotn",
+            "name": "Beneath Lions Arch",
+            "is_pvp": false
+        },
+        "692": {
+            "map_file_id": "0x47566",
+            "expansion": "eotn",
+            "name": "Tunnels Below Cantha",
+            "is_pvp": false
+        },
+        "693": {
+            "map_file_id": "0x47566",
+            "expansion": "eotn",
+            "name": "Caverns Below Kamadan",
+            "is_pvp": false
+        },
+        "704": {
+            "map_file_id": "0x475df",
+            "expansion": "eotn",
+            "name": "Fronis Irontoe's Lair",
+            "is_pvp": false
+        },
+        "726": {
+            "map_file_id": "0x4693f",
+            "expansion": "nightfall",
+            "name": "Plains of Jarin",
+            "is_pvp": false
+        }
+    },
+    "agents": {
+        "ralena_stormbringer": {
+            "name": "Ralena Stormbringer",
+            "type": "npc",
+            "enc_name": "32f0 8841 9a09 33f7",
+            "allegiance_flags": 1886151033,
+            "speed": 288,
+            "profession": 6,
+            "file_id": 16258,
+            "unk_properties_bytes": "0f5a dbd6 d257 691d",
+            "model_id": 116712
+        },
+        "vassar": {
+            "name": "Vassar",
+            "enc_name": "32cf 93ba fa50 3899",
+            "type": "npc",
+            "allegiance_flags": 1886151033,
+            "speed": 288,
+            "profession": 5,
+            "file_id": 16377,
+            "unk_properties_bytes": "0f56 917e ddfa 4ab3",
+            "model_id": 116691
+        },
+        "laren_merchant": {
+            "name": "Laren (Merchant)",
+            "enc_name": "2d9e f878 bdbf 12e7",
+            "type": "npc",
+            "allegiance_flags": 1852796515,
+            "speed": 200,
+            "profession": 3,
+            "file_id": 116227,
+            "unk_properties_bytes": "0f67 9ad6 8f16 76f0",
+            "model_id": 116698
+        },
+        "lord_darrin": {
+            "name": "Lord Darrin",
+            "enc_name": "3494 c84e d433 48d7",
+            "type": "npc",
+            "allegiance_flags": 1852796515,
+            "speed": 288,
+            "profession": 1,
+            "file_id": 116227,
+            "unk_properties_bytes": "11b6 cb06 984b 23cd",
+            "model_id": 76594
+        },
+        "gram_merchant": {
+            "name": "Gram (Merchant)",
+            "enc_name": "2da7 f0d6 d159 6765",
+            "type": "npc",
+            "allegiance_flags": 1852796515,
+            "speed": 200,
+            "profession": 3,
+            "file_id": 116227,
+            "unk_properties_bytes": "0f67 9ad6 8f16 76f0",
+            "model_id": 116698
+        },
+        "hatcher_collector": {
+            "name": "Hatcher (Collector)",
+            "enc_name": "328a e3b9 aa36 2e69",
+            "type": "npc",
+            "allegiance_flags": 1852796515,
+            "speed": 200,
+            "profession": 3,
+            "file_id": 116228,
+            "unk_properties_bytes": "0f57 9dcb ed5f 4007",
+            "model_id": 116703
+        },
+        "ascalon_guard": {
+            "name": "Ascalon Guard",
+            "enc_name": "2b5e 9f0f b437 7153",
+            "type": "npc",
+            "allegiance_flags": 1852796515,
+            "speed": 250,
+            "profession": 1,
+            "file_id": 141285,
+            "unk_properties_bytes": "0f5d c416 af26 167b",
+            "model_id": 116727
+        }
+    }
+}
