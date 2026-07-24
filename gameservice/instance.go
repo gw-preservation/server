@@ -170,6 +170,24 @@ func (im *instanceManager) GetOrCreateInstanceByMapId(mapId int) (*Instance, err
 	return &inst, nil
 }
 
+func (im *instanceManager) BroadcastPacketToAllPlayers(packet GwPacket.Out) {
+	im.mu.Lock()
+	defer im.mu.Unlock()
+	for _, inst := range im.instances {
+		inst.BroadcastGeneric(packet)
+	}
+}
+
+func (im *instanceManager) NumPlayersOnline() int {
+	im.mu.Lock()
+	defer im.mu.Unlock()
+	x := 0
+	for _, inst := range im.instances {
+		x += len(inst.players)
+	}
+	return x
+}
+
 func (im *instanceManager) GetInstanceByMapId(mapId int) (*Instance, bool) {
 	im.mu.RLock()
 	defer im.mu.RUnlock()
@@ -191,6 +209,7 @@ func (im *instanceManager) AddInstance(instance *Instance) {
 
 type Instance struct {
 	uuid                   uint64
+	tag                    uint32
 	players                []*Player
 	mapId                  int
 	definition             instanceDefinition
@@ -242,6 +261,7 @@ func NewInstance(mapId int, definition instanceDefinition) (i Instance) {
 	i = Instance{
 		definition:             definition,
 		uuid:                   rand.Uint64(),
+		tag:                    rand.Uint32(),
 		mapId:                  mapId,
 		alive:                  true,
 		agents:                 make([]Agent, 0),
@@ -436,6 +456,7 @@ func (i *Instance) AddPlayer(player *Player) {
 		player.EnqueuePacket(MarshalUpdateCurrentMapId(i.mapId))
 		player.EnqueuePacket(MarshalReadyForMapSpawn())
 		player.EnqueuePacket(MarshalInstanceManifestDone(0, i.mapId, 0))
+		player.SendWelcomeChatMessage()
 
 		i.TransmitPlayerToOthers(player)
 	}
@@ -552,7 +573,7 @@ func (i *Instance) UpdateRequestedPlayerPos(player *Player, x float32, y float32
 	}
 }
 
-func (i *Instance) BroadcastGeneric(from *Player, packet GwPacket.Out) {
+func (i *Instance) BroadcastGeneric(packet GwPacket.Out) {
 	i.mu.RLock()
 	defer i.mu.RUnlock()
 
@@ -564,7 +585,7 @@ func (i *Instance) BroadcastGeneric(from *Player, packet GwPacket.Out) {
 func (i *Instance) BroadcastLocalChat(from *Player, message string) {
 	packet := MarshalChatMessageCore(message)
 	packet.Merge(MarshalChatMessageLocal(from.playerId, 3))
-	i.BroadcastGeneric(from, packet)
+	i.BroadcastGeneric(packet)
 
 	// TODO: if nobody else in zone, send "No one hears you..."
 	/*
@@ -580,6 +601,10 @@ func (i *Instance) BroadcastLocalChat(from *Player, message string) {
 	*/
 }
 
+func (i *Instance) GetTag() uint32 {
+	return i.tag
+}
+
 func (i *Instance) TransferPlayerToNewMap(player *Player, newMapId int) error {
 	// TODO: check valid map
 	// TODO: check player has map unlocked
@@ -587,20 +612,6 @@ func (i *Instance) TransferPlayerToNewMap(player *Player, newMapId int) error {
 	// TODO: check they are party leader
 	// TODO: also transport party
 
-	// First, remove player from current instance
-	i.RemovePlayer(player)
-	// Next, send packets to client
-
-	region := 1
-	player.conn.EnqueuePacket(MarshalTransferGameServerInfo([]byte{
-		0x02, 0x00, // AF_INET
-		0x17, 0xe0, // Port 6112
-		0xc0, 0xa8, 0x01, 0x7c, // 192.168.1.124
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	}, 1, region, newMapId, i.IsExplorable(), 1))
-	player.conn.EnqueuePacket(MarshalUpdateCurrentMapId(newMapId))
-	// Put in new instance:
 	inst, err := InstanceManager.GetOrCreateInstanceByMapId(newMapId)
 	if inst == nil || err != nil {
 		// something went wrong - decline connection
@@ -608,6 +619,25 @@ func (i *Instance) TransferPlayerToNewMap(player *Player, newMapId int) error {
 		player.Disconnect()
 		return nil
 	}
+
+	// Generate a security token for the transfer
+	instanceTag := inst.GetTag()
+	securityTag := GenerateConnectionTokenForInstance(instanceTag)
+
+	// Next, remove player from current instance
+	i.RemovePlayer(player)
+
+	// Next, send packets to client
+	region := 1
+	player.conn.EnqueuePacket(MarshalTransferGameServerInfo([]byte{
+		0x02, 0x00, // AF_INET
+		0x17, 0xe0, // Port 6112
+		0xc0, 0xa8, 0x01, 0x7c, // 192.168.1.124
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	}, int(instanceTag), region, newMapId, i.IsExplorable(), int(securityTag)))
+	player.conn.EnqueuePacket(MarshalUpdateCurrentMapId(newMapId))
+	// Put in new instance:
 	player.connectedInstance = inst
 	err = db.SetLastOutpostForChar(player.dbChar.ID, uint16(newMapId))
 	if err != nil {

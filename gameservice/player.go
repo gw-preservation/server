@@ -69,8 +69,39 @@ func (p *Player) SendChatColorTest() {
 	}
 }
 
+func (p *Player) SendWelcomeChatMessage() {
+	p.EnqueuePacket(MarshalChatMessageFromServer("Welcome to the server!", 5))
+	p.EnqueuePacket(MarshalChatMessageFromServer(fmt.Sprintf("Players online: %d", InstanceManager.NumPlayersOnline()), 5))
+}
+
 func (p *Player) OnC2SVerifyConnection(payload VerifyClientConnection) {
 	// We should validate now, to check the request is valid
+	// First check token:
+	instanceTagIsFor, ok := ValidateConnectionToken(uint32(payload.securityTag))
+	if !ok {
+		p.log.Error().Str("characterUUID", db.UUIDStr(payload.characterUUID[:])).Msg("invalid securityTag")
+		p.Disconnect()
+		return
+	}
+
+	inst, err := InstanceManager.GetOrCreateInstanceByMapId(payload.mapId)
+	if inst == nil || err != nil {
+		p.log.Error().Err(err).Msg("unable to create instance")
+		p.Disconnect()
+		return
+	}
+
+	if payload.instanceTag != int(instanceTagIsFor) {
+		p.log.Error().Str("characterUUID", db.UUIDStr(payload.characterUUID[:])).Msg("instanceTag does not match expected value")
+		p.Disconnect()
+		return
+	}
+
+	if instanceTagIsFor != inst.GetTag() {
+		p.log.Error().Str("characterUUID", db.UUIDStr(payload.characterUUID[:])).Msg("instance no longer has instanceTag specified by token")
+		p.Disconnect()
+		return
+	}
 	verified := false
 	acc, ok := db.GetFullAccountByUUID(payload.accountUUID[:])
 	if !ok {
@@ -112,16 +143,9 @@ func (p *Player) OnC2SVerifyConnection(payload VerifyClientConnection) {
 	// TODO: Here we should verify the map is adjacent to the LastOutpostID if its explorable!
 
 	// Hook client up to an instance
-	inst, err := InstanceManager.GetOrCreateInstanceByMapId(payload.mapId)
-	if inst == nil || err != nil {
-		// something went wrong - decline connection
-		p.log.Error().Err(err).Msg("unable to create instance")
-		p.Disconnect()
-		return
-	}
 	p.connectedInstance = inst
 
-	p.log.Debug().Int("mapId", payload.mapId).Msg("VerifyClientConnection")
+	p.log.Debug().Str("instanceTag", fmt.Sprintf("%08x", payload.instanceTag)).Str("securityTag", fmt.Sprintf("%08x", payload.securityTag)).Int("mapId", payload.mapId).Int("unk3", payload.unk3).Int("unk4", payload.unk4).Int("unk5", payload.unk5).Int("unk6", payload.unk6).Msg("VerifyClientConnection")
 }
 
 func (p *Player) OnUserDisconnected() {
@@ -517,7 +541,7 @@ func (p *Player) OnC2SChatMessage(payload ChatMessage) {
 		command := words[0]
 		// check whether it is an emote command
 		if emote, exists := GetEmoteByCommand(command); exists {
-			p.connectedInstance.BroadcastGeneric(p, MarshalEmote(p.playerId, p.agentId, emote))
+			p.connectedInstance.BroadcastGeneric(MarshalEmote(p.playerId, p.agentId, emote))
 			return
 		}
 		// not an emote, check for other commands

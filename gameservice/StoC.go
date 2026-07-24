@@ -535,11 +535,11 @@ type MessageOfTheDay struct {
 // opcode: 0x01a4
 type TransferGameServerInfo struct {
 	socketData   []byte // len:24
-	worldId      int    //wire:uint32
+	instanceTag  int    //wire:uint32
 	region       int    //wire:uint8
 	mapId        int    //wire:uint16
 	isExplorable bool
-	playerId     int //wire:uint32
+	securityTag  int //wire:uint32
 }
 
 // opcode: 0x001ac

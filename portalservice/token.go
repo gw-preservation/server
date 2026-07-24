@@ -2,7 +2,6 @@ package PortalService
 
 import (
 	"crypto/rand"
-	"fmt"
 	"gw1/server/db"
 )
 
@@ -22,10 +21,11 @@ func generateConnectionToken(accountId uint64) (token string) {
 }
 
 func ValidateConnectionToken(token string) (accountId uint64, ok bool) {
-	fmt.Printf("len = %d", len(activeTokens))
 	accountId, ok = activeTokens[token]
 	if ok {
 		delete(activeTokens, token)
 	}
 	return
 }
+
+// TODO: GC

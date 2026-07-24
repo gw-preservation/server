@@ -152,7 +152,6 @@ func (conn *GSConn) onClientPingRequest(payload *ClientPingRequest) error {
 }
 
 func (conn *GSConn) onVerifyClientConnection(payload *VerifyClientConnection) error {
-	fmt.Printf("onVerifyClientConnection\n")
 	conn.player.OnC2SVerifyConnection(*payload)
 	return nil
 }

@@ -29,9 +29,9 @@ type VerifyClientConnection struct {
 	clientVersion int    //wire:uint32
 	unk3          int    //wire:uint16
 	unk4          int    //wire:uint32
-	worldHash     int    //wire:uint32
+	instanceTag   int    //wire:uint32
 	mapId         int    //wire:uint32
-	playerHash    int    //wire:uint32
+	securityTag   int    //wire:uint32
 	accountUUID   []byte //len:16
 	characterUUID []byte //len:16
 	unk5          int    //wire:uint32

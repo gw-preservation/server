@@ -620,17 +620,17 @@ func MarshalMessageOfTheDay(motd string) (resp GwPacket.Out) {
 	return
 }
 
-func MarshalTransferGameServerInfo(socketData []byte, worldId int, region int, mapId int, isExplorable bool, playerId int) (resp GwPacket.Out) {
+func MarshalTransferGameServerInfo(socketData []byte, instanceTag int, region int, mapId int, isExplorable bool, securityTag int) (resp GwPacket.Out) {
 	resp = GwPacket.NewOut(0x1a4)
 	if len(socketData) != 24 {
 		panic(fmt.Errorf("length check failed for field 'socketData' of struct 'TransferGameServerInfo': %d vs %d", len(socketData), 24))
 	}
 	resp.Bytes(socketData)
-	resp.Uint32(worldId)
+	resp.Uint32(instanceTag)
 	resp.Uint8(region)
 	resp.Uint16(mapId)
 	resp.Bool(isExplorable)
-	resp.Uint32(playerId)
+	resp.Uint32(securityTag)
 	return
 }
 

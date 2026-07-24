@@ -80,9 +80,9 @@ func UnmarshalVerifyClientConnection(in *GwPacket.In) (resp VerifyClientConnecti
 		err = fmt.Errorf("read unk4: %w", err)
 		return
 	}
-	resp.worldHash, err = in.Uint32()
+	resp.instanceTag, err = in.Uint32()
 	if err != nil {
-		err = fmt.Errorf("read worldHash: %w", err)
+		err = fmt.Errorf("read instanceTag: %w", err)
 		return
 	}
 	resp.mapId, err = in.Uint32()
@@ -90,9 +90,9 @@ func UnmarshalVerifyClientConnection(in *GwPacket.In) (resp VerifyClientConnecti
 		err = fmt.Errorf("read mapId: %w", err)
 		return
 	}
-	resp.playerHash, err = in.Uint32()
+	resp.securityTag, err = in.Uint32()
 	if err != nil {
-		err = fmt.Errorf("read playerHash: %w", err)
+		err = fmt.Errorf("read securityTag: %w", err)
 		return
 	}
 	resp.accountUUID, err = in.Bytes(16)
