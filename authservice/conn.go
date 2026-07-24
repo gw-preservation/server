@@ -21,21 +21,23 @@ const (
 )
 
 type ASConn struct {
-	socket *net.TCPConn
-	state  State
-	enc    *rc4.Cipher
-	dec    *rc4.Cipher
-	out    GwPacket.Out
-	log    zerolog.Logger
-	acc    db.Account
+	socket                 *net.TCPConn
+	state                  State
+	enc                    *rc4.Cipher
+	dec                    *rc4.Cipher
+	out                    GwPacket.Out
+	log                    zerolog.Logger
+	acc                    db.Account
+	hasLoggedInThisSession bool
 }
 
 func NewASConn(socket *net.TCPConn, logCtx zerolog.Logger) *ASConn {
 	conn := ASConn{
-		socket: socket,
-		state:  StateReadClientVersion,
-		log:    logCtx.With().Str("srv", "auth").Logger(),
-		out:    GwPacket.NewOutRaw(),
+		socket:                 socket,
+		state:                  StateReadClientVersion,
+		log:                    logCtx.With().Str("srv", "auth").Logger(),
+		out:                    GwPacket.NewOutRaw(),
+		hasLoggedInThisSession: false,
 	}
 	return &conn
 }

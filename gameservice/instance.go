@@ -622,7 +622,7 @@ func (i *Instance) TransferPlayerToNewMap(player *Player, newMapId int) error {
 
 	// Generate a security token for the transfer
 	instanceTag := inst.GetTag()
-	securityTag := GenerateConnectionTokenForInstance(instanceTag)
+	securityTag := GenerateConnectionTokenForInstance(instanceTag, true)
 
 	// Next, remove player from current instance
 	i.RemovePlayer(player)

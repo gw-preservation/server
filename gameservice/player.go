@@ -22,8 +22,9 @@ type Player struct {
 	readyForAgentTicks bool // TODO: refactor into LoadingState / ReadyState
 	xp                 int
 
-	dbAcc  db.Account
-	dbChar db.Character
+	isTransfer bool
+	dbAcc      db.Account
+	dbChar     db.Character
 }
 
 func NewPlayer(conn *GSConn, logCtx zerolog.Logger) Player {
@@ -31,6 +32,7 @@ func NewPlayer(conn *GSConn, logCtx zerolog.Logger) Player {
 		conn:               conn,
 		questBytes:         make([]byte, 0),
 		readyForAgentTicks: false,
+		isTransfer:         false,
 	}
 	p.allegianceFlags = 0x706c6179
 	p.uuid = rand.Uint64()
@@ -70,14 +72,16 @@ func (p *Player) SendChatColorTest() {
 }
 
 func (p *Player) SendWelcomeChatMessage() {
-	p.EnqueuePacket(MarshalChatMessageFromServer("Welcome to the server!", 5))
-	p.EnqueuePacket(MarshalChatMessageFromServer(fmt.Sprintf("Players online: %d", InstanceManager.NumPlayersOnline()), 5))
+	if !p.isTransfer {
+		p.EnqueuePacket(MarshalChatMessageFromServer("Welcome to the server!", 5))
+		p.EnqueuePacket(MarshalChatMessageFromServer(fmt.Sprintf("Players online: %d", InstanceManager.NumPlayersOnline()), 5))
+	}
 }
 
 func (p *Player) OnC2SVerifyConnection(payload VerifyClientConnection) {
 	// We should validate now, to check the request is valid
 	// First check token:
-	instanceTagIsFor, ok := ValidateConnectionToken(uint32(payload.securityTag))
+	info, ok := ValidateConnectionToken(uint32(payload.securityTag))
 	if !ok {
 		p.log.Error().Str("characterUUID", db.UUIDStr(payload.characterUUID[:])).Msg("invalid securityTag")
 		p.Disconnect()
@@ -91,17 +95,18 @@ func (p *Player) OnC2SVerifyConnection(payload VerifyClientConnection) {
 		return
 	}
 
-	if payload.instanceTag != int(instanceTagIsFor) {
+	if payload.instanceTag != int(info.InstanceTag) {
 		p.log.Error().Str("characterUUID", db.UUIDStr(payload.characterUUID[:])).Msg("instanceTag does not match expected value")
 		p.Disconnect()
 		return
 	}
 
-	if instanceTagIsFor != inst.GetTag() {
+	if info.InstanceTag != inst.GetTag() {
 		p.log.Error().Str("characterUUID", db.UUIDStr(payload.characterUUID[:])).Msg("instance no longer has instanceTag specified by token")
 		p.Disconnect()
 		return
 	}
+	p.isTransfer = info.IsTransfer
 	verified := false
 	acc, ok := db.GetFullAccountByUUID(payload.accountUUID[:])
 	if !ok {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"gw1/server/crypt"
 	"gw1/server/db"
+	GameService "gw1/server/gameservice"
 	GwPacket "gw1/server/gwpacket"
 	PortalService "gw1/server/portalservice"
 )
@@ -206,10 +207,6 @@ func (conn *ASConn) onLoginCharacter(payload *LoginCharacter) error {
 	//if conn.state != StateCharacterScreen {
 	//	return 0, fmt.Errorf("LoginCharacter: bad client state %v", conn.state)
 	//}
-	// For creating a new character, we get this:
-	// 2:11PM INF LoginCharacter mapId=0 srv=auth unk2=11 unk4=0 unk5=4 unk6=0
-	// For logging an existing character, we get this:
-	// 2:12PM INF LoginCharacter mapId=165 srv=auth unk2=3 unk4=0 unk5=4 unk6=0
 	conn.log.Debug().
 		Int("unk2", payload.unk1).
 		Int("mapId", payload.mapId).
@@ -225,16 +222,21 @@ func (conn *ASConn) onLoginCharacter(payload *LoginCharacter) error {
 	} else {
 		conn.state = StateInInstance
 	}
-	worldId := 0x10101010
-	playerId := 0xbebafeca
-	conn.EnqueuePacket(MarshalInstanceServerInfo(payload.reqNumber, worldId, payload.mapId, []byte{
+	inst, err := GameService.InstanceManager.GetOrCreateInstanceByMapId(payload.mapId)
+	if err != nil {
+		conn.log.Error().Err(err).Msg("unable to create instance")
+	}
+	instanceTag := inst.GetTag()
+	securityTag := GameService.GenerateConnectionTokenForInstance(instanceTag, conn.hasLoggedInThisSession)
+	conn.EnqueuePacket(MarshalInstanceServerInfo(payload.reqNumber, int(instanceTag), payload.mapId, []byte{
 		0x02, 0x00, // AF_INET
 		0x17, 0xe0, // Port 6112
 		0xc0, 0xa8, 0x01, 0x7c, // 192.168.1.124
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	}, playerId,
+	}, int(securityTag),
 	))
+	conn.hasLoggedInThisSession = true
 
 	return nil
 }
@@ -271,7 +273,6 @@ func (conn *ASConn) onSetPlayerOnlineVisibilityStatus(payload *SetPlayerOnlineVi
 }
 
 func (conn *ASConn) onUpdateSettingsLength(payload *UpdateSettingsLength) error {
-	conn.log.Debug().Int("unk2", payload.unk2).Msg("UpdateSettingsLength")
 	conn.EnqueuePacket(MarshalRequestResponse(payload.reqNumber, 0))
 	return nil
 }
