@@ -492,3 +492,51 @@ func UnmarshalMapTravelToOutpost(in *GwPacket.In) (resp MapTravelToOutpost, err 
 	}
 	return
 }
+func UnmarshalUnknown0088(in *GwPacket.In) (resp Unknown0088, err error) {
+	if in.Opcode() != 0x88 {
+		err = errors.New("bad opcode")
+		return
+	}
+	resp.unk1, err = in.Uint8()
+	if err != nil {
+		err = fmt.Errorf("read unk1: %w", err)
+		return
+	}
+	resp.unk2, err = in.Uint8()
+	if err != nil {
+		err = fmt.Errorf("read unk2: %w", err)
+		return
+	}
+	return
+}
+func UnmarshalUnknown007f(in *GwPacket.In) (resp Unknown007f, err error) {
+	if in.Opcode() != 0x7f {
+		err = errors.New("bad opcode")
+		return
+	}
+	return
+}
+func UnmarshalUnknown0087(in *GwPacket.In) (resp Unknown0087, err error) {
+	if in.Opcode() != 0x87 {
+		err = errors.New("bad opcode")
+		return
+	}
+	return
+}
+func UnmarshalUnknown0089(in *GwPacket.In) (resp Unknown0089, err error) {
+	if in.Opcode() != 0x89 {
+		err = errors.New("bad opcode")
+		return
+	}
+	unkLen, err := in.Uint16()
+	if err != nil {
+		err = fmt.Errorf("read unk.len: %w", err)
+		return
+	}
+	resp.unk, err = in.Bytes(unkLen)
+	if err != nil {
+		err = fmt.Errorf("read unk: %w", err)
+		return
+	}
+	return
+}

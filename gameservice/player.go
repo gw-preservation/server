@@ -153,7 +153,7 @@ func (p *Player) OnC2SDyeEquipment(payload DyeEquipment) {
 func (p *Player) sendInstanceLoadSpawnPoint() {
 	p.log.Debug().Msg("InstanceLoadRequestSpawnPoint")
 	inst := *p.connectedInstance
-	p.EnqueuePacket(MarshalInstanceLoadSpawnPoint(inst.definition.MapFileId, p.posX, p.posY, p.plane, false, []byte{0xcd, 0x49, 0x03, 0xcc, 0x17, 0xa7, 0xdb, 0x01}))
+	p.EnqueuePacket(MarshalInstanceLoadSpawnPoint(inst.definition.MapFileId, p.posX, p.posY, p.plane, false))
 }
 
 func (p *Player) sendInstanceLoadRequestPlayers(payload InstanceLoadRequestPlayers) {

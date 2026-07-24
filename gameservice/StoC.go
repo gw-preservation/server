@@ -65,6 +65,7 @@ type CharCreationError struct {
 	errorCode int //wire:uint32
 }
 
+// maybe 0x0011
 // opcode: 0x0098
 type UpdateCurrentMapId struct {
 	mapId int //wire:uint16
@@ -113,7 +114,7 @@ type AgentUpdateNPCModel struct {
 	modelId int //wire:uint32
 }
 
-// opcode: 0x0020
+// opcode: 0x0015
 type AgentSpawned struct {
 	agentId         int //wire:uint32
 	agentType       int //wire:uint32
@@ -150,7 +151,7 @@ type AgentDespawned struct {
 	agentId int // wire:uint32
 }
 
-// opcode: 0x0194
+// opcode: 0x0180
 type InstanceLoadSpawnPoint struct {
 	mapFileId   int //wire:uint32
 	posX        float32
@@ -158,22 +159,21 @@ type InstanceLoadSpawnPoint struct {
 	plane       int //wire:uint16
 	unk1        int //wire:uint8,val:58
 	isCinematic bool
-	unk2        []byte //len:8
 }
 
-// opcode: 0x0196
+// opcode: 0x0182
 type InstanceManifestDone struct {
 	unk1 int //wire:uint8
 	unk2 int //wire:uint16
 	unk3 int //wire:uint32
 }
 
-// opcode: 0x0195
+// opcode: 0x0181
 type InstanceManifestData struct {
 	data VarByte
 }
 
-// opcode: 0x0197
+// opcode: 0x0183
 type InstanceManifestPhase struct {
 	phase int //wire:uint8
 }
@@ -194,7 +194,7 @@ type HeroInfo struct {
 	unk7 int //wire:uint32,val:0
 }
 
-// opcode: 0x0198
+// opcode: 0x0184
 type InstanceLoadInfo struct {
 	playerId     int //wire:uint32
 	mapId        int //wire:uint16
@@ -204,7 +204,7 @@ type InstanceLoadInfo struct {
 	isObserver   bool
 }
 
-// opcode: 0x017c
+// opcode: 0x016c
 type InstanceLoadPlayerName struct {
 	name string
 }
@@ -266,6 +266,7 @@ type QuestsInfo struct {
 	data VarByte
 }
 
+// 00f1 could be 006f in old, or 0070, or 00df
 // opcode: 0x00f1
 type InstanceLoaded struct {
 	unk1 int //wire:uint32,val:1886151033
@@ -276,7 +277,7 @@ type VanquishProgress struct {
 	progress int //wire:uint16
 }
 
-// opcode: 0x0058
+// opcode: 0x004d
 type AgentCreatePlayer struct {
 	playerId       int //wire:uint32
 	agentId        int //wire:uint32
@@ -299,7 +300,7 @@ type AgentDisplayCape struct {
 	isShown bool
 }
 
-// opcode: 0x0022
+// opcode: 0x0017
 type AgentSetPlayer struct {
 	agentId int //wire:uint32
 	unk1    int //wire:uint32,val:3
@@ -341,7 +342,7 @@ type PartyPlayerAdd struct {
 	isClientLoaded int //wire:uint8,val:1
 }
 
-// opcode: 0x018d
+// opcode: 0x0179
 type InstanceLoadFinish struct {
 }
 
@@ -477,7 +478,7 @@ type PlayerUpdateProfession struct {
 	unk1                  int //wire:uint8,val:0
 }
 
-// opcode: 0x017b
+// opcode: 0x016b
 type InstanceLoadHead struct {
 	campaign int //wire:uint8,val:2
 	unk1     int //wire:uint8,val:0

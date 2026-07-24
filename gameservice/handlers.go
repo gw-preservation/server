@@ -44,15 +44,69 @@ var packetHandlers = map[int]packetHandler{
 	0x805f: wrap(UnmarshalUpdateProfessionChoice, (*GSConn).onUpdateProfessionChoice),
 	0x8063: wrap(UnmarshalChatMessage, (*GSConn).onChatMessage),
 	0x8083: wrap(UnmarshalDyeEquipment, (*GSConn).onDyeEquipment),
-	0x8087: wrap(UnmarshalInstanceLoadRequestSpawnPoint, (*GSConn).onInstanceLoadRequestSpawnPoint),
+	0x8087: wrap(UnmarshalInstanceLoadRequestSpawnPoint, (*GSConn).onInstanceLoadRequestSpawnPoint), // <--
 	0x8088: wrap(UnmarshalCreateCharRequestPlayer, (*GSConn).onCreateCharRequestPlayer),
-	0x8089: wrap(UnmarshalInstanceLoadRequestStart, (*GSConn).onInstanceLoadRequestStart),
+	0x8089: wrap(UnmarshalInstanceLoadRequestStart, (*GSConn).onInstanceLoadRequestStart), // <--
 	0x808a: wrap(UnmarshalCreateCharacterFinish, (*GSConn).onCreateCharacterFinish),
-	0x808f: wrap(UnmarshalInstanceLoadRequestPlayers, (*GSConn).onInstanceLoadRequestPlayers),
+	0x808f: wrap(UnmarshalInstanceLoadRequestPlayers, (*GSConn).onInstanceLoadRequestPlayers), // <--
 	0x8090: wrap(UnmarshalUnknown8090, (*GSConn).on8090),
 	0x8091: wrap(UnmarshalUnknown8091, (*GSConn).on8091),
 	0x80c0: wrap(UnmarshalUpdateTarget, (*GSConn).onUpdateTarget),
 	0x80b0: wrap(UnmarshalMapTravelToOutpost, (*GSConn).onMapTravelToOutpost),
+	0x0088: wrap(UnmarshalUnknown0088, (*GSConn).on0088),
+	0x007f: wrap(UnmarshalUnknown007f, (*GSConn).on007f),
+	0x0087: wrap(UnmarshalUnknown0087, (*GSConn).on0087),
+	0x0089: wrap(UnmarshalUnknown0089, (*GSConn).on0089),
+}
+
+func (conn *GSConn) on007f(payload *Unknown007f) error {
+	conn.log.Info().Msg("007f")
+	conn.player.sendInstanceLoadSpawnPoint()
+	return nil
+}
+func (conn *GSConn) on0087(payload *Unknown0087) error {
+	conn.log.Info().Msg("0087")
+	return nil
+}
+func (conn *GSConn) on0088(payload *Unknown0088) error {
+	conn.log.Info().Msg("0088")
+	// need to fill in as per player->sendInstanceLoadRequestPlayers()
+
+	conn.EnqueuePacket(MarshalInstanceLoadFinish())
+	return nil
+}
+
+func (conn *GSConn) on0089(payload *Unknown0089) error {
+	conn.log.Info().Int("size", len(payload.unk)).Msg("0089")
+	conn.EnqueuePacket(MarshalAgentCreatePlayer(conn.player.playerId, conn.player.agentId, int(conn.player.dbChar.AppearanceBits), conn.player.name))
+
+	// GAME_SMSG_AGENT_SPAWNED - player
+	agentType := 0x30000000
+	agentType |= conn.player.playerId
+	allegianceFlags := 0x706c6179
+	plane := 0
+	facingX := float32(0)
+	facingY := float32(0)
+	speed := float32(288) // 1x speed
+	conn.EnqueuePacket(MarshalAgentSpawned(
+		conn.player.agentId,
+		agentType,
+		1,
+		5,
+		conn.player.posX,
+		conn.player.posY,
+		plane,
+		facingX,
+		facingY,
+		speed,
+		allegianceFlags,
+	))
+	conn.EnqueuePacket(MarshalAgentSetPlayer(conn.player.agentId))
+	conn.EnqueuePacket(MarshalInstanceLoadFinish())
+
+	/*conn.EnqueuePacket(MarshalInstanceLoadSpawnPoint(conn.player.connectedInstance.definition.MapFileId, conn.player.posX, conn.player.posY, conn.player.plane, false))
+	 */
+	return nil
 }
 
 func (conn *GSConn) onCreateCharRequestPlayer(payload *CreateCharRequestPlayer) error {

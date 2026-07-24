@@ -34,9 +34,9 @@ func (conn *FSConn) onInitialData(in *GwPacket.In) (int, error) {
 		return 0, nil
 	}
 	in.Skip(14)
-	latestExeFileId := 0x5d2d0
+	latestExeFileId := 0x1006
 
-	latestDatFileId := 0x5cb62
+	latestDatFileId := 0x546cb
 	resp := GwPacket.NewOut(0x02f1)
 	resp.Uint16(32)
 	// Lines

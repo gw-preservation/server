@@ -89,6 +89,15 @@ func GetAccountByEmail(email string) (acc Account, ok bool) {
 	return
 }
 
+func GetFullAccountByEmail(email string) (acc Account, ok bool) {
+	err := database.Preload("Characters").First(&acc, "email = ?", email).Error
+	if err != nil {
+		ok = false
+	}
+	ok = true
+	return
+}
+
 func GetFullAccountByID(accountId uint64) (acc Account, ok bool) {
 	err := database.Preload("Characters").First(&acc, "ID = ?", accountId).Error
 	if err != nil {

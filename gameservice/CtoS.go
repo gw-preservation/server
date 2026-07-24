@@ -167,3 +167,22 @@ type MapTravelToOutpost struct {
 	language int //wire:uint8
 	unk1     int //wire:uint8
 }
+
+// opcode: 0x0088
+type Unknown0088 struct {
+	unk1 int //wire:uint8
+	unk2 int //wire:uint8
+}
+
+// opcode: 0x007f
+type Unknown007f struct {
+}
+
+// opcode: 0x0087
+type Unknown0087 struct {
+}
+
+// opcode: 0x0089
+type Unknown0089 struct {
+	unk VarByte
+}

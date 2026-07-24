@@ -26,7 +26,7 @@ type AddAccessKey struct {
 	key       string
 }
 
-// opcode: 0x8002
+// opcode: 0x0002
 type ClientHashInfo struct {
 	clientVersion int    // wire:uint32
 	unkHash       []byte // len:16
@@ -34,24 +34,24 @@ type ClientHashInfo struct {
 
 // opcode: 0x0400
 type ClientVersionInfo struct {
-	skip          int // wire:uint32
+	length        int // wire:uint16
 	clientVersion int // wire:uint32
 	unk2          int // wire:uint32
 	unk3          int // wire:uint32
 }
 
-// opcode: 0x8000
+// opcode: 0x0000
 type Unknown8000 struct {
 	unk1 int // wire:uint32
 }
 
-// opcode: 0x8001
+// opcode: 0x0001
 type ComputerInfo struct {
 	userName     string
 	computerName string
 }
 
-// opcode: 0x8023
+// opcode: 0x0023
 type Unknown8023 struct {
 	unk1 int // wire:uint32
 }
@@ -86,7 +86,6 @@ type SetPlayerOnlineVisibilityStatus struct {
 
 // opcode: 0x4200
 type ClientSeed struct {
-	skip      int    // wire:uint16
 	seedBytes []byte // len:64
 }
 
@@ -113,4 +112,39 @@ type Unknown8009 struct {
 	reqNumber int // wire:uint32
 	charName  string
 	unk3      VarByte
+}
+
+// opcode: 0x0004
+type AccountLogin struct {
+	reqNumber    int    // wire:uint32
+	salt         []byte // len:4
+	passwordHash []byte // len:20
+	email        string
+	unk2         int // wire:uint16
+}
+
+// opcode: 0x000f
+type Unknown000f struct {
+	unk1 []byte // wire:VarByte
+	unk2 []byte // len:16
+}
+
+// opcode: 0x0035
+type Unknown0035 struct {
+	reqNumber int // wire:uint32
+}
+
+// opcode: 0x000e
+type Unknown000e struct {
+	unk int // wire:uint32
+}
+
+// opcode: 0x0029
+type Unknown0029 struct {
+	unk1  int // wire:uint32
+	unk2  int // wire:uint32
+	mapId int // wire:uint32
+	unk4  int // wire:uint32
+	unk5  int // wire:uint32
+	unk6  int // wire:uint32
 }

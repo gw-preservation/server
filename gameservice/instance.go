@@ -291,7 +291,7 @@ func (i *Instance) MainLoop() {
 				if player.conn.closed {
 					continue
 				}
-				player.EnqueuePacket(MarshalServerPingRequest(30, 491)) // dont know what these values mean
+				/////player.EnqueuePacket(MarshalServerPingRequest(30, 491)) // dont know what these values mean
 			}
 			i.mu.RUnlock()
 		}
@@ -312,7 +312,7 @@ func (i *Instance) MovementTickLoop() {
 			if player.conn.closed {
 				continue
 			}
-			player.EnqueuePacket(MarshalAgentMovementTick(500))
+			/////player.EnqueuePacket(MarshalAgentMovementTick(500))
 		}
 		i.mu.RUnlock()
 	}
@@ -399,17 +399,18 @@ func (i *Instance) AddPlayer(player *Player) {
 	}
 	player.EnqueuePacket(MarshalInstanceLoadHead())
 	if i.IsCharCreationInstance() {
+		i.log.Info().Msg("IN CHAR CREATION INSTANCE")
 		player.EnqueuePacket(MarshalCharCreationStart())
 		player.conn.sendCreateCharacterInstanceInfo()
 	} else {
 		player.posX, player.posY, player.plane = i.NextSpawnPoint()
 		player.conn.sendWorldInstanceHead()
-		player.conn.sendWorldInstanceBody()
-		player.EnqueuePacket(MarshalUpdateCurrentMapId(i.mapId))
-		player.EnqueuePacket(MarshalReadyForMapSpawn())
+		//player.conn.sendWorldInstanceBody()
+		//player.EnqueuePacket(MarshalUpdateCurrentMapId(i.mapId))
+		//player.EnqueuePacket(MarshalReadyForMapSpawn())
 		player.EnqueuePacket(MarshalInstanceManifestDone(0, i.mapId, 0))
 
-		i.TransmitPlayerToOthers(player)
+		//i.TransmitPlayerToOthers(player)
 	}
 }
 

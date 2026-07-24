@@ -131,7 +131,6 @@ type AccountExtraInfo struct {
 	unk3           int    // wire:uint32
 	entitlements   VarByte
 	eulaByte       int // wire:uint8
-	unk4           int // wire:uint32
 }
 
 // opcode: 0x0016

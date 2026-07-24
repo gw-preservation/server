@@ -36,7 +36,7 @@ func MarshalAccountExtraInfoStart(reqNumber int, unk1 int) (resp GwPacket.Out) {
 	return
 }
 
-func MarshalAccountExtraInfo(reqNumber int, territoryCode int, languageCode int, unk1 []byte, unk2 []byte, accountUUID []byte, activeCharUUID []byte, unk3 int, entitlements VarByte, eulaByte int, unk4 int) (resp GwPacket.Out) {
+func MarshalAccountExtraInfo(reqNumber int, territoryCode int, languageCode int, unk1 []byte, unk2 []byte, accountUUID []byte, activeCharUUID []byte, unk3 int, entitlements VarByte, eulaByte int) (resp GwPacket.Out) {
 	resp = GwPacket.NewOut(0x11)
 	resp.Uint32(reqNumber)
 	resp.Uint32(territoryCode)
@@ -61,7 +61,6 @@ func MarshalAccountExtraInfo(reqNumber int, territoryCode int, languageCode int,
 	resp.Uint16(len(entitlements))
 	resp.Bytes(entitlements)
 	resp.Uint8(eulaByte)
-	resp.Uint32(unk4)
 	return
 }
 

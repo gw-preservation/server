@@ -124,7 +124,7 @@ func MarshalAgentUpdateNPCModel(npcId int, modelId int) (resp GwPacket.Out) {
 }
 
 func MarshalAgentSpawned(agentId int, agentType int, unk1 int, unk2 int, posX float32, posY float32, plane int, facingX float32, facingY float32, speed float32, allegianceFlags int) (resp GwPacket.Out) {
-	resp = GwPacket.NewOut(0x20)
+	resp = GwPacket.NewOut(0x15)
 	resp.Uint32(agentId)
 	resp.Uint32(agentType)
 	resp.Uint8(unk1)
@@ -162,23 +162,19 @@ func MarshalAgentDespawned(agentId int) (resp GwPacket.Out) {
 	return
 }
 
-func MarshalInstanceLoadSpawnPoint(mapFileId int, posX float32, posY float32, plane int, isCinematic bool, unk2 []byte) (resp GwPacket.Out) {
-	resp = GwPacket.NewOut(0x194)
+func MarshalInstanceLoadSpawnPoint(mapFileId int, posX float32, posY float32, plane int, isCinematic bool) (resp GwPacket.Out) {
+	resp = GwPacket.NewOut(0x180)
 	resp.Uint32(mapFileId)
 	resp.Float32(posX)
 	resp.Float32(posY)
 	resp.Uint16(plane)
 	resp.Uint8(58)
 	resp.Bool(isCinematic)
-	if len(unk2) != 8 {
-		panic(fmt.Errorf("length check failed for field 'unk2' of struct 'InstanceLoadSpawnPoint': %d vs %d", len(unk2), 8))
-	}
-	resp.Bytes(unk2)
 	return
 }
 
 func MarshalInstanceManifestDone(unk1 int, unk2 int, unk3 int) (resp GwPacket.Out) {
-	resp = GwPacket.NewOut(0x196)
+	resp = GwPacket.NewOut(0x182)
 	resp.Uint8(unk1)
 	resp.Uint16(unk2)
 	resp.Uint32(unk3)
@@ -186,14 +182,14 @@ func MarshalInstanceManifestDone(unk1 int, unk2 int, unk3 int) (resp GwPacket.Ou
 }
 
 func MarshalInstanceManifestData(data VarByte) (resp GwPacket.Out) {
-	resp = GwPacket.NewOut(0x195)
+	resp = GwPacket.NewOut(0x181)
 	resp.Uint16(len(data))
 	resp.Bytes(data)
 	return
 }
 
 func MarshalInstanceManifestPhase(phase int) (resp GwPacket.Out) {
-	resp = GwPacket.NewOut(0x197)
+	resp = GwPacket.NewOut(0x183)
 	resp.Uint8(phase)
 	return
 }
@@ -217,7 +213,7 @@ func MarshalHeroInfo() (resp GwPacket.Out) {
 }
 
 func MarshalInstanceLoadInfo(playerId int, mapId int, isExplorable bool, district int, languageCode int, isObserver bool) (resp GwPacket.Out) {
-	resp = GwPacket.NewOut(0x198)
+	resp = GwPacket.NewOut(0x184)
 	resp.Uint32(playerId)
 	resp.Uint16(mapId)
 	resp.Bool(isExplorable)
@@ -228,7 +224,7 @@ func MarshalInstanceLoadInfo(playerId int, mapId int, isExplorable bool, distric
 }
 
 func MarshalInstanceLoadPlayerName(name string) (resp GwPacket.Out) {
-	resp = GwPacket.NewOut(0x17c)
+	resp = GwPacket.NewOut(0x16c)
 	resp.UTF16WithLengthPrefix(name)
 	return
 }
@@ -332,7 +328,7 @@ func MarshalVanquishProgress(progress int) (resp GwPacket.Out) {
 }
 
 func MarshalAgentCreatePlayer(playerId int, agentId int, appearanceBits int, name string) (resp GwPacket.Out) {
-	resp = GwPacket.NewOut(0x58)
+	resp = GwPacket.NewOut(0x4d)
 	resp.Uint32(playerId)
 	resp.Uint32(agentId)
 	resp.Uint32(appearanceBits)
@@ -407,7 +403,7 @@ func MarshalPartyPlayerAdd(partyId int, playerId int) (resp GwPacket.Out) {
 }
 
 func MarshalInstanceLoadFinish() (resp GwPacket.Out) {
-	resp = GwPacket.NewOut(0x18d)
+	resp = GwPacket.NewOut(0x179)
 	return
 }
 
@@ -576,7 +572,7 @@ func MarshalPlayerUpdateProfession(agentId int, primaryProfessionId int, seconda
 }
 
 func MarshalInstanceLoadHead() (resp GwPacket.Out) {
-	resp = GwPacket.NewOut(0x17b)
+	resp = GwPacket.NewOut(0x16b)
 	resp.Uint8(2)
 	resp.Uint8(0)
 	resp.Uint8(0)

@@ -81,7 +81,7 @@ func UnmarshalAddAccessKey(in *GwPacket.In) (resp AddAccessKey, err error) {
 	return
 }
 func UnmarshalClientHashInfo(in *GwPacket.In) (resp ClientHashInfo, err error) {
-	if in.Opcode() != 0x8002 {
+	if in.Opcode() != 0x2 {
 		err = errors.New("bad opcode")
 		return
 	}
@@ -102,9 +102,9 @@ func UnmarshalClientVersionInfo(in *GwPacket.In) (resp ClientVersionInfo, err er
 		err = errors.New("bad opcode")
 		return
 	}
-	resp.skip, err = in.Uint32()
+	resp.length, err = in.Uint16()
 	if err != nil {
-		err = fmt.Errorf("read skip: %w", err)
+		err = fmt.Errorf("read length: %w", err)
 		return
 	}
 	resp.clientVersion, err = in.Uint32()
@@ -125,7 +125,7 @@ func UnmarshalClientVersionInfo(in *GwPacket.In) (resp ClientVersionInfo, err er
 	return
 }
 func UnmarshalUnknown8000(in *GwPacket.In) (resp Unknown8000, err error) {
-	if in.Opcode() != 0x8000 {
+	if in.Opcode() != 0x0 {
 		err = errors.New("bad opcode")
 		return
 	}
@@ -137,7 +137,7 @@ func UnmarshalUnknown8000(in *GwPacket.In) (resp Unknown8000, err error) {
 	return
 }
 func UnmarshalComputerInfo(in *GwPacket.In) (resp ComputerInfo, err error) {
-	if in.Opcode() != 0x8001 {
+	if in.Opcode() != 0x1 {
 		err = errors.New("bad opcode")
 		return
 	}
@@ -154,7 +154,7 @@ func UnmarshalComputerInfo(in *GwPacket.In) (resp ComputerInfo, err error) {
 	return
 }
 func UnmarshalUnknown8023(in *GwPacket.In) (resp Unknown8023, err error) {
-	if in.Opcode() != 0x8023 {
+	if in.Opcode() != 0x23 {
 		err = errors.New("bad opcode")
 		return
 	}
@@ -245,11 +245,6 @@ func UnmarshalClientSeed(in *GwPacket.In) (resp ClientSeed, err error) {
 		err = errors.New("bad opcode")
 		return
 	}
-	resp.skip, err = in.Uint16()
-	if err != nil {
-		err = fmt.Errorf("read skip: %w", err)
-		return
-	}
 	resp.seedBytes, err = in.Bytes(64)
 	if err != nil {
 		err = fmt.Errorf("read seedBytes: %w", err)
@@ -336,6 +331,121 @@ func UnmarshalUnknown8009(in *GwPacket.In) (resp Unknown8009, err error) {
 	resp.unk3, err = in.Bytes(unk3Len)
 	if err != nil {
 		err = fmt.Errorf("read unk3: %w", err)
+		return
+	}
+	return
+}
+func UnmarshalAccountLogin(in *GwPacket.In) (resp AccountLogin, err error) {
+	if in.Opcode() != 0x4 {
+		err = errors.New("bad opcode")
+		return
+	}
+	resp.reqNumber, err = in.Uint32()
+	if err != nil {
+		err = fmt.Errorf("read reqNumber: %w", err)
+		return
+	}
+	resp.salt, err = in.Bytes(4)
+	if err != nil {
+		err = fmt.Errorf("read salt: %w", err)
+		return
+	}
+	resp.passwordHash, err = in.Bytes(20)
+	if err != nil {
+		err = fmt.Errorf("read passwordHash: %w", err)
+		return
+	}
+	resp.email, err = in.UTF16WithLengthPrefix()
+	if err != nil {
+		err = fmt.Errorf("read email: %w", err)
+		return
+	}
+	resp.unk2, err = in.Uint16()
+	if err != nil {
+		err = fmt.Errorf("read unk2: %w", err)
+		return
+	}
+	return
+}
+func UnmarshalUnknown000f(in *GwPacket.In) (resp Unknown000f, err error) {
+	if in.Opcode() != 0xf {
+		err = errors.New("bad opcode")
+		return
+	}
+	unk1Len, err := in.Uint16()
+	if err != nil {
+		err = fmt.Errorf("read unk1.len: %w", err)
+		return
+	}
+	resp.unk1, err = in.Bytes(unk1Len)
+	if err != nil {
+		err = fmt.Errorf("read unk1: %w", err)
+		return
+	}
+	resp.unk2, err = in.Bytes(16)
+	if err != nil {
+		err = fmt.Errorf("read unk2: %w", err)
+		return
+	}
+	return
+}
+func UnmarshalUnknown0035(in *GwPacket.In) (resp Unknown0035, err error) {
+	if in.Opcode() != 0x35 {
+		err = errors.New("bad opcode")
+		return
+	}
+	resp.reqNumber, err = in.Uint32()
+	if err != nil {
+		err = fmt.Errorf("read reqNumber: %w", err)
+		return
+	}
+	return
+}
+func UnmarshalUnknown000e(in *GwPacket.In) (resp Unknown000e, err error) {
+	if in.Opcode() != 0xe {
+		err = errors.New("bad opcode")
+		return
+	}
+	resp.unk, err = in.Uint32()
+	if err != nil {
+		err = fmt.Errorf("read unk: %w", err)
+		return
+	}
+	return
+}
+func UnmarshalUnknown0029(in *GwPacket.In) (resp Unknown0029, err error) {
+	if in.Opcode() != 0x29 {
+		err = errors.New("bad opcode")
+		return
+	}
+	resp.unk1, err = in.Uint32()
+	if err != nil {
+		err = fmt.Errorf("read unk1: %w", err)
+		return
+	}
+	resp.unk2, err = in.Uint32()
+	if err != nil {
+		err = fmt.Errorf("read unk2: %w", err)
+		return
+	}
+	resp.mapId, err = in.Uint32()
+	if err != nil {
+		err = fmt.Errorf("read mapId: %w", err)
+		return
+	}
+	resp.unk4, err = in.Uint32()
+	if err != nil {
+		err = fmt.Errorf("read unk4: %w", err)
+		return
+	}
+	resp.unk5, err = in.Uint32()
+	if err != nil {
+		err = fmt.Errorf("read unk5: %w", err)
+		return
+	}
+	resp.unk6, err = in.Uint32()
+	if err != nil {
+		err = fmt.Errorf("read unk6: %w", err)
 		return
 	}
 	return

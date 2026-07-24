@@ -56,14 +56,7 @@ func (conn *ASConn) EncryptBytes(data []byte) {
 
 func (conn *ASConn) HandleBytes(data []byte) (int, error) {
 	inPkt := GwPacket.NewIn(data)
-	switch conn.state {
-	case StateReadClientVersion:
-		return conn.onClientVersion(&inPkt)
-	case StateReadClientSeed:
-		return conn.onClientSeed(&inPkt)
-	default:
-		return conn.onRegularPacket(&inPkt)
-	}
+	return conn.onRegularPacket(&inPkt)
 }
 
 func (conn *ASConn) onRegularPacket(in *GwPacket.In) (consumed int, err error) {

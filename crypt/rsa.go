@@ -1,7 +1,6 @@
 package crypt
 
 import (
-	"crypto/rand"
 	"encoding/binary"
 	"math/big"
 )
@@ -83,7 +82,96 @@ func byteSwap(data []byte) []byte {
 	return reversed
 }
 
-func KeyDerivation(data [20]byte) [20]byte {
+func KeyDerivationOld(data [20]byte) [20]byte {
+	var first, second, third, fourth, fifth uint32
+	first = binary.LittleEndian.Uint32(data[0:4])
+	second = binary.LittleEndian.Uint32(data[4:8])
+	third = binary.LittleEndian.Uint32(data[8:12])
+	fourth = binary.LittleEndian.Uint32(data[12:16])
+	fifth = binary.LittleEndian.Uint32(data[16:20])
+	var eax, ebx, ecx, edx, edi, esi, arg1 uint32
+	eax = 0
+	ebx = 0
+	ecx = 0
+	edx = 0
+	edi = 0
+	esi = 0
+	eax = 0
+	arg1 = 0
+
+	ecx = first                  // MOV ECX,DWORD PTR SS:[LOCAL.6]
+	eax = 0x67452301             // MOV EAX,67452301
+	eax = rol(eax, 5)            // rol EAX,5
+	edi = second                 // MOV EDI,DWORD PTR SS:[LOCAL.5]
+	esi = ecx + eax + 0xB7103887 // LEA ESI,[ECX+EAX+B7103887]
+	eax = 0xEFCDAB89             // MOV EAX,EFCDAB89
+	eax = rol(eax, 0x1E)         // rol EAX,1E
+	edx = esi                    // MOV EDX,ESI
+	ecx = eax                    // MOV ECX,EAX
+	edx = rol(edx, 5)            // rol EDX,5
+	ecx &= 0x67452301            // AND ECX,67452301
+	edi += edx                   // ADD EDI,EDX
+	ecx ^= 0x98BADCFE            // XOR ECX,98BADCFE
+	edx = 0x67452301             // MOV EDX,67452301
+	edx = rol(edx, 0x1E)         // rol EDX,1E
+	edi = edi + ecx + 0x6AB4CE0F // LEA EDI,[EDI+ECX+nvd3dum.6AB4CE0F]
+	ebx = eax                    // MOV EBX,EAX
+	ecx = edi                    // MOV ECX,EDI
+	ebx ^= edx                   // XOR EBX,EDX
+	ecx = rol(ecx, 5)            // rol ECX,5
+	ecx += third                 // ADD ECX,DWORD PTR SS:[LOCAL.4]
+	ebx &= esi                   // AND EBX,ESI
+	ebx ^= eax                   // XOR EBX,EAX
+	arg1 = edi                   // MOV DWORD PTR SS:[ARG.1],EDI
+	esi = rol(esi, 0x1E)         // rol ESI,1E
+	ecx = ecx + ebx + 0xF33D5697 // LEA ECX,[ECX+EBX+F33D5697]
+	ebx = edx                    // MOV EBX,EDX
+	ebx = rol(ebx, 5)            // rol EBX,5
+	ebx += fourth                // ADD EBX,DWORD PTR SS:[LOCAL.3]
+	edi ^= ecx                   // XOR EDI,ECX
+	edi ^= eax                   // XOR EDI,EAX
+	ebx += esi                   // ADD EBX,ESI
+	eax = rol(eax, 0x1E)         // rol EAX,1E
+	esi = ebx + edi + 0x6ED9EBA1 // LEA ESI,[EBX+EDI+6ED9EBA1]
+	ebx = first                  // MOV EBX,DWORD PTR SS:[LOCAL.6]
+	edi = edx                    // MOV EDI,EDX
+	edi = rol(edi, 0x1E)         // rol EDI,1E
+	ebx += edi                   // ADD EBX,EDI
+	edi = third                  // MOV EDI,DWORD PTR SS:[LOCAL.4]
+	first = ebx                  // MOV DWORD PTR SS:[LOCAL.6],EBX
+	ebx = second                 // MOV EBX,DWORD PTR SS:[LOCAL.5]
+	edi += ecx                   // ADD EDI,ECX
+	ebx += eax                   // ADD EBX,EAX
+	third = edi                  // MOV DWORD PTR SS:[LOCAL.4],EDI
+	ecx ^= eax                   // XOR ECX,EAX
+	eax = fifth                  // MOV EAX,DWORD PTR SS:[LOCAL.2]
+	edi = esi                    // MOV EDI,ESI
+	ecx ^= edx                   // XOR ECX,EDX
+	edx = eax                    // MOV EDX,EAX
+	edi = rol(edi, 5)            // rol EDI,5
+	edx += edi                   // ADD EDX,EDI
+	eax += esi                   // ADD EAX,ESI
+	ecx += edx                   // ADD ECX,EDX
+	edx = arg1                   // MOV EDX,DWORD PTR SS:[ARG.1]
+	ecx += edx                   // ADD ECX,EDX
+	edx = fourth                 // MOV EDX,DWORD PTR SS:[LOCAL.3]
+	fifth = eax                  // MOV DWORD PTR SS:[LOCAL.2],EAX
+	// eax = fifth//MOV EAX,DWORD PTR SS:[LOCAL.1]
+	ecx = ecx + edx + 0x6ED9EBA1 // LEA ECX,[ECX+EDX+6ED9EBA1]
+	edx ^= edx                   // XOR EDX,EDX
+	fourth = ecx                 // MOV DWORD PTR SS:[LOCAL.3],ECX
+	second = ebx                 // MOV DWORD PTR SS:[LOCAL.5],EBX
+
+	out := make([]byte, 20)
+	binary.LittleEndian.PutUint32(out[0:4], first)
+	binary.LittleEndian.PutUint32(out[4:8], second)
+	binary.LittleEndian.PutUint32(out[8:12], third)
+	binary.LittleEndian.PutUint32(out[12:16], fourth)
+	binary.LittleEndian.PutUint32(out[16:20], fifth)
+	return [20]byte(out)
+}
+
+func KeyDerivationNew(data [20]byte) [20]byte {
 	var first, second, third, fourth, fifth uint32
 	first = binary.LittleEndian.Uint32(data[0:4])
 	second = binary.LittleEndian.Uint32(data[4:8])
@@ -203,7 +291,7 @@ func GenerateEncryptionKeyWithRandomBytes(clientBytes [64]byte, randomBytes [20]
 	secretKeyByteSwapped := byteSwap(secretKey)
 
 	// Now we gotta do the hash thing on top of those bytes
-	rc4Key := KeyDerivation(randomBytes)
+	rc4Key := KeyDerivationOld(randomBytes)
 	xored := make([]byte, len(randomBytes))
 	for i := range len(xored) {
 		xored[i] = randomBytes[i] ^ secretKeyByteSwapped[i]
@@ -212,7 +300,7 @@ func GenerateEncryptionKeyWithRandomBytes(clientBytes [64]byte, randomBytes [20]
 }
 
 func GenerateEncryptionKey(clientBytes [64]byte) ([20]byte, [20]byte) {
-	var randomBytes [20]byte
-	rand.Read(randomBytes[:])
-	return GenerateEncryptionKeyWithRandomBytes(clientBytes, randomBytes)
+	//var randomBytes [20]byte
+	//rand.Read(randomBytes[:])
+	return GenerateEncryptionKeyWithRandomBytes(clientBytes, [20]byte(staticSeed))
 }
