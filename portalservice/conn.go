@@ -61,7 +61,7 @@ func (conn *PSConn) HandleBytes(data []byte) (int, error) {
 		}
 		return 0, err
 	}
-	conn.log.Debug().Str("action", msg.Header.Action).Str("resource", msg.Header.Resource).Msg("")
+	//conn.log.Debug().Str("action", msg.Header.Action).Str("resource", msg.Header.Resource).Msg("")
 	hdr := msg.Header
 	if hdr.Action == "P" {
 		switch conn.state {

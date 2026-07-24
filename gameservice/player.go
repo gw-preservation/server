@@ -517,7 +517,7 @@ func (p *Player) OnC2SChatMessage(payload ChatMessage) {
 		command := words[0]
 		// check whether it is an emote command
 		if emote, exists := GetEmoteByCommand(command); exists {
-			p.connectedInstance.BroadcastGeneric(p, MarshalEmote(p.agentId, emote))
+			p.connectedInstance.BroadcastGeneric(p, MarshalEmote(p.playerId, p.agentId, emote))
 			return
 		}
 		// not an emote, check for other commands

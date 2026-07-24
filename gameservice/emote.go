@@ -83,13 +83,13 @@ func GetEmoteByCommand(entry string) (EmoteDefinition, bool) {
 	return def, exists
 }
 
-func MarshalEmote(forAgentId int, emote EmoteDefinition) GwPacket.Out {
+func MarshalEmote(forPlayerId int, forAgentId int, emote EmoteDefinition) GwPacket.Out {
 	// First, we send a chat message so the emote appears in the chat log.
 	resp := GwPacket.NewOut(0x5c)
 	resp.Uint16(3)
 	resp.Uint16(emote.datStringId)
 	resp.Uint16(0x10d)
-	resp.Uint16(0x100 | forAgentId)
+	resp.Uint16(0x100 | forPlayerId)
 	resp.Merge(MarshalChatMessageServer(6))
 
 	// Next, we send the emote itself, which is a series of attribute updates.

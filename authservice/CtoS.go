@@ -109,7 +109,7 @@ type DeleteCharacter struct {
 }
 
 // opcode: 0x8009
-type Unknown8009 struct {
+type SetCharacterName struct {
 	reqNumber int // wire:uint32
 	charName  string
 	unk3      VarByte

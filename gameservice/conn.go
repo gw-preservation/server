@@ -166,7 +166,7 @@ func (conn *GSConn) HandleBytes(data []byte) (consumed int, err error) {
 
 	in := GwPacket.NewIn(data)
 	op, _ := in.Uint16()
-	conn.log.Debug().Str("opcode", fmt.Sprintf("%04x", op)).Msg("recv")
+	//conn.log.Debug().Str("opcode", fmt.Sprintf("%04x", op)).Msg("recv")
 
 	if handler, ok := packetHandlers[op]; ok {
 		consumed, err = handler(conn, &in)

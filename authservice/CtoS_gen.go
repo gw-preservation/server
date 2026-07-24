@@ -313,7 +313,7 @@ func UnmarshalDeleteCharacter(in *GwPacket.In) (resp DeleteCharacter, err error)
 	}
 	return
 }
-func UnmarshalUnknown8009(in *GwPacket.In) (resp Unknown8009, err error) {
+func UnmarshalSetCharacterName(in *GwPacket.In) (resp SetCharacterName, err error) {
 	if in.Opcode() != 0x8009 {
 		err = errors.New("bad opcode")
 		return
