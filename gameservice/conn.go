@@ -100,20 +100,20 @@ func (conn *GSConn) sendWorldInstanceBody() {
 		if bag.Type == uint8(1) {
 			// Inventory
 			// Send the bag item itself now:
-			backpack := Item.GetItemDefinitionById(32)
+			backpack := Item.GetItemDefinitionById(Item.ItemBackpack)
 			conn.EnqueuePacket(MarshalItemGeneralInfo(
 				1,
-				int(backpack.ModelFileId),
+				int(backpack.ModelFileId()),
 				3,
 				1,
 				0,
 				0,
 				0,
 				0x20001000,
-				backpack.BaseMerchantValue,
+				backpack.MerchValue(),
 				32,
 				1,
-				convertEncName(backpack.EncName),
+				convertEncName(backpack.EncName()),
 				backpack.MarshalModifiers(),
 			))
 			conn.EnqueuePacket(MarshalItemUpdateName(1, conn.player.name))
@@ -130,20 +130,20 @@ func (conn *GSConn) sendWorldInstanceBody() {
 			if slot.ItemID == 0 || slot.ItemQuantity == 0 {
 				continue
 			}
-			item := Item.GetItemDefinitionById(int(slot.ItemID))
+			item := Item.GetItemDefinitionById(Item.ItemId(slot.ItemID))
 			conn.EnqueuePacket(MarshalItemGeneralInfo(
 				2+slotIndex,
-				int(item.ModelFileId),
+				int(item.ModelFileId()),
 				int(slot.ItemType),
 				0,
 				8,
 				0,
 				0,
 				item.ComputeInteractionFlags(),
-				item.BaseMerchantValue,
+				item.MerchValue(),
 				int(slot.ItemID),
 				1,
-				convertEncName(item.EncName),
+				convertEncName(item.EncName()),
 				item.MarshalModifiers(),
 			))
 			conn.EnqueuePacket(MarshalItemMovedToLocation(1, 2+slotIndex, bagIndex, slotIndex))
