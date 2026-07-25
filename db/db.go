@@ -148,11 +148,17 @@ func AddDbChar(forAccountId uint64, name string, primaryProfession int, appearan
 	// give some test items
 	inventory.Slots[0] = Slot{
 		BagID:        inventory.ID,
-		ItemID:       447,
-		ItemType:     3,
+		ItemID:       729,
+		ItemType:     26,
 		ItemQuantity: 1,
 	}
 	inventory.Slots[1] = Slot{
+		BagID:        inventory.ID,
+		ItemID:       728,
+		ItemType:     26,
+		ItemQuantity: 1,
+	}
+	inventory.Slots[2] = Slot{
 		BagID:        inventory.ID,
 		ItemID:       30847,
 		ItemType:     9,

@@ -139,7 +139,7 @@ func (conn *GSConn) sendWorldInstanceBody() {
 				8,
 				0,
 				0,
-				0x22201000,
+				item.ComputeInteractionFlags(),
 				item.BaseMerchantValue,
 				int(slot.ItemID),
 				1,

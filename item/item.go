@@ -21,7 +21,23 @@ type dbItem struct {
 	ModelFileId       HexInt          `json:"model_file_id"`
 	BaseMerchantValue int             `json:"merchant_value"`
 	InherentModifiers []dbModifierRef `json:"inherent_modifiers"`
+	Rarity            string          `json:"rarity"`
 }
+
+// DamageType modifier:
+// 1=Piercing
+// 2=Slashing
+// 3=Cold
+// 4=Lightning
+// 5=Fire
+// 6=Chaos
+// 7=Dark
+// 8=Holy
+// 9=Nature
+// 10=Sacrifice
+// 11=Earth
+// 12=Generic
+// 13=Dark
 
 func (i dbItem) MarshalModifiers() (out []uint32) {
 	for _, mod := range i.InherentModifiers {
@@ -84,4 +100,22 @@ func GetItemDefinitionById(fileId int) (item *dbItem) {
 		panic(fmt.Sprintf("GetItemDefinitionById(%d): no definition!", fileId))
 	}
 	return
+}
+
+func (i *dbItem) ComputeInteractionFlags() int {
+	flags := 0x22201000
+	flags |= i.GetRarityFlag()
+	return flags
+}
+
+func (i *dbItem) GetRarityFlag() int {
+	switch i.Rarity {
+	case "purple":
+		return 0x400000
+	case "green":
+		return 0x10
+	case "gold":
+		return 0x20000
+	}
+	return 0
 }
