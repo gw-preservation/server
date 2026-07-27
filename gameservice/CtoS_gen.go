@@ -151,9 +151,9 @@ func UnmarshalUpdateProfessionChoice(in *GwPacket.In) (resp UpdateProfessionChoi
 		err = errors.New("bad opcode")
 		return
 	}
-	resp.isPvE, err = in.Bool()
+	resp.unk1, err = in.Uint8()
 	if err != nil {
-		err = fmt.Errorf("read isPvE: %w", err)
+		err = fmt.Errorf("read unk1: %w", err)
 		return
 	}
 	resp.professionId, err = in.Uint8()
@@ -429,7 +429,7 @@ func UnmarshalCreateCharRequestPlayer(in *GwPacket.In) (resp CreateCharRequestPl
 	}
 	return
 }
-func UnmarshalInstanceLoadRequestStart(in *GwPacket.In) (resp InstanceLoadRequestStart, err error) {
+func UnmarshalCreateCharRequestArmors(in *GwPacket.In) (resp CreateCharRequestArmors, err error) {
 	if in.Opcode() != 0x8089 {
 		err = errors.New("bad opcode")
 		return
@@ -488,6 +488,30 @@ func UnmarshalMapTravelToOutpost(in *GwPacket.In) (resp MapTravelToOutpost, err 
 	resp.unk1, err = in.Uint8()
 	if err != nil {
 		err = fmt.Errorf("read unk1: %w", err)
+		return
+	}
+	return
+}
+func UnmarshalEquipItem(in *GwPacket.In) (resp EquipItem, err error) {
+	if in.Opcode() != 0x802f {
+		err = errors.New("bad opcode")
+		return
+	}
+	resp.itemLocalId, err = in.Uint32()
+	if err != nil {
+		err = fmt.Errorf("read itemLocalId: %w", err)
+		return
+	}
+	return
+}
+func UnmarshalDestroyItem(in *GwPacket.In) (resp DestroyItem, err error) {
+	if in.Opcode() != 0x8068 {
+		err = errors.New("bad opcode")
+		return
+	}
+	resp.itemLocalId, err = in.Uint32()
+	if err != nil {
+		err = fmt.Errorf("read itemLocalId: %w", err)
 		return
 	}
 	return

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"gw1/server/db"
 	GwPacket "gw1/server/gwpacket"
+	Item "gw1/server/item"
 	"math/rand"
 	"strings"
 
@@ -21,6 +22,7 @@ type Player struct {
 	log                zerolog.Logger
 	readyForAgentTicks bool // TODO: refactor into LoadingState / ReadyState
 	xp                 int
+	itemMgr            ItemMgr
 
 	isTransfer bool
 	dbAcc      db.Account
@@ -34,11 +36,71 @@ func NewPlayer(conn *GSConn, logCtx zerolog.Logger) Player {
 		readyForAgentTicks: false,
 		isTransfer:         false,
 	}
+	p.itemMgr = NewItemMgr(&p)
 	p.allegianceFlags = 0x706c6179
 	p.uuid = rand.Uint64()
 	p.log = logCtx.With().Uint64("uuid", p.uuid).Logger()
 	p.isPlayer = true
 	return p
+}
+
+func (p *Player) syncFromDB(char db.Character) {
+	p.dbChar = char
+	p.name = char.Name
+	p.primaryProfession = int(char.ProfessionPrimary)
+	p.secondaryProfession = int(char.ProfessionSecondary)
+	p.level = int(char.Level)
+	p.xp = int(char.XP)
+}
+
+func (p *Player) syncItemsFromDB(bags []db.Bag) {
+	p.bags = bags
+	// first assign localId to each bag
+	// then go through each bag and assign localId
+	for _, bag := range bags {
+		p.itemMgr.AddBag(int(bag.Capacity), int(bag.Type))
+	}
+	x := 0
+	for _, bag := range bags {
+		for slotIndex, slot := range bag.Slots {
+			if slot.ItemID == 0 {
+				continue
+			}
+			item := Item.GetItemDefinitionById(Item.ItemId(slot.ItemID))
+			p.itemMgr.AddItemToSlot(x, slotIndex, item, Item.ItemId(slot.ItemID))
+		}
+		x++
+	}
+}
+
+func (p *Player) TryEquipItem(itemLocalId int) {
+	itm, ok := p.itemMgr.GetItemByLocalId(itemLocalId)
+	if !ok {
+		p.log.Warn().Int("itemLocalId", itemLocalId).Msg("Player attempted to equip an item that does not exist")
+		return
+	}
+	p.log.Info().Str("name", itm.Name()).Msg("Try Equip")
+	equipSlot := itm.GetEquipSlot()
+	equipVisualSlot := itm.GetVisualEquipSlot()
+	if equipSlot == Item.EquipSlotUnknown || equipVisualSlot == Item.EquipVisualSlotUnknown {
+		p.log.Warn().Int("itemLocalId", itemLocalId).Msg("Player attempted to equip an item that cannot be equipped")
+		return
+	}
+	err := p.itemMgr.MoveItemByLocalId(itemLocalId, 1, int(equipSlot))
+	if err != nil {
+		p.log.Warn().Int("itemLocalId", itemLocalId).Err(err).Msg("Unable to remove item by local id")
+		return
+	}
+	p.EnqueuePacket(MarshalAgentUpdateVisualEquipment2(p.agentId, int(equipVisualSlot), itemLocalId))
+}
+
+func (p *Player) TransmitItems() {
+	dbBags, ok := db.GetBagsForCharacterByID(p.dbChar.ID)
+	if !ok {
+		p.log.Error().Uint64("id", p.dbChar.ID).Msg("failed to get bags for character")
+		return
+	}
+	p.syncItemsFromDB(dbBags)
 }
 
 func (p *Player) EnqueuePacket(out GwPacket.Out) {
@@ -121,7 +183,7 @@ func (p *Player) OnC2SVerifyConnection(payload VerifyClientConnection) {
 		// Check character UUID exists:
 		for _, char := range acc.Characters {
 			if bytes.Equal(char.UUID, payload.characterUUID[:]) {
-				p.dbChar = char
+				p.syncFromDB(char)
 				verified = true
 				break
 			}
@@ -131,18 +193,6 @@ func (p *Player) OnC2SVerifyConnection(payload VerifyClientConnection) {
 			p.Disconnect()
 			return
 		}
-		// Merge from DB data:
-		p.name = p.dbChar.Name
-		p.primaryProfession = int(p.dbChar.ProfessionPrimary)
-		p.secondaryProfession = int(p.dbChar.ProfessionSecondary)
-		p.level = int(p.dbChar.Level)
-		p.xp = int(p.dbChar.XP)
-		// Bags
-		bags, ok := db.GetBagsForCharacterByID(p.dbChar.ID)
-		if !ok {
-			p.log.Error().Uint64("id", p.dbChar.ID).Msg("failed to get bags for character")
-		}
-		p.bags = bags
 	}
 
 	// TODO: Here we should verify the map is adjacent to the LastOutpostID if its explorable!
@@ -160,23 +210,113 @@ func (p *Player) OnUserDisconnected() {
 func (p *Player) OnC2SUpdateProfessionChoice(payload UpdateProfessionChoice) {
 	p.log.Debug().
 		Int("profession", payload.professionId).
-		Bool("isPvE", payload.isPvE).
+		Int("unk1", payload.unk1).
 		Msg("UpdateProfessionChoice")
+	if payload.professionId == p.primaryProfession {
+		return
+	}
+	// TODO: validate we're actually in char creation instance!
+	// TODO: validate profession id
+	p.primaryProfession = payload.professionId
+	// Marshal 1: delete equipped items
+	// Remove items in equipped slots
+	numEquipSlots := p.itemMgr.GetNumSlotsInBag(1)
+	for slotIndex := range numEquipSlots {
+		p.itemMgr.RemoveItemInSlot(1, slotIndex)
+	}
+	// Marshal 2: new appearance base?
+	p.EnqueuePacket(MarshalPlayerUpdateProfession(p.agentId, p.primaryProfession, 0))
+	p.EnqueuePacket(MarshalSkillsUnlocked())
+	// Marshal 3: create new equipped items
 
-	p.EnqueuePacket(MarshalPvPItemsEnd())
-	p.EnqueuePacket(MarshalPlayerUpdateProfession(1, payload.professionId, 0))
+	var equips []Item.ItemId
+	switch payload.professionId {
+	case 1:
+		equips = Item.DefaultEquipmentWarrior
+	case 2:
+		equips = Item.DefaultEquipmentRanger
+	case 3:
+		equips = Item.DefaultEquipmentMonk
+	case 4:
+		equips = Item.DefaultEquipmentNecromancer
+	case 5:
+		equips = Item.DefaultEquipmentMesmer
+	case 6:
+		equips = Item.DefaultEquipmentElementalist
+	}
+	for _, itemid := range equips {
+		// Spawn new items in equipped slots
+		itm := Item.GetItemDefinitionById(itemid)
+		itmlid, err := p.itemMgr.AddItemToSlot(0, 0, itm, itemid)
+		err = p.itemMgr.MoveItemByLocalId(itmlid, 1, int(itm.GetEquipSlot()))
+		if err != nil {
+			p.log.Error().Err(err).Msg("unable to add item to slot")
+			return
+		}
+	}
+}
 
-	p.EnqueuePacket(MarshalItemSetProfession(1, payload.professionId))
+func (p *Player) equipTest(profession string) {
+	p.log.Info().Str("profession", profession).Msg("Start equipment test")
 
+	// Remove items in equipped slots
+	numEquipSlots := p.itemMgr.GetNumSlotsInBag(1)
+	for slotIndex := range numEquipSlots {
+		p.itemMgr.RemoveItemInSlot(1, slotIndex)
+	}
+	var equipmentIds []Item.ItemId
+	switch profession {
+	case "warrior":
+		equipmentIds = Item.DefaultEquipmentWarrior
+	case "ranger":
+		equipmentIds = Item.DefaultEquipmentRanger
+	}
+	for _, itemid := range equipmentIds {
+		// Spawn new items in equipped slots
+		itm := Item.GetItemDefinitionById(itemid)
+		itmlid, err := p.itemMgr.AddItemToSlot(1, int(itm.GetEquipSlot()), itm, itemid)
+		if err != nil {
+			p.log.Error().Err(err).Msg("unable to add item to slot")
+			return
+		}
+		p.EnqueuePacket(MarshalAgentUpdateVisualEquipment2(p.agentId, int(itm.GetVisualEquipSlot()), itmlid))
+	}
 }
 
 func (p *Player) OnC2SDyeEquipment(payload DyeEquipment) {
-	//p.log.Info().Int("Prof", p.primaryProfession).Msg("C2SDyeEquipment")
-	//p.EnqueuePacket(MarshalItemSetProfession(1, 5))
-	resp := GwPacket.NewOut(0x15A)
-	resp.Uint32(1)
-	resp.Uint32(1)
-	p.EnqueuePacket(resp)
+
+	lid, err := p.itemMgr.GetLocalIdForSlot(1, payload.slot)
+	if err != nil {
+		p.log.Error().Err(err).Msg("error calling GetLocalIdForSlot")
+		return
+	}
+	if lid == -1 {
+		return
+	}
+	item, ok := p.itemMgr.GetItemByLocalId(lid)
+	if !ok {
+		p.log.Error().Err(err).Msg("error calling GetItemByLocalId")
+		return
+	}
+	p.EnqueuePacket(MarshalItemGeneralInfo(
+		lid,
+		int(item.ModelFileId()),
+		int(item.Type()),
+		7,
+		payload.color,
+		0,
+		0,
+		item.ComputeInteractionFlags(),
+		item.MerchValue(),
+		lid,
+		1,
+		item.EncodeName(),
+		item.MarshalModifiers(),
+	))
+
+	p.EnqueuePacket(MarshalItemSetProfession(lid, p.primaryProfession))
+	p.EnqueuePacket(MarshalUnknownAfterDyeSuccess(lid, lid))
+
 }
 
 func (p *Player) sendInstanceLoadSpawnPoint() {
@@ -266,6 +406,18 @@ func (p *Player) sendInstanceLoadRequestPlayers(payload InstanceLoadRequestPlaye
 	p.EnqueuePacket(MarshalAgentSetPlayer(p.agentId))
 
 	p.EnqueuePacket(MarshalAgentUpdateVisualEquipment(p.agentId))
+
+	for i := range p.itemMgr.GetNumSlotsInBag(1) {
+		lid, err := p.itemMgr.GetLocalIdForSlot(1, i)
+		if err != nil || lid == -1 {
+			continue
+		}
+		item, err := p.itemMgr.GetItemInSlot(1, i)
+		if err != nil {
+			continue
+		}
+		p.EnqueuePacket(MarshalAgentUpdateVisualEquipment2(p.agentId, int(item.GetVisualEquipSlot()), lid))
+	}
 
 	// GAME_SMSG_AGENT_DISPLAY_CAPE
 	p.EnqueuePacket(MarshalAgentDisplayCape(p.agentId, true))
@@ -551,6 +703,12 @@ func (p *Player) OnC2SChatMessage(payload ChatMessage) {
 		}
 		// not an emote, check for other commands
 		switch command {
+		case "e": // equip test
+			if len(words) < 2 {
+				p.SendChatWarning("Usage: /e <profession>")
+				return
+			}
+			p.equipTest(words[1])
 		case "motd":
 			p.EnqueuePacket(MarshalMessageOfTheDay("\u0155"))
 		case "gv":

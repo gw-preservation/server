@@ -40,10 +40,9 @@ type Bag struct {
 }
 
 type Slot struct {
-	ID            uint64 `gorm:"primaryKey"`
-	ItemID        uint32 // Set to 0 for unused slot!
-	BagID         uint64 // Foreign key to Bag
-	ItemType      uint8
+	ID            uint64         `gorm:"primaryKey"`
+	ItemID        uint32         // Set to 0 for unused slot!
+	BagID         uint64         // Foreign key to Bag
 	ItemQuantity  uint32         `gorm:"default:1"` // Just in case!
 	ItemModifiers ModifiersArray `gorm:"type:json"`
 }
@@ -128,9 +127,9 @@ func maybeBootstrap() (err error) {
 		UUID:     randUuid(),
 	}
 	database.Create(&altAccount)
-	primaryProfession = uint8(1)
+	primaryProfession = uint8(2)
 
-	AddDbChar(altAccount.ID, "Alt Char 1", int(primaryProfession), 0x041094e6)
+	AddDbChar(altAccount.ID, "Alt Char 1", int(primaryProfession), 0x042094e6)
 
 	// Make a second alt account
 	altAccount2 := Account{

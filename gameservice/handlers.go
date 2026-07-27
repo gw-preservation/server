@@ -6,6 +6,7 @@ import (
 	"gw1/server/crypt"
 	"gw1/server/db"
 	GwPacket "gw1/server/gwpacket"
+	Item "gw1/server/item"
 )
 
 type packetHandler func(*GSConn, *GwPacket.In) (int, error)
@@ -46,16 +47,29 @@ var packetHandlers = map[int]packetHandler{
 	0x8083: wrap(UnmarshalDyeEquipment, (*GSConn).onDyeEquipment),
 	0x8087: wrap(UnmarshalInstanceLoadRequestSpawnPoint, (*GSConn).onInstanceLoadRequestSpawnPoint),
 	0x8088: wrap(UnmarshalCreateCharRequestPlayer, (*GSConn).onCreateCharRequestPlayer),
-	0x8089: wrap(UnmarshalInstanceLoadRequestStart, (*GSConn).onInstanceLoadRequestStart),
+	0x8089: wrap(UnmarshalCreateCharRequestArmors, (*GSConn).onCreateCharRequestArmors),
 	0x808a: wrap(UnmarshalCreateCharacterFinish, (*GSConn).onCreateCharacterFinish),
 	0x808f: wrap(UnmarshalInstanceLoadRequestPlayers, (*GSConn).onInstanceLoadRequestPlayers),
 	0x8090: wrap(UnmarshalUnknown8090, (*GSConn).on8090),
 	0x8091: wrap(UnmarshalUnknown8091, (*GSConn).on8091),
 	0x80c0: wrap(UnmarshalUpdateTarget, (*GSConn).onUpdateTarget),
 	0x80b0: wrap(UnmarshalMapTravelToOutpost, (*GSConn).onMapTravelToOutpost),
+	0x802f: wrap(UnmarshalEquipItem, (*GSConn).onEquipItem),
+	0x8068: wrap(UnmarshalDestroyItem, (*GSConn).onDestroyItem),
+}
+
+func (conn *GSConn) onEquipItem(payload *EquipItem) error {
+	conn.log.Info().Int("itemLocalId", payload.itemLocalId).Msg("EquipItem")
+	conn.player.TryEquipItem(payload.itemLocalId)
+	return nil
+}
+func (conn *GSConn) onDestroyItem(payload *DestroyItem) error {
+	conn.log.Info().Int("itemLocalId", payload.itemLocalId).Msg("DestroyItem")
+	return conn.player.itemMgr.RemoveItemByLocalId(payload.itemLocalId)
 }
 
 func (conn *GSConn) onCreateCharRequestPlayer(payload *CreateCharRequestPlayer) error {
+	conn.sendCreateCharacterInstanceInfo()
 	return nil
 }
 
@@ -190,8 +204,16 @@ func (conn *GSConn) onClientDisconnect(payload *ClientDisconnect) error {
 	return nil
 }
 
-func (conn *GSConn) onInstanceLoadRequestStart(payload *InstanceLoadRequestStart) error {
-	conn.log.Debug().Msg("InstanceLoadRequestStart")
+func (conn *GSConn) onCreateCharRequestArmors(payload *CreateCharRequestArmors) error {
+	conn.log.Debug().Msg("CreateCharRequestArmors")
+
+	for _, itemid := range Item.DefaultEquipmentWarrior {
+		// Spawn new items in equipped slots
+		itm := Item.GetItemDefinitionById(itemid)
+		itmlid, _ := conn.player.itemMgr.AddItemToSlot(0, 0, itm, itemid)
+		slot := int(itm.GetEquipSlot())
+		conn.player.itemMgr.MoveItemByLocalId(itmlid, 1, slot)
+	}
 	return nil
 }
 

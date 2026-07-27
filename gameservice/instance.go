@@ -111,7 +111,7 @@ func LoadInstanceDefinitionsFromDisk() error {
 
 		nSpawnPoints := len(definition.SpawnPoints)
 		if nSpawnPoints == 0 {
-			log.Error().Int("mapId", mapId).Msg("map definition has no spawn points")
+			//log.Error().Int("mapId", mapId).Msg("map definition has no spawn points")
 		}
 
 		inst := NewInstance(mapId, definition)
@@ -203,6 +203,9 @@ func (im *instanceManager) AddInstance(instance *Instance) {
 	im.mu.Lock()
 	im.instances[instance.uuid] = instance
 	im.mu.Unlock()
+	if instance.mapId == 0 {
+		return
+	}
 	go instance.MainLoop()
 	go instance.MovementTickLoop()
 }
@@ -448,7 +451,6 @@ func (i *Instance) AddPlayer(player *Player) {
 	player.EnqueuePacket(MarshalInstanceLoadHead())
 	if i.IsCharCreationInstance() {
 		player.EnqueuePacket(MarshalCharCreationStart())
-		player.conn.sendCreateCharacterInstanceInfo()
 	} else {
 		player.posX, player.posY, player.plane = i.NextSpawnPoint()
 		player.conn.sendWorldInstanceHead()
@@ -586,19 +588,6 @@ func (i *Instance) BroadcastLocalChat(from *Player, message string) {
 	packet := MarshalChatMessageCore(message)
 	packet.Merge(MarshalChatMessageLocal(from.playerId, 3))
 	i.BroadcastGeneric(packet)
-
-	// TODO: if nobody else in zone, send "No one hears you..."
-	/*
-		// No one hears you:
-		unk := GwPacket.NewOut(0x5C)
-		unk.Uint16(1)
-		unk.Uint16(0x087b)
-		packet.Merge(unk)
-		unk2 := GwPacket.NewOut(0x5D)
-		unk2.Uint16(1)
-		unk2.Uint8(13)
-		packet.Merge(MarshalChatMessageServer(13))
-	*/
 }
 
 func (i *Instance) GetTag() uint32 {

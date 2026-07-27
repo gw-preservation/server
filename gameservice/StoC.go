@@ -93,6 +93,13 @@ type AgentUpdateVisualEquipment struct {
 	unk9    int //wire:uint32,val:0
 }
 
+// opcode: 0x006e
+type AgentUpdateVisualEquipment2 struct {
+	agentId     int // wire:uint32
+	visualSlot  int // wire:uint32
+	itemLocalId int // wire:uint32
+}
+
 // opcode: 0x0055
 type AgentUpdateNPCProperties struct {
 	agentId           int //wire:uint32
@@ -369,18 +376,26 @@ type ItemMovedToLocation struct {
 	slot         int //wire:uint8
 }
 
+// opcode: 0x014a
+type ItemChangeLocation struct {
+	itemStreamId int //wire:uint16
+	itemLocalId  int //wire:uint32
+	bagId        int //wire:uint16
+	slot         int //wire:uint8
+}
+
 // opcode: 0x0147
 type ActivateWeaponSet struct {
-	weaponSetId int //wire:uint16
-	unk1        int //wire:uint8,val:0
+	itemStreamId int //wire:uint16
+	weaponSetId  int //wire:uint8,val:0
 }
 
 // opcode: 0x0146
 type ItemWeaponSet struct {
-	unk1        int //wire:uint16,val:1
-	weaponSetId int //wire:uint8
-	unk2        int //wire:uint32,val:0
-	unk3        int //wire:uint32,val:0
+	itemStreamId int //wire:uint16
+	weaponSetId  int //wire:uint8
+	unk2         int //wire:uint32,val:0
+	unk3         int //wire:uint32,val:0
 }
 
 // opcode: 0x013e
@@ -564,4 +579,16 @@ type Unknown01ac struct {
 type JumboMessage struct {
 	typ   int // wire:uint8
 	value int // wire:uint32
+}
+
+// opcode: 0x014c
+type RemoveItem struct {
+	itemStreamId int // wire:uint16
+	itemLocalId  int // wire:uint32
+}
+
+// opcode: 0x015a
+type UnknownAfterDyeSuccess struct {
+	itemLocalId1       int //wire:uint32
+	itemLocalId1Repeat int //wire:uint32
 }

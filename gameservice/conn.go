@@ -4,7 +4,6 @@ import (
 	"crypto/rc4"
 	"fmt"
 	GwPacket "gw1/server/gwpacket"
-	Item "gw1/server/item"
 	"net"
 	"time"
 
@@ -31,7 +30,7 @@ func NewGSConn(socket *net.TCPConn, logCtx zerolog.Logger) *GSConn {
 	conn.player = NewPlayer(&conn, logCtx)
 	go func() {
 		for !conn.closed {
-			time.Sleep(time.Millisecond * 20)
+			time.Sleep(time.Millisecond * 50)
 			if len(conn.out.GetBytes()) > 0 {
 				conn.WritePacket(&conn.out)
 				conn.out.Reset()
@@ -50,32 +49,15 @@ func (conn *GSConn) DecryptBytes(data []byte) {
 func (conn *GSConn) sendCreateCharacterInstanceInfo() {
 	conn.log.Debug().Msg("sendCreateCharacterInstanceInfo")
 	conn.EnqueuePacket(MarshalInstancePlayerDataStart())
-	itemStreamId := 1
-	conn.EnqueuePacket(MarshalItemStreamCreate(itemStreamId))
+	conn.EnqueuePacket(MarshalItemStreamCreate(1))
 
 	// Need at least one item so that the response to Dye change requests is accepted without crash
-
-	conn.EnqueuePacket(MarshalItemGeneralInfo(
-		1,
-		2147595574,
-		3,
-		1,
-		0,
-		0,
-		0,
-		536875008,
-		5,
-		32,
-		1,
-		[]byte{0xa8, 0x21, 0x57, 0xd1, 0x8f, 0xb5, 0x6f, 0x16},
-		[]uint32{608703488},
-	))
+	conn.player.itemMgr.AddBag(20, 1) // backpack
+	conn.player.itemMgr.AddBag(9, 2)  // equipments
 
 	conn.EnqueuePacket(MarshalAgentUpdateAttributePoints(conn.player.agentId, 0, 0))
-
-	conn.EnqueuePacket(MarshalPlayerUpdateProfession(conn.player.agentId, 5, conn.player.secondaryProfession))
-
-	conn.EnqueuePacket(MarshalAgentAttrUpdateInt(conn.player.agentId, 64, 0))
+	conn.EnqueuePacket(MarshalPlayerUpdateProfession(conn.player.agentId, 1, 0))
+	conn.EnqueuePacket(MarshalAgentAttrUpdateInt(64, conn.player.agentId, 0))
 
 	conn.EnqueuePacket(MarshalInstancePlayerDataDone())
 }
@@ -89,72 +71,17 @@ func (conn *GSConn) sendWorldInstanceHead() {
 }
 
 func (conn *GSConn) sendWorldInstanceBody() {
-	resp := MarshalItemStreamCreate(1)
+	itemStreamId := 1
+	resp := MarshalItemStreamCreate(itemStreamId)
 	conn.EnqueuePacket(resp)
 
-	conn.EnqueuePacket(MarshalActivateWeaponSet(1))
+	conn.EnqueuePacket(MarshalActivateWeaponSet(itemStreamId))
 
-	// Send bags:
-	for bagIndex, bag := range conn.player.bags {
-		// 1. Create bag
-		if bag.Type == uint8(1) {
-			// Inventory
-			// Send the bag item itself now:
-			backpack := Item.GetItemDefinitionById(Item.ItemBackpack)
-			conn.EnqueuePacket(MarshalItemGeneralInfo(
-				1,
-				int(backpack.ModelFileId()),
-				3,
-				1,
-				0,
-				0,
-				0,
-				0x20001000,
-				backpack.MerchValue(),
-				32,
-				1,
-				convertEncName(backpack.EncName()),
-				backpack.MarshalModifiers(),
-			))
-			conn.EnqueuePacket(MarshalItemUpdateName(1, conn.player.name))
-			conn.EnqueuePacket(MarshalInventoryCreateBag(1, int(bag.Type), 0, bagIndex, int(bag.Capacity), 1))
+	conn.player.TransmitItems()
 
-		} else if bag.Type == uint8(2) {
-			// Equipped
-			conn.EnqueuePacket(MarshalItemUpdateName(1, conn.player.name))
-			conn.EnqueuePacket(MarshalInventoryCreateBag(1, int(bag.Type), 21, bagIndex, int(bag.Capacity), 0))
-		}
-
-		// 2. Tell client about each item in that bag (GeneralInfo+Moved)
-		for slotIndex, slot := range bag.Slots {
-			if slot.ItemID == 0 || slot.ItemQuantity == 0 {
-				continue
-			}
-			item := Item.GetItemDefinitionById(Item.ItemId(slot.ItemID))
-			conn.EnqueuePacket(MarshalItemGeneralInfo(
-				2+slotIndex,
-				int(item.ModelFileId()),
-				int(slot.ItemType),
-				0,
-				8,
-				0,
-				0,
-				item.ComputeInteractionFlags(),
-				item.MerchValue(),
-				int(slot.ItemID),
-				1,
-				convertEncName(item.EncName()),
-				item.MarshalModifiers(),
-			))
-			conn.EnqueuePacket(MarshalItemMovedToLocation(1, 2+slotIndex, bagIndex, slotIndex))
-
-			conn.log.Debug().Msg("Transmitting item in slot!")
-		}
-	}
-
-	conn.EnqueuePacket(MarshalItemWeaponSet(1))
-	conn.EnqueuePacket(MarshalItemWeaponSet(2))
-	conn.EnqueuePacket(MarshalItemWeaponSet(3))
+	conn.EnqueuePacket(MarshalItemWeaponSet(itemStreamId, 1))
+	conn.EnqueuePacket(MarshalItemWeaponSet(itemStreamId, 2))
+	conn.EnqueuePacket(MarshalItemWeaponSet(itemStreamId, 3))
 
 	conn.EnqueuePacket(MarshalHeroInfo())
 }
@@ -175,10 +102,10 @@ func (conn *GSConn) HandleBytes(data []byte) (consumed int, err error) {
 		conn.log.Warn().Str("op", fmt.Sprintf("%04x", op)).Hex("data", data).Msg("unhandled packet")
 	}
 
-	if len(conn.out.GetBytes()) > 0 {
+	/*if len(conn.out.GetBytes()) > 0 {
 		conn.WritePacket(&conn.out)
 		conn.out.Reset()
-	}
+	}*/
 
 	if err != nil {
 		err = fmt.Errorf("HandleBytes(op=%04x): %w", op, err)

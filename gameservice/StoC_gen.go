@@ -100,6 +100,14 @@ func MarshalAgentUpdateVisualEquipment(agentId int) (resp GwPacket.Out) {
 	return
 }
 
+func MarshalAgentUpdateVisualEquipment2(agentId int, visualSlot int, itemLocalId int) (resp GwPacket.Out) {
+	resp = GwPacket.NewOut(0x6e)
+	resp.Uint32(agentId)
+	resp.Uint32(visualSlot)
+	resp.Uint32(itemLocalId)
+	return
+}
+
 func MarshalAgentUpdateNPCProperties(agentId int, fileId int, primaryProfession int, level int, unk3 VarUTF16) (resp GwPacket.Out) {
 	resp = GwPacket.NewOut(0x55)
 	resp.Uint32(agentId)
@@ -439,16 +447,25 @@ func MarshalItemMovedToLocation(itemStreamId int, itemLocalId int, bagId int, sl
 	return
 }
 
-func MarshalActivateWeaponSet(weaponSetId int) (resp GwPacket.Out) {
+func MarshalItemChangeLocation(itemStreamId int, itemLocalId int, bagId int, slot int) (resp GwPacket.Out) {
+	resp = GwPacket.NewOut(0x14a)
+	resp.Uint16(itemStreamId)
+	resp.Uint32(itemLocalId)
+	resp.Uint16(bagId)
+	resp.Uint8(slot)
+	return
+}
+
+func MarshalActivateWeaponSet(itemStreamId int) (resp GwPacket.Out) {
 	resp = GwPacket.NewOut(0x147)
-	resp.Uint16(weaponSetId)
+	resp.Uint16(itemStreamId)
 	resp.Uint8(0)
 	return
 }
 
-func MarshalItemWeaponSet(weaponSetId int) (resp GwPacket.Out) {
+func MarshalItemWeaponSet(itemStreamId int, weaponSetId int) (resp GwPacket.Out) {
 	resp = GwPacket.NewOut(0x146)
-	resp.Uint16(1)
+	resp.Uint16(itemStreamId)
 	resp.Uint8(weaponSetId)
 	resp.Uint32(0)
 	resp.Uint32(0)
@@ -649,5 +666,19 @@ func MarshalJumboMessage(typ int, value int) (resp GwPacket.Out) {
 	resp = GwPacket.NewOut(0x18f)
 	resp.Uint8(typ)
 	resp.Uint32(value)
+	return
+}
+
+func MarshalRemoveItem(itemStreamId int, itemLocalId int) (resp GwPacket.Out) {
+	resp = GwPacket.NewOut(0x14c)
+	resp.Uint16(itemStreamId)
+	resp.Uint32(itemLocalId)
+	return
+}
+
+func MarshalUnknownAfterDyeSuccess(itemLocalId1 int, itemLocalId1Repeat int) (resp GwPacket.Out) {
+	resp = GwPacket.NewOut(0x15a)
+	resp.Uint32(itemLocalId1)
+	resp.Uint32(itemLocalId1Repeat)
 	return
 }

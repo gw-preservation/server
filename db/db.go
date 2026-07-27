@@ -3,6 +3,7 @@ package db
 import (
 	"errors"
 	"fmt"
+	Item "gw1/server/item"
 
 	_ "github.com/glebarez/sqlite" // actual pure Go SQLite driver
 	"github.com/rs/zerolog"
@@ -148,30 +149,50 @@ func AddDbChar(forAccountId uint64, name string, primaryProfession int, appearan
 	// give some test items
 	inventory.Slots[0] = Slot{
 		BagID:        inventory.ID,
-		ItemID:       729,
-		ItemType:     26,
+		ItemID:       uint32(Item.ItemEverlastingGhostlyStaff),
 		ItemQuantity: 1,
 	}
 	inventory.Slots[1] = Slot{
 		BagID:        inventory.ID,
-		ItemID:       729,
-		ItemType:     26,
+		ItemID:       uint32(Item.ItemSummoningStone),
 		ItemQuantity: 1,
 	}
-	inventory.Slots[2] = Slot{
-		BagID:        inventory.ID,
-		ItemID:       30847,
-		ItemType:     9,
-		ItemQuantity: 1,
+	// Test warrior items
+	if primaryProfession == 1 {
+		equipment.Slots[0] = Slot{
+			BagID:        equipment.ID,
+			ItemID:       uint32(Item.ItemEternalBlade),
+			ItemQuantity: 1,
+		}
+		equipment.Slots[1] = Slot{
+			BagID:        equipment.ID,
+			ItemID:       uint32(Item.ItemEternalShield),
+			ItemQuantity: 1,
+		}
 	}
-
-	/*// give costume
-	equipment.Slots[7] = Slot{
-		BagID:        equipment.ID,
-		ItemID:       1085,
-		ItemType:     44,
-		ItemQuantity: 1,
-	}*/
+	var equips []Item.ItemId
+	switch primaryProfession {
+	case 1:
+		equips = Item.DefaultEquipmentWarrior
+	case 2:
+		equips = Item.DefaultEquipmentRanger
+	case 3:
+		equips = Item.DefaultEquipmentMonk
+	case 4:
+		equips = Item.DefaultEquipmentNecromancer
+	case 5:
+		equips = Item.DefaultEquipmentMesmer
+	case 6:
+		equips = Item.DefaultEquipmentElementalist
+	}
+	for _, itemid := range equips {
+		itm := Item.GetItemDefinitionById(itemid)
+		equipment.Slots[itm.GetEquipSlot()] = Slot{
+			BagID:        equipment.ID,
+			ItemID:       uint32(itemid),
+			ItemQuantity: 1,
+		}
+	}
 	database.Create(&char)
 	return
 }

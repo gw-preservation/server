@@ -51,7 +51,7 @@ type DyeEquipment struct {
 
 // opcode: 0x805f
 type UpdateProfessionChoice struct {
-	isPvE        bool
+	unk1         int // wire:uint8
 	professionId int //wire:uint8
 }
 
@@ -146,7 +146,7 @@ type CreateCharRequestPlayer struct {
 }
 
 // opcode: 0x8089
-type InstanceLoadRequestStart struct {
+type CreateCharRequestArmors struct {
 }
 
 // opcode: 0x8008
@@ -166,4 +166,14 @@ type MapTravelToOutpost struct {
 	district int //wire:uint16
 	language int //wire:uint8
 	unk1     int //wire:uint8
+}
+
+// opcode: 0x802f
+type EquipItem struct {
+	itemLocalId int // wire:uint32
+}
+
+// opcode: 0x8068
+type DestroyItem struct {
+	itemLocalId int // wire:uint32
 }
