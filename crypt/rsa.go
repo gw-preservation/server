@@ -96,12 +96,9 @@ func rol(x uint32, n uint) uint32 {
 }
 
 func GenerateEncryptionKeyWithRandomBytes(clientBytes [64]byte, randomBytes [20]byte) ([20]byte, [20]byte) {
-	// Reverse clientBytes in-place on the stack (little-endian → big-endian for SetBytes)
-	var buf [64]byte
-	for i, j := 0, 63; i < 64; i, j = i+1, j-1 {
-		buf[i] = clientBytes[j]
-	}
-	seedBI := new(big.Int).SetBytes(buf[:])
+	// Reverse clientBytes (little-endian → big-endian for SetBytes)
+	buf := byteSwap(clientBytes[:])
+	seedBI := new(big.Int).SetBytes(buf)
 	secretKey := modPow(seedBI, serverPrivateKeyBI, sharedPrimeBI).Bytes()
 
 	// Now we gotta do the hash thing on top of those bytes

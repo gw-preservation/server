@@ -50,6 +50,10 @@ func (c *Conn) Handshake() error {
 }
 
 func (c *Conn) Read(buf []byte) (int, error) {
+	if c.readCipher == nil {
+		return 0, fmt.Errorf("read cipher not active")
+	}
+
 	for len(c.plainBuf) == 0 {
 
 		rec, err := ReadRecord(c.Conn)
@@ -99,6 +103,9 @@ func (c *Conn) Read(buf []byte) (int, error) {
 	return n, nil
 }
 func (c *Conn) Write(buf []byte) (int, error) {
+	if c.writeCipher == nil {
+		return 0, fmt.Errorf("write cipher not active")
+	}
 
 	recData, err := c.writeCipher.Encrypt(
 		recordApplicationData,

@@ -14,7 +14,7 @@ func main() {
 	if err := db.Initialize(); err != nil {
 		panic(err)
 	}
-	if err := GameService.LoadInstanceDefinitionsFromDisk(); err != nil {
+	if err := GameService.InitializeInstances(); err != nil {
 		panic(err)
 	}
 	srv := gw1.NewTCPServer()

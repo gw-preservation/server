@@ -159,7 +159,6 @@ func (conn *GSConn) onMoveToPoint(payload *MoveToPoint) error {
 }
 
 func (conn *GSConn) onRotateAgent(payload *RotateAgent) error {
-	conn.log.Debug().Int("unk1", payload.unk1).Int("unk2", payload.unk2).Msg("RotateAgent")
 	return nil
 }
 

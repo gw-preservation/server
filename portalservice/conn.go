@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"gw1/server/db"
 	"gw1/server/portalservice/srp"
-	Sts "gw1/server/portalservice/sts"
+	"gw1/server/portalservice/sts"
 	"io"
 	"net"
 
@@ -54,7 +54,7 @@ func NewPSConn(socket *net.TCPConn, logCtx zerolog.Logger) *PSConn {
 }
 
 func (conn *PSConn) HandleBytes(data []byte) (int, error) {
-	msg, err := Sts.UnmarshalReqMsg(data)
+	msg, err := sts.UnmarshalReqMsg(data)
 	if err != nil {
 		if errors.Is(err, io.ErrUnexpectedEOF) {
 			return 0, nil
@@ -103,9 +103,12 @@ func lookup(username string) (*srp.SRPUser, error) {
 	return user, nil
 }
 
-func (conn *PSConn) handleStartTls(msg Sts.ReqMsg) error {
-	m := Sts.NewErrorRespMsg(400, msg.Header.Seq, "1001", "2", "1146")
-	err := conn.Write([]byte(m))
+func (conn *PSConn) handleStartTls(msg sts.ReqMsg) error {
+	m, err := sts.NewErrorRespMsg(400, msg.Header.Seq, "1001", "2", "1146")
+	if err != nil {
+		return err
+	}
+	err = conn.Write([]byte(m))
 	if err != nil {
 		return err
 	}
@@ -129,33 +132,48 @@ func (conn *PSConn) handleStartTls(msg Sts.ReqMsg) error {
 	return nil
 }
 
-func (conn *PSConn) handleLoginFinish(msg Sts.ReqMsg) error {
+func (conn *PSConn) handleLoginFinish(msg sts.ReqMsg) error {
 	conn.state = StateSentAccInfo
 	// Send account info
-	accInfo := Sts.NewAccountInfoMsg(200, msg.Header.Seq, db.UUIDStr(conn.acc.UUID), 4, ":Unused.1234", "00010203-0405-0607-0809-0A0B0C0D0E0F", 1)
-	conn.Write([]byte(accInfo))
+	accInfo, err := sts.NewAccountInfoMsg(200, msg.Header.Seq, db.UUIDStr(conn.acc.UUID), 4, ":Unused.1234", "00010203-0405-0607-0809-0A0B0C0D0E0F", 1)
+	if err != nil {
+		return err
+	}
+	conn.Write(accInfo)
 	return nil
 }
 
-func (conn *PSConn) handleListGameAccounts(msg Sts.ReqMsg) error {
-	pl := msg.Payload.(*Sts.PayloadListGameAccounts)
+func (conn *PSConn) handleListGameAccounts(msg sts.ReqMsg) error {
+	pl, ok := msg.Payload.(*sts.PayloadListGameAccounts)
+	if !ok {
+		return fmt.Errorf("unexpected payload type %T", msg.Payload)
+	}
 	if pl.GameCode != gameCodeGuildWars {
 		return fmt.Errorf("unexpected GameCode %s", pl.GameCode)
 	}
 	conn.state = StateSentAccCreationInfo
-	creationInfo := Sts.NewAccountCreationInfoMsg(200, msg.Header.Seq, gameCodeGuildWars, gameCodeGuildWars, "2019-12-02T12:01:02Z")
+	creationInfo, err := sts.NewAccountCreationInfoMsg(200, msg.Header.Seq, gameCodeGuildWars, gameCodeGuildWars, "2019-12-02T12:01:02Z")
+	if err != nil {
+		return err
+	}
 	conn.Write(creationInfo)
 
 	return nil
 }
 
-func (conn *PSConn) handleRequestGameToken(msg Sts.ReqMsg) error {
-	pl := msg.Payload.(*Sts.PayloadRequestGameToken)
+func (conn *PSConn) handleRequestGameToken(msg sts.ReqMsg) error {
+	pl, ok := msg.Payload.(*sts.PayloadRequestGameToken)
+	if !ok {
+		return fmt.Errorf("unexpected payload type %T", msg.Payload)
+	}
 	if pl.GameCode != gameCodeGuildWars {
 		return fmt.Errorf("unexpected GameCode %s", pl.GameCode)
 	}
 	connectionToken := generateConnectionToken(conn.acc.ID)
-	gameToken := Sts.NewGameTokenMsg(200, msg.Header.Seq, connectionToken)
+	gameToken, err := sts.NewGameTokenMsg(200, msg.Header.Seq, connectionToken)
+	if err != nil {
+		return err
+	}
 
 	conn.state = StateSentGameToken
 	conn.Write(gameToken)

@@ -6,7 +6,6 @@ import (
 	"gw1/server/db"
 	GwPacket "gw1/server/gwpacket"
 	"math/rand"
-	"os"
 	"slices"
 	"strconv"
 	"strings"
@@ -54,6 +53,8 @@ type agentSpawnInfo struct {
 
 type instanceDefinition struct {
 	Name        string           `json:"name"`
+	Expansion   string           `json:"expansion"`
+	IsPvp       bool             `json:"is_pvp"`
 	Explorable  bool             `json:"explorable"`
 	MapFileId   HexStr           `json:"map_file_id"`
 	PartySize   int              `json:"party_size,omitempty"`
@@ -73,27 +74,7 @@ type agentDefinition struct {
 	DefinitionIndex    int
 }
 
-var instanceDefinitions = struct {
-	Instances map[int]instanceDefinition `json:"instances"`
-	Agents    map[string]agentDefinition `json:"agents"`
-}{
-	Instances: make(map[int]instanceDefinition, 0),
-	Agents:    make(map[string]agentDefinition, 0),
-}
-
-func LoadInstanceDefinitionsFromDisk() error {
-	file, err := os.Open("data/instance_definitions.json")
-	if err != nil {
-		return fmt.Errorf("failed to load instance definitions file: %w", err)
-	}
-	defer file.Close()
-
-	if err := json.NewDecoder(file).Decode(&instanceDefinitions); err != nil {
-		return fmt.Errorf("failed to parse instance definitions: %w", err)
-	}
-	log.Info().Int("count", len(instanceDefinitions.Instances)).Msg("loaded instance definitions from disk")
-	log.Info().Int("count", len(instanceDefinitions.Agents)).Msg("loaded agent definitions from disk")
-
+func InitializeInstances() error {
 	// Annotate NPC agent definitions with an index
 	index := 0
 	for name := range instanceDefinitions.Agents {

@@ -64,7 +64,15 @@ func (g *SRPGroup) Multiplier() *big.Int {
 func padBigInt(v *big.Int, size int) []byte {
 	out := make([]byte, size)
 
+	if v == nil {
+		return out
+	}
+
 	b := v.Bytes()
+
+	if len(b) > size {
+		b = b[len(b)-size:]
+	}
 
 	copy(out[size-len(b):], b)
 
@@ -140,6 +148,11 @@ func (s *SRPServer) ComputeSharedSecret(A *big.Int) (*big.Int, error) {
 	// Reject A % N == 0
 	aMod := new(big.Int).Mod(new(big.Int).Set(A), s.Group.N)
 	if aMod.Sign() == 0 {
+		return nil, fmt.Errorf("invalid A")
+	}
+
+	// Reject A >= N
+	if A.Cmp(s.Group.N) >= 0 {
 		return nil, fmt.Errorf("invalid A")
 	}
 

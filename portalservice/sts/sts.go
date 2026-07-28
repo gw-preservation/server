@@ -1,9 +1,8 @@
-package Sts
+package sts
 
 import (
+	"bytes"
 	"encoding/xml"
-	"errors"
-	"fmt"
 	"io"
 	"regexp"
 	"strconv"
@@ -12,7 +11,7 @@ import (
 	"github.com/charmbracelet/log"
 )
 
-var logger = log.WithPrefix("Sts")
+var logger = log.WithPrefix("sts")
 
 type errorRespMsgPayload struct {
 	XMLName xml.Name `xml:"Error"`
@@ -21,34 +20,29 @@ type errorRespMsgPayload struct {
 	Line    string   `xml:"line,attr"`
 }
 
-func (msg errorRespMsgPayload) Marshal() string {
-	// Custom logic due to needing a self-closing tag
-	marshal := mustMarshalXML(msg)
-	return strings.Replace(string(marshal), "></Error>", "/>", 1)
-}
-
-func newRespHeader(code, seq int) RespHeader {
-	return RespHeader{
-		Code: code,
-		Seq:  seq,
+func (msg errorRespMsgPayload) Marshal() (string, error) {
+	marshal, err := marshalXML(msg)
+	if err != nil {
+		return "", err
 	}
+	return strings.Replace(string(marshal), "></Error>", "/>", 1), nil
 }
 
-func NewErrorRespMsg(headerCode int, seqNumber int, server string, module string, line string) []byte {
-	header := newRespHeader(headerCode, seqNumber)
+func NewErrorRespMsg(headerCode int, seqNumber int, server string, module string, line string) ([]byte, error) {
+	header := RespHeader{Code: headerCode, Seq: seqNumber}
 	payload := errorRespMsgPayload{
 		Server: server,
 		Module: module,
 		Line:   line,
 	}
-	// Custom logic due to needing a self-closing tag
-	headerStr := header.Marshal()
-	payloadStr := payload.Marshal()
-	headerStr = fmt.Sprintf(headerStr, len(payloadStr)+1) //+1 due to \n at end of message
-	return []byte(headerStr + payloadStr + "\n")
+	payloadStr, err := payload.Marshal()
+	if err != nil {
+		return nil, err
+	}
+	headerStr := header.Marshal(len(payloadStr) + trailingNewlineLen)
+	return []byte(headerStr + payloadStr + "\n"), nil
 }
 
-// Wrapped with <Reply></Reply>
 type accountInfoMsgPayload struct {
 	XMLName       xml.Name `xml:"Reply"`
 	UserId        string
@@ -58,16 +52,17 @@ type accountInfoMsgPayload struct {
 	EmailVerified int
 }
 
-func NewAccountInfoMsg(headerCode int, seqNumber int, userId string, userCenter int, userName string, resumeToken string, emailVerified int) []byte {
-	header := newRespHeader(headerCode, seqNumber)
-	payload := accountInfoMsgPayload{
-		UserId:        userId,
-		UserCenter:    userCenter,
-		UserName:      userName,
-		ResumeToken:   resumeToken,
-		EmailVerified: emailVerified,
-	}
-	return MarshalResp(header, payload)
+func NewAccountInfoMsg(headerCode int, seqNumber int, userId string, userCenter int, userName string, resumeToken string, emailVerified int) ([]byte, error) {
+	return MarshalResp(
+		RespHeader{Code: headerCode, Seq: seqNumber},
+		accountInfoMsgPayload{
+			UserId:        userId,
+			UserCenter:    userCenter,
+			UserName:      userName,
+			ResumeToken:   resumeToken,
+			EmailVerified: emailVerified,
+		},
+	)
 }
 
 type row struct {
@@ -83,17 +78,18 @@ type accountCreationInfoMsgPayload struct {
 	Rows    []row    `xml:"Row"`
 }
 
-func NewAccountCreationInfoMsg(headerCode int, seqNumber int, gameCode string, alias string, created string) []byte {
-	header := newRespHeader(headerCode, seqNumber)
-	payload := accountCreationInfoMsgPayload{
-		Type: "array",
-		Rows: []row{{
-			GameCode: gameCode,
-			Alias:    alias,
-			Created:  created,
-		}},
-	}
-	return MarshalResp(header, payload)
+func NewAccountCreationInfoMsg(headerCode int, seqNumber int, gameCode string, alias string, created string) ([]byte, error) {
+	return MarshalResp(
+		RespHeader{Code: headerCode, Seq: seqNumber},
+		accountCreationInfoMsgPayload{
+			Type: "array",
+			Rows: []row{{
+				GameCode: gameCode,
+				Alias:    alias,
+				Created:  created,
+			}},
+		},
+	)
 }
 
 type gameTokenRespMsgPayload struct {
@@ -101,29 +97,36 @@ type gameTokenRespMsgPayload struct {
 	Token   string
 }
 
-func NewGameTokenMsg(headerCode int, seqNumber int, token string) []byte {
-	header := newRespHeader(headerCode, seqNumber)
-	payload := gameTokenRespMsgPayload{
-		Token: token,
-	}
-	return MarshalResp(header, payload)
-}
-func MarshalResp(header RespHeader, payload any) []byte {
-	payloadStr := mustMarshalXML(payload)
-	headerStr := fmt.Sprintf(header.Marshal(), len(payloadStr)+1)
-	return []byte(headerStr + payloadStr + "\n")
+func NewGameTokenMsg(headerCode int, seqNumber int, token string) ([]byte, error) {
+	return MarshalResp(
+		RespHeader{Code: headerCode, Seq: seqNumber},
+		gameTokenRespMsgPayload{Token: token},
+	)
 }
 
-func mustMarshalXML(thing any) string {
-	data, err := xml.MarshalIndent(thing, "", "\xCA\xFE\xBA\xBE")
+// trailingNewlineLen accounts for the \n appended at the end of every message.
+const trailingNewlineLen = 1
+
+func MarshalResp(header RespHeader, payload any) ([]byte, error) {
+	payloadStr, err := marshalXML(payload)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	return strings.ReplaceAll(string(data), "\xCA\xFE\xBA\xBE", "")
+	headerStr := header.Marshal(len(payloadStr) + trailingNewlineLen)
+	return []byte(headerStr + payloadStr + "\n"), nil
 }
 
-func unmarshalPayload(data []byte, v any) error {
-	return xml.Unmarshal(data, v)
+// indentSentinel is used as the indent parameter for xml.MarshalIndent.
+// MarshalIndent inserts this string before each child element; we then strip
+// it to produce XML with newlines but no indentation, matching the wire format.
+const indentSentinel = "\x00"
+
+func marshalXML(thing any) (string, error) {
+	data, err := xml.MarshalIndent(thing, "", indentSentinel)
+	if err != nil {
+		return "", err
+	}
+	return strings.ReplaceAll(string(data), indentSentinel, ""), nil
 }
 
 type PayloadConnect struct {
@@ -163,17 +166,22 @@ func (h RespHeader) codeString() string {
 	case 200:
 		return "OK"
 	default:
-		return fmt.Sprintf("Unknown(%d)", h.Code)
+		return "Unknown(" + strconv.Itoa(h.Code) + ")"
 	}
 }
 
-func (h RespHeader) Marshal() string {
-	return fmt.Sprintf(
-		"STS/1.0 %d %s\r\ns:%dR\r\nl:%%d\r\n\r\n",
-		h.Code,
-		h.codeString(),
-		h.Seq,
-	)
+func (h RespHeader) Marshal(contentLength int) string {
+	var b strings.Builder
+	b.WriteString("STS/1.0 ")
+	b.WriteString(strconv.Itoa(h.Code))
+	b.WriteByte(' ')
+	b.WriteString(h.codeString())
+	b.WriteString("\r\ns:")
+	b.WriteString(strconv.Itoa(h.Seq))
+	b.WriteString("R\r\nl:")
+	b.WriteString(strconv.Itoa(contentLength))
+	b.WriteString("\r\n\r\n")
+	return b.String()
 }
 
 type ReqMsg struct {
@@ -182,8 +190,8 @@ type ReqMsg struct {
 }
 
 var stsInitialLineRE = regexp.MustCompile(`^([A-Za-z]) (/[^ ]+)`)
-var stsLengthRE = regexp.MustCompile("^l:([0-9]+)")
-var stsSeqRE = regexp.MustCompile("^s:([0-9]+)")
+var stsLengthRE = regexp.MustCompile(`^l:([0-9]+)`)
+var stsSeqRE = regexp.MustCompile(`^s:([0-9]+)`)
 
 func (msg ReqMsg) Length() int {
 	return msg.Header.HeaderLen + msg.Header.PayloadLen
@@ -204,100 +212,87 @@ const (
 	pathRequestToken = "/Auth/RequestGameToken"
 )
 
+var payloadRegistry = map[string]func() any{
+	pathConnect:      func() any { return &PayloadConnect{} },
+	pathLoginFinish:  func() any { return &PayloadLoginFinish{} },
+	pathListAccounts: func() any { return &PayloadListGameAccounts{} },
+	pathRequestToken: func() any { return &PayloadRequestGameToken{} },
+}
+
 func UnmarshalReqMsg(data []byte) (ReqMsg, error) {
 	msg := ReqMsg{}
-	str := string(data)
-	lines := strings.Split(str, "\n")
+
+	headerEnd := bytes.Index(data, []byte("\r\n\r\n"))
+	if headerEnd == -1 {
+		return msg, io.ErrUnexpectedEOF
+	}
+	headerBytes := data[:headerEnd]
+	msg.Header.HeaderLen = headerEnd + 4
+
+	lines := bytes.Split(headerBytes, []byte("\n"))
 	if len(lines) == 0 {
 		return msg, io.ErrUnexpectedEOF
 	}
-	initialLine := lines[0]
-	// Parse initial line (Action+Resource)
-	matches := stsInitialLineRE.FindStringSubmatch(initialLine)
+
+	initialLine := bytes.TrimRight(lines[0], "\r")
+	matches := stsInitialLineRE.FindSubmatch(initialLine)
 	if len(matches) != 3 {
 		return msg, io.ErrUnexpectedEOF
 	}
-	msg.Header.Action = matches[1]
-	msg.Header.Resource = matches[2]
-	// Find the End-Of-Header separator line
-	headerEndLineNumber := -1
-	for i, line := range lines {
-		if line == "\r" {
-			headerEndLineNumber = i
-			break
-		}
+	msg.Header.Action = string(matches[1])
+	msg.Header.Resource = string(matches[2])
+
+	if err := unmarshalReqHeader(lines[1:], &msg.Header); err != nil {
+		return msg, err
 	}
-	if headerEndLineNumber == -1 {
-		logger.Error("lacking End-Of-Header line in Sts message")
+
+	payloadStart := msg.Header.HeaderLen
+	if payloadStart+msg.Header.PayloadLen > len(data) {
 		return msg, io.ErrUnexpectedEOF
 	}
-	err := unmarshalReqHeader(lines[:headerEndLineNumber], &msg.Header)
-	if err != nil {
+
+	factory, ok := payloadRegistry[msg.Header.Resource]
+	if !ok {
+		return msg, nil
+	}
+	payload := factory()
+	if err := xml.Unmarshal(data[payloadStart:payloadStart+msg.Header.PayloadLen], payload); err != nil {
 		return msg, err
 	}
-	payloadStartIndex := strings.Index(str, "\r\n\r\n") + 4
-	msg.Header.HeaderLen = payloadStartIndex
-	remainingBytes := len(data) - payloadStartIndex
-	//logger.Infof("Remaining data: %s", str[payloadStartIndex:])
-	if payloadStartIndex+remainingBytes < len(data) {
-		return msg, io.ErrUnexpectedEOF // Need more data to fit payload
-	}
-	switch msg.Header.Resource {
-	case pathConnect:
-		payload := &PayloadConnect{}
-		err = unmarshalPayload(data[payloadStartIndex:], payload)
-		msg.Payload = payload
-	case pathLoginFinish:
-		payload := &PayloadLoginFinish{}
-		err = unmarshalPayload(data[payloadStartIndex:], payload)
-		msg.Payload = payload
-	case pathListAccounts:
-		payload := &PayloadListGameAccounts{}
-		err = unmarshalPayload(data[payloadStartIndex:], payload)
-		msg.Payload = payload
-	case pathRequestToken:
-		payload := &PayloadRequestGameToken{}
-		err = unmarshalPayload(data[payloadStartIndex:], payload)
-		msg.Payload = payload
-	}
-	if err != nil {
-		return msg, err
-	}
+	msg.Payload = payload
 	return msg, nil
 }
 
-func unmarshalReqHeader(lines []string, header *ReqHeader) error {
-	foundLengthLine := false
-	foundSeqLine := false
+func unmarshalReqHeader(lines [][]byte, header *ReqHeader) error {
+	foundLength := false
+	foundSeq := false
 	for _, ln := range lines {
-		if !foundLengthLine {
-			match := stsLengthRE.FindStringSubmatch(ln)
-			if len(match) == 2 {
-				foundLengthLine = true
-				lenStr := match[1]
-				lenInt, err := strconv.ParseInt(lenStr, 10, 32)
+		if !foundLength {
+			if match := stsLengthRE.FindSubmatch(ln); len(match) == 2 {
+				v, err := strconv.ParseInt(string(match[1]), 10, 32)
 				if err != nil {
-					return fmt.Errorf("bad length number: %s", lenStr)
+					return io.ErrUnexpectedEOF
 				}
-				header.PayloadLen = int(lenInt)
+				header.PayloadLen = int(v)
+				foundLength = true
 			}
 		}
-		if !foundSeqLine {
-			match := stsSeqRE.FindStringSubmatch(ln)
-			if len(match) == 2 {
-				foundSeqLine = true
-				seqStr := match[1]
-				seqInt, err := strconv.ParseInt(seqStr, 10, 32)
+		if !foundSeq {
+			if match := stsSeqRE.FindSubmatch(ln); len(match) == 2 {
+				v, err := strconv.ParseInt(string(match[1]), 10, 32)
 				if err != nil {
-					return fmt.Errorf("bad seq number: %s", seqStr)
+					return io.ErrUnexpectedEOF
 				}
-				header.Seq = int(seqInt)
+				header.Seq = int(v)
+				foundSeq = true
 			}
+		}
+		if foundLength && foundSeq {
+			break
 		}
 	}
-	if !foundLengthLine {
-		// Mandatory
-		return errors.New("missing length line in Sts header")
+	if !foundLength {
+		return io.ErrUnexpectedEOF
 	}
 	return nil
 }
