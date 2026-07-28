@@ -1,12 +1,14 @@
 package GameService
 
 import (
+	"bytes"
 	"crypto/rc4"
 	"fmt"
 	"gw1/server/crypt"
 	"gw1/server/db"
 	GwPacket "gw1/server/gwpacket"
 	Item "gw1/server/item"
+	"strings"
 )
 
 type packetHandler func(*GSConn, *GwPacket.In) (int, error)
@@ -99,7 +101,36 @@ func (conn *GSConn) onPingReply(payload *PingReply) error {
 }
 
 func (conn *GSConn) onChatMessage(payload *ChatMessage) error {
-	conn.player.OnC2SChatMessage(*payload)
+	p := conn.player
+	if len(payload.message) <= 1 {
+		return nil
+	}
+	p.log.Info().Int("ag", payload.agentId).Str("msg", payload.message).Msg("ChatMessage")
+
+	// find channel by prefix char
+	var channel = payload.message[0]
+	var remainder = payload.message[1:]
+	switch channel {
+	case '!':
+		p.connectedInstance.BroadcastLocalChat(p, remainder)
+	case '/':
+		// emote / command
+		// extract next command word
+		words := strings.Fields(remainder)
+		if len(words) == 0 {
+			p.SendChatWarning("Invalid command syntax")
+			return nil
+		}
+		command := words[0]
+		args := words[1:]
+		// check whether it is an emote command
+		if emote, exists := GetEmoteByCommand(command); exists {
+			p.connectedInstance.BroadcastGeneric(MarshalEmote(p.playerId, p.agentId, emote))
+			return nil
+		}
+		// not an emote, check for other commands
+		HandleCommand(p, command, remainder, args)
+	}
 	return nil
 }
 
@@ -122,7 +153,7 @@ func (conn *GSConn) onCreateCharacterFinish(payload *CreateCharacterFinish) erro
 }
 
 func (conn *GSConn) onMoveToPoint(payload *MoveToPoint) error {
-	conn.player.connectedInstance.UpdateRequestedPlayerPos(conn.player, payload.x, payload.y)
+	conn.player.UpdatePosition(payload.x, payload.y)
 	conn.EnqueuePacket(MarshalMoveToPointS2C(conn.player.agentId, payload.x, payload.y, 0))
 	return nil
 }
@@ -171,7 +202,65 @@ func (conn *GSConn) onClientPingRequest(payload *ClientPingRequest) error {
 }
 
 func (conn *GSConn) onVerifyClientConnection(payload *VerifyClientConnection) error {
-	conn.player.OnC2SVerifyConnection(*payload)
+	p := conn.player
+	info, ok := ValidateConnectionToken(uint32(payload.securityTag))
+	if !ok {
+		p.log.Error().Str("characterUUID", db.UUIDStr(payload.characterUUID[:])).Msg("invalid securityTag")
+		p.Disconnect()
+		return nil
+	}
+
+	inst, err := InstanceManager.GetOrCreateInstanceByMapId(payload.mapId)
+	if inst == nil || err != nil {
+		p.log.Error().Err(err).Msg("unable to create instance")
+		p.Disconnect()
+		return nil
+	}
+
+	if payload.instanceTag != int(info.InstanceTag) {
+		p.log.Error().Str("characterUUID", db.UUIDStr(payload.characterUUID[:])).Msg("instanceTag does not match expected value")
+		p.Disconnect()
+		return nil
+	}
+
+	if info.InstanceTag != inst.GetTag() {
+		p.log.Error().Str("characterUUID", db.UUIDStr(payload.characterUUID[:])).Msg("instance no longer has instanceTag specified by token")
+		p.Disconnect()
+		return nil
+	}
+	p.isTransfer = info.IsTransfer
+	verified := false
+	acc, ok := db.GetFullAccountByUUID(payload.accountUUID[:])
+	if !ok {
+		p.log.Error().Str("accUUID", db.UUIDStr(payload.accountUUID[:])).Msg("no such account")
+		p.Disconnect()
+		return nil
+	}
+	p.dbAcc = acc
+	if payload.mapId == 0 {
+		p.log.Debug().Msg("Skip UUID check - entering CharCreation instance")
+	} else {
+		// Check character UUID exists:
+		for _, char := range acc.Characters {
+			if bytes.Equal(char.UUID, payload.characterUUID[:]) {
+				p.syncFromDB(char)
+				verified = true
+				break
+			}
+		}
+		if !verified {
+			p.log.Error().Str("characterUUID", db.UUIDStr(payload.characterUUID[:])).Msg("no such character")
+			p.Disconnect()
+			return nil
+		}
+	}
+
+	// TODO: Here we should verify the map is adjacent to the LastOutpostID if its explorable!
+
+	// Hook client up to an instance
+	p.connectedInstance = inst
+
+	p.log.Debug().Str("instanceTag", fmt.Sprintf("%08x", payload.instanceTag)).Str("securityTag", fmt.Sprintf("%08x", payload.securityTag)).Int("mapId", payload.mapId).Int("unk3", payload.unk3).Int("unk4", payload.unk4).Int("unk5", payload.unk5).Int("unk6", payload.unk6).Msg("VerifyClientConnection")
 	return nil
 }
 func (conn *GSConn) onClientSeed(payload *ClientSeed) error {
@@ -230,13 +319,93 @@ func (conn *GSConn) onCreateCharRequestArmors(payload *CreateCharRequestArmors) 
 }
 
 func (conn *GSConn) onUpdateProfessionChoice(payload *UpdateProfessionChoice) error {
-	conn.player.OnC2SUpdateProfessionChoice(*payload)
-	// Now respond with updated items and profession
+	p := conn.player
+	p.log.Debug().
+		Int("profession", payload.professionId).
+		Int("unk1", payload.unk1).
+		Msg("UpdateProfessionChoice")
+	if payload.professionId == p.primaryProfession {
+		return nil
+	}
+	// TODO: validate we're actually in char creation instance!
+	// TODO: validate profession id
+	p.primaryProfession = payload.professionId
+	// Marshal 1: delete equipped items
+	// Remove items in equipped slots
+	numEquipSlots := p.itemMgr.GetNumSlotsInBag(1)
+	for slotIndex := range numEquipSlots {
+		p.itemMgr.RemoveItemInSlot(1, slotIndex)
+	}
+	// Marshal 2: new appearance base?
+	p.EnqueuePacket(MarshalPlayerUpdateProfession(p.agentId, p.primaryProfession, 0))
+	p.EnqueuePacket(MarshalSkillsUnlocked())
+	// Marshal 3: create new equipped items
+
+	var equips []Item.ItemId
+	switch payload.professionId {
+	case 1:
+		equips = Item.DefaultEquipmentWarrior
+	case 2:
+		equips = Item.DefaultEquipmentRanger
+	case 3:
+		equips = Item.DefaultEquipmentMonk
+	case 4:
+		equips = Item.DefaultEquipmentNecromancer
+	case 5:
+		equips = Item.DefaultEquipmentMesmer
+	case 6:
+		equips = Item.DefaultEquipmentElementalist
+	}
+	for _, itemid := range equips {
+		// Spawn new items in equipped slots
+		itm := Item.GetItemDefinitionById(itemid)
+		itmlid, err := p.itemMgr.AddItemToSlot(0, 0, itm, itemid, 0)
+		if err != nil {
+			p.log.Error().Err(err).Msg("unable to add item to slot during profession change")
+			return nil
+		}
+		err = p.itemMgr.MoveItemByLocalId(itmlid, 1, int(itm.GetEquipSlot()))
+		if err != nil {
+			p.log.Error().Err(err).Msg("unable to move item to equipment slot")
+			return nil
+		}
+	}
 	return nil
 }
 
 func (conn *GSConn) onDyeEquipment(payload *DyeEquipment) error {
-	conn.player.OnC2SDyeEquipment(*payload)
+	p := conn.player
+	if !p.connectedInstance.IsCharCreationInstance() {
+		return nil
+	}
+	if payload.color < 0 || payload.color > 9 {
+		p.log.Warn().Int("color", payload.color).Msg("invalid dye color")
+		return nil
+	}
+	if payload.slot < 0 || payload.slot > 6 {
+		p.log.Warn().Int("slot", payload.slot).Msg("invalid dye slot")
+		return nil
+	}
+
+	lid, err := p.itemMgr.GetLocalIdForSlot(equipmentBagIndex, payload.slot)
+	if err != nil {
+		p.log.Error().Err(err).Msg("error calling GetLocalIdForSlot")
+		return nil
+	}
+	if lid == -1 {
+		p.log.Debug().Int("slot", payload.slot).Msg("no item in slot to dye")
+		return nil
+	}
+
+	item, ok := p.itemMgr.GetItemByLocalId(lid)
+	if !ok {
+		p.log.Error().Int("lid", lid).Msg("item not found for local id")
+		return nil
+	}
+
+	p.applyDyeToItem(lid, item, payload.color)
+	p.charCreationDyes[payload.slot] = payload.color
+	p.itemMgr.UpdateSlotDye(equipmentBagIndex, payload.slot, uint8(payload.color))
 	return nil
 }
 

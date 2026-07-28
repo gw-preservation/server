@@ -32,43 +32,12 @@ var sharedPrime = byteSwap([]byte{
 })
 var sharedPrimeBI = bytesToBI(sharedPrime)
 
-// Seed is generated each run. For some cases we can use a static one for debugging RSA.
-var staticSeed = byteSwap([]byte{
-	0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
-	0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F,
-	0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F,
-	0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F,
-})
-var staticSeedBI = bytesToBI(staticSeed)
-
-// Four is the base used in creating shared key
-var fourBI = big.NewInt(4)
-
 func bytesToBI(src []byte) *big.Int {
 	i := big.NewInt(0)
 	return i.SetBytes(src)
 }
-
 func modPow(base, exp, mod *big.Int) *big.Int {
-	// Create new variables to avoid mutating the original arguments
-	baseCopy := new(big.Int).Set(base)
-	expCopy := new(big.Int).Set(exp)
-	modCopy := new(big.Int).Set(mod)
-
-	result := big.NewInt(1)
-	baseCopy.Mod(baseCopy, modCopy) // Ensure base is within the modulus
-
-	for expCopy.Cmp(big.NewInt(0)) > 0 { // While exp > 0
-		if new(big.Int).And(expCopy, big.NewInt(1)).Cmp(big.NewInt(1)) == 0 { // If exp is odd
-			result.Mul(result, baseCopy)
-			result.Mod(result, modCopy)
-		}
-		baseCopy.Mul(baseCopy, baseCopy)    // Square the base
-		baseCopy.Mod(baseCopy, modCopy)     // Take mod
-		expCopy.Div(expCopy, big.NewInt(2)) // exp = exp / 2
-	}
-
-	return result
+	return new(big.Int).Exp(base, exp, mod)
 }
 
 func byteSwap(data []byte) []byte {
@@ -83,112 +52,42 @@ func byteSwap(data []byte) []byte {
 	return reversed
 }
 
+// KeyDerivation borrows SHA-1's ARX skeleton — ROL5, ROL30, 5×32-bit state,
+// and the round constant 0x6ED9EBA1 (SHA-1 rounds 20–39) — but replaces the
+// round function with a custom nonlinear function.
 func KeyDerivation(data [20]byte) [20]byte {
-	var first, second, third, fourth, fifth uint32
-	first = binary.LittleEndian.Uint32(data[0:4])
-	second = binary.LittleEndian.Uint32(data[4:8])
-	third = binary.LittleEndian.Uint32(data[8:12])
-	fourth = binary.LittleEndian.Uint32(data[12:16])
-	fifth = binary.LittleEndian.Uint32(data[16:20])
-	var eax, ebx, ecx, edx, edi, esi uint32
-	eax = 0
-	ebx = 0
-	ecx = 0
-	edx = 0
-	edi = 0
-	esi = 0
-	eax = 0
+	a := binary.LittleEndian.Uint32(data[0:4])
+	b := binary.LittleEndian.Uint32(data[4:8])
+	c := binary.LittleEndian.Uint32(data[8:12])
+	d := binary.LittleEndian.Uint32(data[12:16])
+	e := binary.LittleEndian.Uint32(data[16:20])
 
-	// MOV EDI,DWORD PTR SS:[EBP-18]            ;  uint32_t[0] goes into EDI
-	edi = first
-	// MOV EBX,DWORD PTR SS:[EBP-14]            ;  uint32_t[1] goes into EBX
-	ebx = second
-	// ADD EDI,9FB498B3
-	edi += 0x9FB498B3
-	// MOV EDX,DWORD PTR SS:[EBP-10]            ;  uint32_t[2] goes into EDX
-	edx = third
-	// MOV EAX,EDI
-	eax = edi
-	// ROL EAX,5
-	eax = rol(eax, 5)
-	// ADD DWORD PTR SS:[EBP-18],16745230
-	first += 0x16745230
-	// LEA ESI,DWORD PTR DS:[EBX+66B0CD0D]
-	esi = ebx + 0x66B0CD0D // VERIFY
-	// SUB EBX,61032548
-	ebx -= 0x61032548
-	// ADD ESI,EAX
-	esi += eax
-	// MOV DWORD PTR SS:[EBP-14],EBX
-	second = ebx
-	// MOV EAX,EDI
-	eax = edi
-	// MOV ECX,ESI
-	ecx = esi
-	// AND EAX,22222222
-	eax &= 0x22222222
-	// ROL ECX,5
-	ecx = rol(ecx, 5)
-	// NOT EAX
-	eax = ^eax
-	// ROL EDI,1E
-	edi = rol(edi, 0x1E)
-	// AND EAX,7BF36AE2
-	eax &= 0x7BF36AE2
-	// ADD ECX,EDX
-	ecx += edx
-	// ADD EAX,F33D5697
-	eax += 0xF33D5697
-	// ADD EDI,A90303AC
-	edi += 0xA90303AC
-	// ADD EDI,DWORD PTR SS:[EBP-C]             ;  uint32_t[3] read here
-	edi += fourth
-	// ADD ECX,EAX
-	ecx += eax
-	// MOV EAX,ESI
-	eax = esi
-	// MOV EBX,ECX
-	ebx = ecx
-	// XOR EAX,ECX
-	eax = eax ^ ecx
-	// ADD EDX,EBX
-	edx += ebx
-	// MOV ECX,DWORD PTR SS:[EBP-8]             ;  uint32_t[4] goes into ECX
-	ecx = fifth
-	// XOR EAX,7BF36AE2
-	eax = eax ^ 0x7BF36AE2
-	// ADD EDI,EAX
-	edi += eax
-	// MOV DWORD PTR SS:[EBP-10],EDX
-	third = edx
-	// MOV EAX,EDI
-	eax = edi
-	// XOR EBX,C72D9278
-	ebx = ebx ^ 0xC72D9278
-	// ROL EAX,5
-	eax = rol(eax, 5)
-	// ADD EBX,6ED9EBA1
-	ebx += 0x6ED9EBA1
-	// ADD EAX,ECX
-	eax += ecx
-	// ADD ECX,EDI
-	ecx += edi
-	// ADD EAX,EBX
-	eax += ebx
-	// MOV DWORD PTR SS:[EBP-8],ECX
-	fifth = ecx
-	// MOV EBX,DWORD PTR SS:[EBP-24]
-	// ADD EAX,ESI
-	eax += esi
-	// ADD DWORD PTR SS:[EBP-C],EAX
-	fourth += eax
-	out := make([]byte, 20)
-	binary.LittleEndian.PutUint32(out[0:4], first)
-	binary.LittleEndian.PutUint32(out[4:8], second)
-	binary.LittleEndian.PutUint32(out[8:12], third)
-	binary.LittleEndian.PutUint32(out[12:16], fourth)
-	binary.LittleEndian.PutUint32(out[16:20], fifth)
-	return [20]byte(out)
+	// Blend a, b with round constants.
+	// ab and bb are pre-mix values used throughout; a, b are updated in-place.
+	ab := a + 0x9FB498B3
+	a += 0x16745230
+	bb := b + 0x66B0CD0D + rol(ab, 5)
+	b -= 0x61032548
+
+	// Accumulate into c through the nonlinear function.
+	nl := ^(ab & 0x22222222) & 0x7BF36AE2
+	acc := rol(bb, 5) + c + nl + 0xF33D5697
+	c += acc
+
+	// Cross-mix into d via XOR feedback.
+	fb := rol(ab, 30) + 0xA90303AC + d + (bb ^ acc ^ 0x7BF36AE2)
+
+	// Cascade: d absorbs the remainder using original e, then e absorbs feedback.
+	d += rol(fb, 5) + e + (acc ^ 0xC72D9278) + 0x6ED9EBA1 + bb
+	e += fb
+
+	var out [20]byte
+	binary.LittleEndian.PutUint32(out[0:4], a)
+	binary.LittleEndian.PutUint32(out[4:8], b)
+	binary.LittleEndian.PutUint32(out[8:12], c)
+	binary.LittleEndian.PutUint32(out[12:16], d)
+	binary.LittleEndian.PutUint32(out[16:20], e)
+	return out
 }
 
 // rol performs a left rotation on a 32-bit unsigned integer.
@@ -197,18 +96,28 @@ func rol(x uint32, n uint) uint32 {
 }
 
 func GenerateEncryptionKeyWithRandomBytes(clientBytes [64]byte, randomBytes [20]byte) ([20]byte, [20]byte) {
-	// clientBytes are received LittleEndian, we use BigEndian
-	seedBI := bytesToBI(byteSwap(clientBytes[:]))
+	// Reverse clientBytes in-place on the stack (little-endian → big-endian for SetBytes)
+	var buf [64]byte
+	for i, j := 0, 63; i < 64; i, j = i+1, j-1 {
+		buf[i] = clientBytes[j]
+	}
+	seedBI := new(big.Int).SetBytes(buf[:])
 	secretKey := modPow(seedBI, serverPrivateKeyBI, sharedPrimeBI).Bytes()
-	secretKeyByteSwapped := byteSwap(secretKey)
 
 	// Now we gotta do the hash thing on top of those bytes
 	rc4Key := KeyDerivation(randomBytes)
-	xored := make([]byte, len(randomBytes))
-	for i := range len(xored) {
-		xored[i] = randomBytes[i] ^ secretKeyByteSwapped[i]
+	var xored [20]byte
+	for i := range 20 {
+		// secretKey is big-endian; reverse-index to get little-endian byte i.
+		// If the DH result is short (leading zeros stripped), treat missing bytes as 0.
+		secretIdx := len(secretKey) - 1 - i
+		var sk byte
+		if secretIdx >= 0 {
+			sk = secretKey[secretIdx]
+		}
+		xored[i] = randomBytes[i] ^ sk
 	}
-	return [20]byte(rc4Key), [20]byte(xored)
+	return rc4Key, xored
 }
 
 func GenerateEncryptionKey(clientBytes [64]byte) ([20]byte, [20]byte) {

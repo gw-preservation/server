@@ -1,13 +1,11 @@
 package GameService
 
 import (
-	"bytes"
 	"fmt"
 	"gw1/server/db"
 	GwPacket "gw1/server/gwpacket"
 	Item "gw1/server/item"
 	"math/rand"
-	"strings"
 
 	"github.com/rs/zerolog"
 )
@@ -97,6 +95,10 @@ func (p *Player) Disconnect() {
 	p.conn.Close()
 }
 
+func (p *Player) UpdatePosition(x, y float32) {
+	p.connectedInstance.UpdateRequestedPlayerPos(p, x, y)
+}
+
 func (p *Player) SendChat(msg string, color int) {
 	p.conn.EnqueuePacket(MarshalChatMessageFromServer(fmt.Sprintf("(server) %s", msg), color))
 }
@@ -126,125 +128,9 @@ func (p *Player) SendWelcomeChatMessage() {
 	}
 }
 
-func (p *Player) OnC2SVerifyConnection(payload VerifyClientConnection) {
-	// We should validate now, to check the request is valid
-	// First check token:
-	info, ok := ValidateConnectionToken(uint32(payload.securityTag))
-	if !ok {
-		p.log.Error().Str("characterUUID", db.UUIDStr(payload.characterUUID[:])).Msg("invalid securityTag")
-		p.Disconnect()
-		return
-	}
-
-	inst, err := InstanceManager.GetOrCreateInstanceByMapId(payload.mapId)
-	if inst == nil || err != nil {
-		p.log.Error().Err(err).Msg("unable to create instance")
-		p.Disconnect()
-		return
-	}
-
-	if payload.instanceTag != int(info.InstanceTag) {
-		p.log.Error().Str("characterUUID", db.UUIDStr(payload.characterUUID[:])).Msg("instanceTag does not match expected value")
-		p.Disconnect()
-		return
-	}
-
-	if info.InstanceTag != inst.GetTag() {
-		p.log.Error().Str("characterUUID", db.UUIDStr(payload.characterUUID[:])).Msg("instance no longer has instanceTag specified by token")
-		p.Disconnect()
-		return
-	}
-	p.isTransfer = info.IsTransfer
-	verified := false
-	acc, ok := db.GetFullAccountByUUID(payload.accountUUID[:])
-	if !ok {
-		p.log.Error().Str("accUUID", db.UUIDStr(payload.accountUUID[:])).Msg("no such account")
-		p.Disconnect()
-		return
-	}
-	p.dbAcc = acc
-	if payload.mapId == 0 {
-		p.log.Debug().Msg("Skip UUID check - entering CharCreation instance")
-	} else {
-		// Check character UUID exists:
-		for _, char := range acc.Characters {
-			if bytes.Equal(char.UUID, payload.characterUUID[:]) {
-				p.syncFromDB(char)
-				verified = true
-				break
-			}
-		}
-		if !verified {
-			p.log.Error().Str("characterUUID", db.UUIDStr(payload.characterUUID[:])).Msg("no such character")
-			p.Disconnect()
-			return
-		}
-	}
-
-	// TODO: Here we should verify the map is adjacent to the LastOutpostID if its explorable!
-
-	// Hook client up to an instance
-	p.connectedInstance = inst
-
-	p.log.Debug().Str("instanceTag", fmt.Sprintf("%08x", payload.instanceTag)).Str("securityTag", fmt.Sprintf("%08x", payload.securityTag)).Int("mapId", payload.mapId).Int("unk3", payload.unk3).Int("unk4", payload.unk4).Int("unk5", payload.unk5).Int("unk6", payload.unk6).Msg("VerifyClientConnection")
-}
-
 func (p *Player) OnUserDisconnected() {
 	if err := p.itemMgr.SyncToDB(); err != nil {
 		p.log.Error().Err(err).Msg("failed to sync items to database on disconnect")
-	}
-}
-
-func (p *Player) OnC2SUpdateProfessionChoice(payload UpdateProfessionChoice) {
-	p.log.Debug().
-		Int("profession", payload.professionId).
-		Int("unk1", payload.unk1).
-		Msg("UpdateProfessionChoice")
-	if payload.professionId == p.primaryProfession {
-		return
-	}
-	// TODO: validate we're actually in char creation instance!
-	// TODO: validate profession id
-	p.primaryProfession = payload.professionId
-	// Marshal 1: delete equipped items
-	// Remove items in equipped slots
-	numEquipSlots := p.itemMgr.GetNumSlotsInBag(1)
-	for slotIndex := range numEquipSlots {
-		p.itemMgr.RemoveItemInSlot(1, slotIndex)
-	}
-	// Marshal 2: new appearance base?
-	p.EnqueuePacket(MarshalPlayerUpdateProfession(p.agentId, p.primaryProfession, 0))
-	p.EnqueuePacket(MarshalSkillsUnlocked())
-	// Marshal 3: create new equipped items
-
-	var equips []Item.ItemId
-	switch payload.professionId {
-	case 1:
-		equips = Item.DefaultEquipmentWarrior
-	case 2:
-		equips = Item.DefaultEquipmentRanger
-	case 3:
-		equips = Item.DefaultEquipmentMonk
-	case 4:
-		equips = Item.DefaultEquipmentNecromancer
-	case 5:
-		equips = Item.DefaultEquipmentMesmer
-	case 6:
-		equips = Item.DefaultEquipmentElementalist
-	}
-	for _, itemid := range equips {
-		// Spawn new items in equipped slots
-		itm := Item.GetItemDefinitionById(itemid)
-		itmlid, err := p.itemMgr.AddItemToSlot(0, 0, itm, itemid, 0)
-		if err != nil {
-			p.log.Error().Err(err).Msg("unable to add item to slot during profession change")
-			return
-		}
-		err = p.itemMgr.MoveItemByLocalId(itmlid, 1, int(itm.GetEquipSlot()))
-		if err != nil {
-			p.log.Error().Err(err).Msg("unable to move item to equipment slot")
-			return
-		}
 	}
 }
 
@@ -273,40 +159,6 @@ func (p *Player) equipTest(profession string) {
 		}
 		p.EnqueuePacket(MarshalAgentUpdateVisualEquipment2(p.agentId, int(itm.GetVisualEquipSlot()), itmlid))
 	}
-}
-
-func (p *Player) OnC2SDyeEquipment(payload DyeEquipment) {
-	if !p.connectedInstance.IsCharCreationInstance() {
-		return
-	}
-	if payload.color < 0 || payload.color > 9 {
-		p.log.Warn().Int("color", payload.color).Msg("invalid dye color")
-		return
-	}
-	if payload.slot < 0 || payload.slot > 6 {
-		p.log.Warn().Int("slot", payload.slot).Msg("invalid dye slot")
-		return
-	}
-
-	lid, err := p.itemMgr.GetLocalIdForSlot(equipmentBagIndex, payload.slot)
-	if err != nil {
-		p.log.Error().Err(err).Msg("error calling GetLocalIdForSlot")
-		return
-	}
-	if lid == -1 {
-		p.log.Debug().Int("slot", payload.slot).Msg("no item in slot to dye")
-		return
-	}
-
-	item, ok := p.itemMgr.GetItemByLocalId(lid)
-	if !ok {
-		p.log.Error().Int("lid", lid).Msg("item not found for local id")
-		return
-	}
-
-	p.applyDyeToItem(lid, item, payload.color)
-	p.charCreationDyes[payload.slot] = payload.color
-	p.itemMgr.UpdateSlotDye(equipmentBagIndex, payload.slot, uint8(payload.color))
 }
 
 func (p *Player) applyDyeToItem(lid int, item Item.Item, color int) {
@@ -722,38 +574,6 @@ func (p *Player) sendCartographyData() {
 		0x00cccccc,
 	}
 	p.EnqueuePacket(MarshalCartographyData(cartographyData))
-}
-
-func (p *Player) OnC2SChatMessage(payload ChatMessage) {
-	if len(payload.message) <= 1 {
-		return
-	}
-	p.log.Info().Int("ag", payload.agentId).Str("msg", payload.message).Msg("ChatMessage")
-
-	// find channel by prefix char
-	var channel = payload.message[0]
-	var remainder = payload.message[1:]
-	switch channel {
-	case '!':
-		p.connectedInstance.BroadcastLocalChat(p, remainder)
-	case '/':
-		// emote / command
-		// extract next command word
-		words := strings.Fields(remainder)
-		if len(words) == 0 {
-			p.SendChatWarning("Invalid command syntax")
-			return
-		}
-		command := words[0]
-		args := words[1:]
-		// check whether it is an emote command
-		if emote, exists := GetEmoteByCommand(command); exists {
-			p.connectedInstance.BroadcastGeneric(MarshalEmote(p.playerId, p.agentId, emote))
-			return
-		}
-		// not an emote, check for other commands
-		HandleCommand(p, command, remainder, args)
-	}
 }
 
 func (p *Player) sendAgentDespawned(agent *Agent) {

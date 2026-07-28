@@ -105,6 +105,9 @@ func LoadInstanceDefinitionsFromDisk() error {
 
 	// Now start up all persistent instances:
 	for mapId, definition := range instanceDefinitions.Instances {
+		if mapId != 148 {
+			continue
+		}
 		if definition.Explorable {
 			continue
 		}
@@ -234,11 +237,6 @@ func (inst *Instance) TransmitAgentDespawned(agent *Agent) {
 
 func (inst *Instance) RemovePlayer(player *Player) {
 	inst.mu.Lock()
-	inst.removePlayerLocked(player)
-	inst.mu.Unlock()
-}
-
-func (inst *Instance) removePlayerLocked(player *Player) {
 	removed := false
 	for i, v := range inst.players {
 		if v == nil {
@@ -247,20 +245,17 @@ func (inst *Instance) removePlayerLocked(player *Player) {
 		if player.uuid == v.uuid {
 			inst.players = slices.Delete(inst.players, i, i+1)
 			removed = true
-			break // stop iterating over a slice we just mutated
+			break
 		}
 	}
-	remaining := len(inst.players)
-	if !removed {
-		return
-	}
-	// so the departing player doesn't get sent their own despawn.
-	inst.TransmitAgentDespawned(&player.Agent)
-
-	inst.log.Debug().Uint64("playerUuid", player.uuid).Msg("player removed from instance")
-	if inst.definition.Explorable && remaining == 0 {
-		inst.log.Debug().Msg("explorable instance shutting down due to inactivity")
-		inst.gracefulShutdownSignal <- true
+	inst.mu.Unlock()
+	if removed {
+		inst.TransmitAgentDespawned(&player.Agent)
+		inst.log.Debug().Uint64("playerUuid", player.uuid).Msg("player removed from instance")
+		if inst.definition.Explorable && len(inst.players) == 0 {
+			inst.log.Debug().Msg("explorable instance shutting down due to inactivity")
+			inst.gracefulShutdownSignal <- true
+		}
 	}
 }
 
@@ -620,8 +615,18 @@ func (i *Instance) TransferPlayerToNewMap(player *Player, newMapId int) error {
 	// Hold the old instance lock while removing the player and updating their state,
 	// so no other goroutine (movement tick, main loop) can observe an intermediate state.
 	i.mu.Lock()
-	// Remove player from current instance (broadcasts despawn to others)
-	i.removePlayerLocked(player)
+	// Remove player from current instance
+	removed := false
+	for idx, v := range i.players {
+		if v == nil {
+			continue
+		}
+		if player.uuid == v.uuid {
+			i.players = slices.Delete(i.players, idx, idx+1)
+			removed = true
+			break
+		}
+	}
 	// Clear connectedInstance before any disconnect path can trigger a second RemovePlayer
 	player.connectedInstance = nil
 	// Sync items while the player is cleanly detached from the old instance
@@ -629,6 +634,10 @@ func (i *Instance) TransferPlayerToNewMap(player *Player, newMapId int) error {
 		player.log.Error().Err(err).Msg("failed to sync items to database during map transfer")
 	}
 	i.mu.Unlock()
+	// Broadcast despawn AFTER releasing the write lock to avoid deadlock.
+	if removed {
+		i.TransmitAgentDespawned(&player.Agent)
+	}
 
 	// Send transfer packets to client (no lock needed — these go to the client socket)
 	region := 1

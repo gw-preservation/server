@@ -13,14 +13,14 @@ import (
 )
 
 type GSConn struct {
-	socket *net.TCPConn
-	enc    *rc4.Cipher
-	dec    *rc4.Cipher
-	out    GwPacket.Out
-	closed atomic.Bool
-	log    zerolog.Logger
-	player *Player
-	done   chan struct{}
+	socket    *net.TCPConn
+	enc       *rc4.Cipher
+	dec       *rc4.Cipher
+	out       GwPacket.Out
+	closed    atomic.Bool
+	log       zerolog.Logger
+	player    *Player
+	done      chan struct{}
 	closeOnce sync.Once
 }
 
@@ -96,5 +96,6 @@ func (conn *GSConn) WritePacket(packet *GwPacket.Out) error {
 }
 
 func (conn *GSConn) EnqueuePacket(packet GwPacket.Out) {
+	fmt.Printf("EnqueuePacket: op=%02x%02x\n", packet.GetBytes()[1], packet.GetBytes()[0])
 	conn.out.Merge(packet)
 }
