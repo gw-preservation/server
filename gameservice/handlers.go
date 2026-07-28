@@ -111,7 +111,7 @@ func (conn *GSConn) onCreateCharacterFinish(payload *CreateCharacterFinish) erro
 		conn.EnqueuePacket(MarshalCharCreationError(29))
 		return nil
 	}
-	char := db.AddDbChar(conn.player.dbAcc.ID, payload.name, int(appearance.PrimaryProfession), uint32(payload.appearance))
+	char := db.AddDbChar(conn.player.dbAcc.ID, payload.name, int(appearance.PrimaryProfession), uint32(payload.appearance), conn.player.charCreationDyes)
 
 	varbs := []byte{}
 	conn.EnqueuePacket(MarshalCharCreationFinish(char.UUID, payload.name, 148, varbs))
@@ -210,7 +210,7 @@ func (conn *GSConn) onCreateCharRequestArmors(payload *CreateCharRequestArmors) 
 	for _, itemid := range Item.DefaultEquipmentWarrior {
 		// Spawn new items in equipped slots
 		itm := Item.GetItemDefinitionById(itemid)
-		itmlid, _ := conn.player.itemMgr.AddItemToSlot(0, 0, itm, itemid)
+		itmlid, _ := conn.player.itemMgr.AddItemToSlot(0, 0, itm, itemid, 0)
 		slot := int(itm.GetEquipSlot())
 		conn.player.itemMgr.MoveItemByLocalId(itmlid, 1, slot)
 	}

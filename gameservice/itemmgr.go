@@ -208,7 +208,7 @@ func (m *ItemMgr) MoveItemByLocalId(localId int, containerIndex, slotIndex int) 
 	return nil
 }
 
-func (m *ItemMgr) AddItemToSlot(containerIndex int, slotIndex int, item Item.Item, itemId Item.ItemId) (int, error) {
+func (m *ItemMgr) AddItemToSlot(containerIndex int, slotIndex int, item Item.Item, itemId Item.ItemId, dye int) (int, error) {
 	if containerIndex >= len(m.bags) {
 		return 0, fmt.Errorf("AddItemToSlot: containerIndex(%d) >= len(m.bags)(%d)", containerIndex, len(m.bags))
 	}
@@ -230,7 +230,7 @@ func (m *ItemMgr) AddItemToSlot(containerIndex int, slotIndex int, item Item.Ite
 			int(item.ModelFileId()),
 			int(item.Type()),
 			1,
-			0,
+			dye,
 			0,
 			0,
 			item.ComputeInteractionFlags(),

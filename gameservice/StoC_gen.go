@@ -682,3 +682,10 @@ func MarshalUnknownAfterDyeSuccess(itemLocalId1 int, itemLocalId1Repeat int) (re
 	resp.Uint32(itemLocalId1Repeat)
 	return
 }
+
+func MarshalAgentUpdateSpeedBase(agentId int, speed float32) (resp GwPacket.Out) {
+	resp = GwPacket.NewOut(0x27)
+	resp.Uint32(agentId)
+	resp.Float32(speed)
+	return
+}

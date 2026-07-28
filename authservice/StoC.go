@@ -68,7 +68,7 @@ type VarByte []byte
 	// 119 - "Your account has already registered this key."
 	// 120 - "The access key you have entered was a limited-use key and has already been used."
 	// 121 - "The access key you have entered was for an event that has already finished."
-	// 122 - "The access key ou have entered has been disabled."
+	// 122 - "The access key you have entered has been disabled."
 
 	// Territory change errors
 	// 125 - "You have used up all of your allowed territory changes."

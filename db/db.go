@@ -133,7 +133,7 @@ func NewDbBag(forCharacterId uint64, capacity int, bagType int) (bag Bag) {
 	return
 }
 
-func AddDbChar(forAccountId uint64, name string, primaryProfession int, appearanceBits uint32) (char Character) {
+func AddDbChar(forAccountId uint64, name string, primaryProfession int, appearanceBits uint32, equipDyes [7]int) (char Character) {
 	log.Info().Uint64("forAccountId", forAccountId).Str("name", name).Int("primary", primaryProfession).Uint32("appearance", appearanceBits).Msg("NewDbChar")
 	char.AccountID = forAccountId
 	char.UUID = randUuid()
@@ -187,10 +187,13 @@ func AddDbChar(forAccountId uint64, name string, primaryProfession int, appearan
 	}
 	for _, itemid := range equips {
 		itm := Item.GetItemDefinitionById(itemid)
-		equipment.Slots[itm.GetEquipSlot()] = Slot{
+		eSlot := itm.GetEquipSlot()
+		fmt.Printf("eSlot for %s: %d\n", itm.Name(), eSlot)
+		equipment.Slots[eSlot] = Slot{
 			BagID:        equipment.ID,
 			ItemID:       uint32(itemid),
 			ItemQuantity: 1,
+			Dye1:         uint8(equipDyes[eSlot]),
 		}
 	}
 	database.Create(&char)

@@ -24,6 +24,8 @@ type Player struct {
 	xp                 int
 	itemMgr            ItemMgr
 
+	charCreationDyes [7]int
+
 	isTransfer bool
 	dbAcc      db.Account
 	dbChar     db.Character
@@ -67,7 +69,7 @@ func (p *Player) syncItemsFromDB(bags []db.Bag) {
 				continue
 			}
 			item := Item.GetItemDefinitionById(Item.ItemId(slot.ItemID))
-			p.itemMgr.AddItemToSlot(x, slotIndex, item, Item.ItemId(slot.ItemID))
+			p.itemMgr.AddItemToSlot(x, slotIndex, item, Item.ItemId(slot.ItemID), int(slot.Dye1))
 		}
 		x++
 	}
@@ -247,7 +249,7 @@ func (p *Player) OnC2SUpdateProfessionChoice(payload UpdateProfessionChoice) {
 	for _, itemid := range equips {
 		// Spawn new items in equipped slots
 		itm := Item.GetItemDefinitionById(itemid)
-		itmlid, err := p.itemMgr.AddItemToSlot(0, 0, itm, itemid)
+		itmlid, err := p.itemMgr.AddItemToSlot(0, 0, itm, itemid, 0)
 		err = p.itemMgr.MoveItemByLocalId(itmlid, 1, int(itm.GetEquipSlot()))
 		if err != nil {
 			p.log.Error().Err(err).Msg("unable to add item to slot")
@@ -274,7 +276,7 @@ func (p *Player) equipTest(profession string) {
 	for _, itemid := range equipmentIds {
 		// Spawn new items in equipped slots
 		itm := Item.GetItemDefinitionById(itemid)
-		itmlid, err := p.itemMgr.AddItemToSlot(1, int(itm.GetEquipSlot()), itm, itemid)
+		itmlid, err := p.itemMgr.AddItemToSlot(1, int(itm.GetEquipSlot()), itm, itemid, 0)
 		if err != nil {
 			p.log.Error().Err(err).Msg("unable to add item to slot")
 			return
@@ -285,6 +287,15 @@ func (p *Player) equipTest(profession string) {
 
 func (p *Player) OnC2SDyeEquipment(payload DyeEquipment) {
 
+	if payload.color < 0 || payload.color > 9 {
+		p.log.Warn().Int("color", payload.color).Msg("invalid dye color")
+		return
+	}
+	if payload.slot < 0 || payload.slot > 6 {
+		p.log.Warn().Int("slot", payload.slot).Msg("invalid dye slot")
+		return
+	}
+
 	lid, err := p.itemMgr.GetLocalIdForSlot(1, payload.slot)
 	if err != nil {
 		p.log.Error().Err(err).Msg("error calling GetLocalIdForSlot")
@@ -293,6 +304,8 @@ func (p *Player) OnC2SDyeEquipment(payload DyeEquipment) {
 	if lid == -1 {
 		return
 	}
+	// todo: verify length
+	p.charCreationDyes[payload.slot] = payload.color
 	item, ok := p.itemMgr.GetItemByLocalId(lid)
 	if !ok {
 		p.log.Error().Err(err).Msg("error calling GetItemByLocalId")
@@ -703,6 +716,18 @@ func (p *Player) OnC2SChatMessage(payload ChatMessage) {
 		}
 		// not an emote, check for other commands
 		switch command {
+		case "speed":
+			if len(words) < 2 {
+				p.SendChatWarning("Usage: /speed <speed>")
+				return
+			}
+			var speed float32
+			nParsed, err := fmt.Sscanf(words[1], "%f", &speed)
+			if nParsed == 0 || err != nil {
+				p.SendChatWarning("Usage: /speed <speed>")
+				return
+			}
+			p.EnqueuePacket(MarshalAgentUpdateSpeedBase(p.agentId, speed))
 		case "e": // equip test
 			if len(words) < 2 {
 				p.SendChatWarning("Usage: /e <profession>")
@@ -710,7 +735,7 @@ func (p *Player) OnC2SChatMessage(payload ChatMessage) {
 			}
 			p.equipTest(words[1])
 		case "motd":
-			p.EnqueuePacket(MarshalMessageOfTheDay("\u0155"))
+			p.EnqueuePacket(MarshalMessageOfTheDay("\u0108\u0107Test <c=@ItemRare>message\u0001"))
 		case "gv":
 			if len(words) < 3 {
 				p.SendChatWarning("Usage: /gv <typ> <value>")

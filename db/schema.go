@@ -45,6 +45,7 @@ type Slot struct {
 	BagID         uint64         // Foreign key to Bag
 	ItemQuantity  uint32         `gorm:"default:1"` // Just in case!
 	ItemModifiers ModifiersArray `gorm:"type:json"`
+	Dye1          uint8
 }
 
 type ModifiersArray []uint32
@@ -118,7 +119,7 @@ func maybeBootstrap() (err error) {
 	database.Create(&rootAccount)
 	// One character
 	primaryProfession := uint8(4)
-	AddDbChar(rootAccount.ID, "Default Char", int(primaryProfession), 0x0744943b)
+	AddDbChar(rootAccount.ID, "Default Char", int(primaryProfession), 0x0744943b, [7]int{})
 
 	// Make an alt account
 	altAccount := Account{
@@ -129,7 +130,7 @@ func maybeBootstrap() (err error) {
 	database.Create(&altAccount)
 	primaryProfession = uint8(2)
 
-	AddDbChar(altAccount.ID, "Alt Char 1", int(primaryProfession), 0x042094e6)
+	AddDbChar(altAccount.ID, "Alt Char 1", int(primaryProfession), 0x042094e6, [7]int{})
 
 	// Make a second alt account
 	altAccount2 := Account{
@@ -140,6 +141,6 @@ func maybeBootstrap() (err error) {
 	database.Create(&altAccount2)
 	primaryProfession = uint8(5)
 
-	AddDbChar(altAccount2.ID, "Alt Char 2", int(primaryProfession), 0x045171b5)
+	AddDbChar(altAccount2.ID, "Alt Char 2", int(primaryProfession), 0x045171b5, [7]int{})
 	return
 }

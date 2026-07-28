@@ -592,3 +592,9 @@ type UnknownAfterDyeSuccess struct {
 	itemLocalId1       int //wire:uint32
 	itemLocalId1Repeat int //wire:uint32
 }
+
+// opcode: 0x0027
+type AgentUpdateSpeedBase struct {
+	agentId int // wire:uint32
+	speed   float32
+}

@@ -7,6 +7,7 @@ import (
 	"gw1/server/db"
 	GameService "gw1/server/gameservice"
 	GwPacket "gw1/server/gwpacket"
+	Item "gw1/server/item"
 	PortalService "gw1/server/portalservice"
 )
 
@@ -130,6 +131,12 @@ func (conn *ASConn) onGetAccountInfo(payload *GetAccountInfo) error {
 	// Now send all characters belonging to the account:
 	lastCharUUID := []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
 	for _, char := range conn.acc.Characters {
+
+		bags, ok := db.GetBagsForCharacterByID(char.ID)
+		if !ok {
+			conn.log.Error().Uint64("char.ID", char.ID).Msg("GetBagsForCharacterByID failed")
+			continue
+		}
 		subBlock := GwPacket.NewOutRaw()
 		summaryBlockVersion := 6
 		subBlock.Uint16(summaryBlockVersion)
@@ -146,9 +153,33 @@ func (conn *ASConn) onGetAccountInfo(payload *GetAccountInfo) error {
 		bits16 |= uint16(1&0x3) << 14                        // HelmStatus
 		subBlock.Uint16(int(bits16))
 
-		subBlock.Uint16(0) // H001E
-		subBlock.Uint8(0)  // number_of_pieces
+		var equippedFileIds []int
+		var equippedDyes []int
+		for _, slot := range bags[1].Slots {
+			if slot.ItemID == 0 {
+				continue
+			}
+			itm := Item.GetItemDefinitionById(Item.ItemId(slot.ItemID))
+			if itm.GetEquipSlot() == Item.EquipSlotUnknown {
+				continue
+			}
+			if itm.GetEquipSlot() == Item.EquipSlotRightHand || itm.GetEquipSlot() == Item.EquipSlotLeftHand {
+				continue
+			}
+			equippedFileIds = append(equippedFileIds, itm.ModelFileId())
+			equippedDyes = append(equippedDyes, int(slot.Dye1))
+		}
+
+		subBlock.Uint16(0)
+		subBlock.Uint8(len(equippedFileIds))
 		subBlock.Bytes([]byte{0xDD, 0xDD, 0xDD, 0xDD})
+
+		for i, fileId := range equippedFileIds {
+			subBlock.Uint16(fileId)
+			subBlock.Uint8(equippedDyes[i]) // dye
+			subBlock.Uint8(0)
+			subBlock.Uint8(0) // dye2
+		}
 
 		subBlockBytes := subBlock.GetBytes()
 

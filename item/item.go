@@ -103,7 +103,7 @@ const (
 	ItemTypeArmorGloves ItemType = 13
 	ItemTypeArmorHelm   ItemType = 16
 	ItemTypeShield      ItemType = 24
-	ItemTypeWand        ItemType = 23
+	ItemTypeWand        ItemType = 22
 )
 
 type Rarity int
@@ -367,6 +367,9 @@ func (i *Item) ComputeInteractionFlags() int {
 	flags |= GetRarityFlag(i.rarity)
 	if i.Name() == "Third Eye" {
 		return 0x20001202
+	}
+	if i.Name() == "Starter Truncheon" {
+		return 0x22001000
 	}
 	return flags
 }
