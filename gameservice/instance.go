@@ -105,9 +105,6 @@ func LoadInstanceDefinitionsFromDisk() error {
 
 	// Now start up all persistent instances:
 	for mapId, definition := range instanceDefinitions.Instances {
-		if mapId != 148 {
-			continue
-		}
 		if definition.Explorable {
 			continue
 		}
