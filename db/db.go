@@ -3,7 +3,6 @@ package db
 import (
 	"errors"
 	"fmt"
-	Item "gw1/server/item"
 
 	_ "github.com/glebarez/sqlite" // actual pure Go SQLite driver
 	"github.com/rs/zerolog"
@@ -133,7 +132,7 @@ func NewDbBag(forCharacterId uint64, capacity int, bagType int) (bag Bag) {
 	return
 }
 
-func AddDbChar(forAccountId uint64, name string, primaryProfession int, appearanceBits uint32, equipDyes [7]int) (char Character) {
+func AddDbChar(forAccountId uint64, name string, primaryProfession int, appearanceBits uint32, bags []Bag) (char Character) {
 	log.Info().Uint64("forAccountId", forAccountId).Str("name", name).Int("primary", primaryProfession).Uint32("appearance", appearanceBits).Msg("NewDbChar")
 	char.AccountID = forAccountId
 	char.UUID = randUuid()
@@ -141,63 +140,27 @@ func AddDbChar(forAccountId uint64, name string, primaryProfession int, appearan
 	char.ProfessionPrimary = uint8(primaryProfession)
 	char.ProfessionSecondary = 0
 	char.AppearanceBits = appearanceBits
-	// Give it an inventory bag
-	inventory := NewDbBag(char.ID, 20, 1)
-	equipment := NewDbBag(char.ID, 9, 2) // TODO: why 9 and not 8?
-	char.Bags = append(char.Bags, inventory, equipment)
-
-	// give some test items
-	inventory.Slots[0] = Slot{
-		BagID:        inventory.ID,
-		ItemID:       uint32(Item.ItemEverlastingGhostlyStaff),
-		ItemQuantity: 1,
-	}
-	inventory.Slots[1] = Slot{
-		BagID:        inventory.ID,
-		ItemID:       uint32(Item.ItemSummoningStone),
-		ItemQuantity: 1,
-	}
-	// Test warrior items
-	if primaryProfession == 1 {
-		equipment.Slots[0] = Slot{
-			BagID:        equipment.ID,
-			ItemID:       uint32(Item.ItemEternalBlade),
-			ItemQuantity: 1,
-		}
-		equipment.Slots[1] = Slot{
-			BagID:        equipment.ID,
-			ItemID:       uint32(Item.ItemEternalShield),
-			ItemQuantity: 1,
-		}
-	}
-	var equips []Item.ItemId
-	switch primaryProfession {
-	case 1:
-		equips = Item.DefaultEquipmentWarrior
-	case 2:
-		equips = Item.DefaultEquipmentRanger
-	case 3:
-		equips = Item.DefaultEquipmentMonk
-	case 4:
-		equips = Item.DefaultEquipmentNecromancer
-	case 5:
-		equips = Item.DefaultEquipmentMesmer
-	case 6:
-		equips = Item.DefaultEquipmentElementalist
-	}
-	for _, itemid := range equips {
-		itm := Item.GetItemDefinitionById(itemid)
-		eSlot := itm.GetEquipSlot()
-		fmt.Printf("eSlot for %s: %d\n", itm.Name(), eSlot)
-		equipment.Slots[eSlot] = Slot{
-			BagID:        equipment.ID,
-			ItemID:       uint32(itemid),
-			ItemQuantity: 1,
-			Dye1:         uint8(equipDyes[eSlot]),
-		}
-	}
+	char.Bags = bags
 	database.Create(&char)
 	return
+}
+
+func ReplaceBagsForCharacter(characterId uint64, newBags []Bag) error {
+	return database.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("bag_id IN (SELECT id FROM bags WHERE character_id = ?)", characterId).Delete(&Slot{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("character_id = ?", characterId).Delete(&Bag{}).Error; err != nil {
+			return err
+		}
+		for i := range newBags {
+			newBags[i].CharacterID = characterId
+			if err := tx.Create(&newBags[i]).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func SetLastOutpostForChar(charId uint64, outpostId uint16) error {

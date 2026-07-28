@@ -234,6 +234,11 @@ func (inst *Instance) TransmitAgentDespawned(agent *Agent) {
 
 func (inst *Instance) RemovePlayer(player *Player) {
 	inst.mu.Lock()
+	inst.removePlayerLocked(player)
+	inst.mu.Unlock()
+}
+
+func (inst *Instance) removePlayerLocked(player *Player) {
 	removed := false
 	for i, v := range inst.players {
 		if v == nil {
@@ -246,7 +251,6 @@ func (inst *Instance) RemovePlayer(player *Player) {
 		}
 	}
 	remaining := len(inst.players)
-	inst.mu.Unlock()
 	if !removed {
 		return
 	}
@@ -332,7 +336,7 @@ func (i *Instance) MainLoop() {
 			time.Sleep(time.Second * 5)
 			i.mu.RLock()
 			for _, player := range i.players {
-				if player.conn.closed {
+				if player.conn.closed.Load() {
 					continue
 				}
 				player.EnqueuePacket(MarshalServerPingRequest(30, 491)) // dont know what these values mean
@@ -353,7 +357,7 @@ func (i *Instance) MovementTickLoop() {
 		time.Sleep(time.Millisecond * 500)
 		i.mu.RLock()
 		for _, player := range i.players {
-			if player.conn.closed {
+			if player.conn.closed.Load() {
 				continue
 			}
 			player.EnqueuePacket(MarshalAgentMovementTick(500))
@@ -453,8 +457,8 @@ func (i *Instance) AddPlayer(player *Player) {
 		player.EnqueuePacket(MarshalCharCreationStart())
 	} else {
 		player.posX, player.posY, player.plane = i.NextSpawnPoint()
-		player.conn.sendWorldInstanceHead()
-		player.conn.sendWorldInstanceBody()
+		player.sendWorldInstanceHead()
+		player.sendWorldInstanceBody()
 		player.EnqueuePacket(MarshalUpdateCurrentMapId(i.mapId))
 		player.EnqueuePacket(MarshalReadyForMapSpawn())
 		player.EnqueuePacket(MarshalInstanceManifestDone(0, i.mapId, 0))
@@ -613,10 +617,20 @@ func (i *Instance) TransferPlayerToNewMap(player *Player, newMapId int) error {
 	instanceTag := inst.GetTag()
 	securityTag := GenerateConnectionTokenForInstance(instanceTag, true)
 
-	// Next, remove player from current instance
-	i.RemovePlayer(player)
+	// Hold the old instance lock while removing the player and updating their state,
+	// so no other goroutine (movement tick, main loop) can observe an intermediate state.
+	i.mu.Lock()
+	// Remove player from current instance (broadcasts despawn to others)
+	i.removePlayerLocked(player)
+	// Clear connectedInstance before any disconnect path can trigger a second RemovePlayer
+	player.connectedInstance = nil
+	// Sync items while the player is cleanly detached from the old instance
+	if err := player.itemMgr.SyncToDB(); err != nil {
+		player.log.Error().Err(err).Msg("failed to sync items to database during map transfer")
+	}
+	i.mu.Unlock()
 
-	// Next, send packets to client
+	// Send transfer packets to client (no lock needed — these go to the client socket)
 	region := 1
 	player.conn.EnqueuePacket(MarshalTransferGameServerInfo([]byte{
 		0x02, 0x00, // AF_INET
@@ -626,10 +640,10 @@ func (i *Instance) TransferPlayerToNewMap(player *Player, newMapId int) error {
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	}, int(instanceTag), region, newMapId, i.IsExplorable(), int(securityTag)))
 	player.conn.EnqueuePacket(MarshalUpdateCurrentMapId(newMapId))
-	// Put in new instance:
+
+	// Point player at the new instance
 	player.connectedInstance = inst
-	err = db.SetLastOutpostForChar(player.dbChar.ID, uint16(newMapId))
-	if err != nil {
+	if err := db.SetLastOutpostForChar(player.dbChar.ID, uint16(newMapId)); err != nil {
 		player.log.Error().Err(err).Msg("unable to update last outpost")
 		return err
 	}

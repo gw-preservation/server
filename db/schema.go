@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	Item "gw1/server/item"
 )
 
 type Account struct {
@@ -104,6 +105,61 @@ func randUuid() []byte {
 	return res
 }
 
+func CreateDefaultBagsAndItems(characterId uint64, primaryProfession int, equipDyes [7]int) []Bag {
+	inventory := NewDbBag(characterId, 20, 1)
+	equipment := NewDbBag(characterId, 9, 2)
+
+	inventory.Slots[0] = Slot{
+		BagID:        inventory.ID,
+		ItemID:       uint32(Item.ItemEverlastingGhostlyStaff),
+		ItemQuantity: 1,
+	}
+	inventory.Slots[1] = Slot{
+		BagID:        inventory.ID,
+		ItemID:       uint32(Item.ItemSummoningStone),
+		ItemQuantity: 1,
+	}
+
+	var equips []Item.ItemId
+	switch primaryProfession {
+	case 1:
+		equips = Item.DefaultEquipmentWarrior
+		// Test warrior items
+		equipment.Slots[0] = Slot{
+			BagID:        equipment.ID,
+			ItemID:       uint32(Item.ItemEternalBlade),
+			ItemQuantity: 1,
+		}
+		equipment.Slots[1] = Slot{
+			BagID:        equipment.ID,
+			ItemID:       uint32(Item.ItemEternalShield),
+			ItemQuantity: 1,
+		}
+	case 2:
+		equips = Item.DefaultEquipmentRanger
+	case 3:
+		equips = Item.DefaultEquipmentMonk
+	case 4:
+		equips = Item.DefaultEquipmentNecromancer
+	case 5:
+		equips = Item.DefaultEquipmentMesmer
+	case 6:
+		equips = Item.DefaultEquipmentElementalist
+	}
+	for _, itemid := range equips {
+		itm := Item.GetItemDefinitionById(itemid)
+		eSlot := itm.GetEquipSlot()
+		equipment.Slots[eSlot] = Slot{
+			BagID:        equipment.ID,
+			ItemID:       uint32(itemid),
+			ItemQuantity: 1,
+			Dye1:         uint8(equipDyes[eSlot]),
+		}
+	}
+
+	return []Bag{inventory, equipment}
+}
+
 func maybeBootstrap() (err error) {
 	var count int64
 	database.Model(&Account{}).Count(&count)
@@ -119,7 +175,7 @@ func maybeBootstrap() (err error) {
 	database.Create(&rootAccount)
 	// One character
 	primaryProfession := uint8(4)
-	AddDbChar(rootAccount.ID, "Default Char", int(primaryProfession), 0x0744943b, [7]int{})
+	AddDbChar(rootAccount.ID, "Default Char", int(primaryProfession), 0x0744943b, CreateDefaultBagsAndItems(0, int(primaryProfession), [7]int{}))
 
 	// Make an alt account
 	altAccount := Account{
@@ -129,8 +185,7 @@ func maybeBootstrap() (err error) {
 	}
 	database.Create(&altAccount)
 	primaryProfession = uint8(2)
-
-	AddDbChar(altAccount.ID, "Alt Char 1", int(primaryProfession), 0x042094e6, [7]int{})
+	AddDbChar(altAccount.ID, "Alt Char 1", int(primaryProfession), 0x042094e6, CreateDefaultBagsAndItems(0, int(primaryProfession), [7]int{}))
 
 	// Make a second alt account
 	altAccount2 := Account{
@@ -140,7 +195,6 @@ func maybeBootstrap() (err error) {
 	}
 	database.Create(&altAccount2)
 	primaryProfession = uint8(5)
-
-	AddDbChar(altAccount2.ID, "Alt Char 2", int(primaryProfession), 0x045171b5, [7]int{})
+	AddDbChar(altAccount2.ID, "Alt Char 2", int(primaryProfession), 0x045171b5, CreateDefaultBagsAndItems(0, int(primaryProfession), [7]int{}))
 	return
 }

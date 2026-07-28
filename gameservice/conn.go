@@ -5,6 +5,8 @@ import (
 	"fmt"
 	GwPacket "gw1/server/gwpacket"
 	"net"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -15,25 +17,31 @@ type GSConn struct {
 	enc    *rc4.Cipher
 	dec    *rc4.Cipher
 	out    GwPacket.Out
-	closed bool
+	closed atomic.Bool
 	log    zerolog.Logger
-	player Player
+	player *Player
+	done   chan struct{}
+	closeOnce sync.Once
 }
 
 func NewGSConn(socket *net.TCPConn, logCtx zerolog.Logger) *GSConn {
 	conn := GSConn{
 		socket: socket,
-		closed: false,
 		out:    GwPacket.NewOutRaw(),
 		log:    logCtx.With().Str("srv", "game").Logger(),
+		done:   make(chan struct{}),
 	}
 	conn.player = NewPlayer(&conn, logCtx)
 	go func() {
-		for !conn.closed {
-			time.Sleep(time.Millisecond * 50)
-			if len(conn.out.GetBytes()) > 0 {
-				conn.WritePacket(&conn.out)
-				conn.out.Reset()
+		for {
+			select {
+			case <-conn.done:
+				return
+			case <-time.After(50 * time.Millisecond):
+				if len(conn.out.GetBytes()) > 0 {
+					conn.WritePacket(&conn.out)
+					conn.out.Reset()
+				}
 			}
 		}
 	}()
@@ -44,46 +52,6 @@ func (conn *GSConn) DecryptBytes(data []byte) {
 	if conn.dec != nil {
 		conn.dec.XORKeyStream(data, data)
 	}
-}
-
-func (conn *GSConn) sendCreateCharacterInstanceInfo() {
-	conn.log.Debug().Msg("sendCreateCharacterInstanceInfo")
-	conn.EnqueuePacket(MarshalInstancePlayerDataStart())
-	conn.EnqueuePacket(MarshalItemStreamCreate(1))
-
-	// Need at least one item so that the response to Dye change requests is accepted without crash
-	conn.player.itemMgr.AddBag(20, 1) // backpack
-	conn.player.itemMgr.AddBag(9, 2)  // equipments
-
-	conn.EnqueuePacket(MarshalAgentUpdateAttributePoints(conn.player.agentId, 0, 0))
-	conn.EnqueuePacket(MarshalPlayerUpdateProfession(conn.player.agentId, 1, 0))
-	conn.EnqueuePacket(MarshalAgentAttrUpdateInt(64, conn.player.agentId, 0))
-
-	conn.EnqueuePacket(MarshalInstancePlayerDataDone())
-}
-
-func (conn *GSConn) sendWorldInstanceHead() {
-
-	conn.EnqueuePacket(MarshalInstancePlayerDataStart())
-
-	conn.EnqueuePacket(MarshalInstanceLoadPlayerName(conn.player.name))
-	conn.EnqueuePacket(MarshalInstanceLoadInfo(conn.player.playerId, conn.player.connectedInstance.mapId, conn.player.connectedInstance.IsExplorable(), 1, 0, false))
-}
-
-func (conn *GSConn) sendWorldInstanceBody() {
-	itemStreamId := 1
-	resp := MarshalItemStreamCreate(itemStreamId)
-	conn.EnqueuePacket(resp)
-
-	conn.EnqueuePacket(MarshalActivateWeaponSet(itemStreamId))
-
-	conn.player.TransmitItems()
-
-	conn.EnqueuePacket(MarshalItemWeaponSet(itemStreamId, 1))
-	conn.EnqueuePacket(MarshalItemWeaponSet(itemStreamId, 2))
-	conn.EnqueuePacket(MarshalItemWeaponSet(itemStreamId, 3))
-
-	conn.EnqueuePacket(MarshalHeroInfo())
 }
 
 func (conn *GSConn) HandleBytes(data []byte) (consumed int, err error) {

@@ -12,10 +12,11 @@ import (
 	"github.com/rs/zerolog"
 )
 
+const equipmentBagIndex = 1
+
 type Player struct {
 	Agent
 	playerId           int
-	bags               []db.Bag
 	conn               *GSConn
 	questBytes         []byte
 	connectedInstance  *Instance
@@ -31,14 +32,14 @@ type Player struct {
 	dbChar     db.Character
 }
 
-func NewPlayer(conn *GSConn, logCtx zerolog.Logger) Player {
-	p := Player{
+func NewPlayer(conn *GSConn, logCtx zerolog.Logger) *Player {
+	p := &Player{
 		conn:               conn,
 		questBytes:         make([]byte, 0),
 		readyForAgentTicks: false,
 		isTransfer:         false,
 	}
-	p.itemMgr = NewItemMgr(&p)
+	p.itemMgr = NewItemMgr(p)
 	p.allegianceFlags = 0x706c6179
 	p.uuid = rand.Uint64()
 	p.log = logCtx.With().Uint64("uuid", p.uuid).Logger()
@@ -55,24 +56,13 @@ func (p *Player) syncFromDB(char db.Character) {
 	p.xp = int(char.XP)
 }
 
-func (p *Player) syncItemsFromDB(bags []db.Bag) {
-	p.bags = bags
-	// first assign localId to each bag
-	// then go through each bag and assign localId
-	for _, bag := range bags {
-		p.itemMgr.AddBag(int(bag.Capacity), int(bag.Type))
+func (p *Player) TransmitItems() {
+	dbBags, ok := db.GetBagsForCharacterByID(p.dbChar.ID)
+	if !ok {
+		p.log.Error().Uint64("id", p.dbChar.ID).Msg("failed to get bags for character")
+		return
 	}
-	x := 0
-	for _, bag := range bags {
-		for slotIndex, slot := range bag.Slots {
-			if slot.ItemID == 0 {
-				continue
-			}
-			item := Item.GetItemDefinitionById(Item.ItemId(slot.ItemID))
-			p.itemMgr.AddItemToSlot(x, slotIndex, item, Item.ItemId(slot.ItemID), int(slot.Dye1))
-		}
-		x++
-	}
+	p.itemMgr.Load(dbBags, p.dbChar.ID)
 }
 
 func (p *Player) TryEquipItem(itemLocalId int) {
@@ -94,15 +84,9 @@ func (p *Player) TryEquipItem(itemLocalId int) {
 		return
 	}
 	p.EnqueuePacket(MarshalAgentUpdateVisualEquipment2(p.agentId, int(equipVisualSlot), itemLocalId))
-}
-
-func (p *Player) TransmitItems() {
-	dbBags, ok := db.GetBagsForCharacterByID(p.dbChar.ID)
-	if !ok {
-		p.log.Error().Uint64("id", p.dbChar.ID).Msg("failed to get bags for character")
-		return
+	if err := p.itemMgr.SyncToDB(); err != nil {
+		p.log.Error().Err(err).Msg("failed to sync items after equip")
 	}
-	p.syncItemsFromDB(dbBags)
 }
 
 func (p *Player) EnqueuePacket(out GwPacket.Out) {
@@ -206,7 +190,9 @@ func (p *Player) OnC2SVerifyConnection(payload VerifyClientConnection) {
 }
 
 func (p *Player) OnUserDisconnected() {
-
+	if err := p.itemMgr.SyncToDB(); err != nil {
+		p.log.Error().Err(err).Msg("failed to sync items to database on disconnect")
+	}
 }
 
 func (p *Player) OnC2SUpdateProfessionChoice(payload UpdateProfessionChoice) {
@@ -250,9 +236,13 @@ func (p *Player) OnC2SUpdateProfessionChoice(payload UpdateProfessionChoice) {
 		// Spawn new items in equipped slots
 		itm := Item.GetItemDefinitionById(itemid)
 		itmlid, err := p.itemMgr.AddItemToSlot(0, 0, itm, itemid, 0)
+		if err != nil {
+			p.log.Error().Err(err).Msg("unable to add item to slot during profession change")
+			return
+		}
 		err = p.itemMgr.MoveItemByLocalId(itmlid, 1, int(itm.GetEquipSlot()))
 		if err != nil {
-			p.log.Error().Err(err).Msg("unable to add item to slot")
+			p.log.Error().Err(err).Msg("unable to move item to equipment slot")
 			return
 		}
 	}
@@ -286,7 +276,9 @@ func (p *Player) equipTest(profession string) {
 }
 
 func (p *Player) OnC2SDyeEquipment(payload DyeEquipment) {
-
+	if !p.connectedInstance.IsCharCreationInstance() {
+		return
+	}
 	if payload.color < 0 || payload.color > 9 {
 		p.log.Warn().Int("color", payload.color).Msg("invalid dye color")
 		return
@@ -296,40 +288,45 @@ func (p *Player) OnC2SDyeEquipment(payload DyeEquipment) {
 		return
 	}
 
-	lid, err := p.itemMgr.GetLocalIdForSlot(1, payload.slot)
+	lid, err := p.itemMgr.GetLocalIdForSlot(equipmentBagIndex, payload.slot)
 	if err != nil {
 		p.log.Error().Err(err).Msg("error calling GetLocalIdForSlot")
 		return
 	}
 	if lid == -1 {
+		p.log.Debug().Int("slot", payload.slot).Msg("no item in slot to dye")
 		return
 	}
-	// todo: verify length
-	p.charCreationDyes[payload.slot] = payload.color
+
 	item, ok := p.itemMgr.GetItemByLocalId(lid)
 	if !ok {
-		p.log.Error().Err(err).Msg("error calling GetItemByLocalId")
+		p.log.Error().Int("lid", lid).Msg("item not found for local id")
 		return
 	}
+
+	p.applyDyeToItem(lid, item, payload.color)
+	p.charCreationDyes[payload.slot] = payload.color
+	p.itemMgr.UpdateSlotDye(equipmentBagIndex, payload.slot, uint8(payload.color))
+}
+
+func (p *Player) applyDyeToItem(lid int, item Item.Item, color int) {
 	p.EnqueuePacket(MarshalItemGeneralInfo(
 		lid,
 		int(item.ModelFileId()),
 		int(item.Type()),
-		7,
-		payload.color,
-		0,
-		0,
+		7, // dye update metadata type
+		color,
+		0, // materials
+		0, // unk2
 		item.ComputeInteractionFlags(),
 		item.MerchValue(),
 		lid,
-		1,
+		1, // quantity
 		item.EncodeName(),
 		item.MarshalModifiers(),
 	))
-
 	p.EnqueuePacket(MarshalItemSetProfession(lid, p.primaryProfession))
 	p.EnqueuePacket(MarshalUnknownAfterDyeSuccess(lid, lid))
-
 }
 
 func (p *Player) sendInstanceLoadSpawnPoint() {
@@ -340,32 +337,38 @@ func (p *Player) sendInstanceLoadSpawnPoint() {
 
 func (p *Player) sendInstanceLoadRequestPlayers(payload InstanceLoadRequestPlayers) {
 	p.log.Debug().Hex("unkBlob", payload.unk1).Int("playerAgentId", p.agentId).Msg("InstanceLoadRequestPlayers")
-	// Sync skill info
+
+	p.sendSkillAndProfessionData()
+	p.sendWorldSyncData()
+	p.sendPlayerAttributes()
+	p.spawnPlayerAgent()
+	p.sendPartySetup()
+
+	p.EnqueuePacket(MarshalInstanceLoadFinish())
+}
+
+func (p *Player) sendSkillAndProfessionData() {
 	p.sendUnlockedSkills()
 	p.sendSkillbar()
-	// Sync attribute points
 	p.sendAttributePointsRemaining()
-	// Sync profession info
 	p.sendProfession()
 	p.sendUnlockedProfessions()
-
-	p.sendUnlockedPvpHeroes()
 	p.EnqueuePacket(GwPacket.NewOut(0x001b))
-	// Sync quest info
+}
+
+func (p *Player) sendWorldSyncData() {
+	p.sendUnlockedPvpHeroes()
 	p.sendQuestInfoSync()
-	// Sync unlocked maps / cartography data
 	p.sendMapsUnlockedSync()
 	p.sendCartographyData()
-	// Sync vanquish info
-	//p.sendVanquishUpdate()
 	p.EnqueuePacket(MarshalInstanceLoaded())
-	//p.sendDialogStuff()
+}
+
+func (p *Player) sendPlayerAttributes() {
 	p.EnqueuePacket(MarshalAgentAttrUpdateInt(41, p.agentId, 25))      // energy
 	p.EnqueuePacket(MarshalAgentAttrUpdateInt(42, p.agentId, 100))     // health
 	p.EnqueuePacket(MarshalAgentAttrUpdateInt(36, p.agentId, p.level)) // level
-
 	p.EnqueuePacket(MarshalUpdateDeathPenalty(p.agentId, 100))
-
 	p.EnqueuePacket(MarshalPlayerAttrSet(int(p.xp), p.level))
 
 	// REVERSE THIS MORE:
@@ -381,9 +384,10 @@ func (p *Player) sendInstanceLoadRequestPlayers(payload InstanceLoadRequestPlaye
 	resp.Uint32(1)
 	resp.Uint32(0)
 	p.EnqueuePacket(resp)
+}
 
+func (p *Player) spawnPlayerAgent() {
 	p.EnqueuePacket(MarshalAgentCreatePlayer(p.playerId, p.agentId, int(p.dbChar.AppearanceBits), p.name))
-
 	p.connectedInstance.SendActiveAgents(p)
 
 	// REVERSE THIS MORE:
@@ -419,7 +423,6 @@ func (p *Player) sendInstanceLoadRequestPlayers(payload InstanceLoadRequestPlaye
 	p.EnqueuePacket(MarshalAgentSetPlayer(p.agentId))
 
 	p.EnqueuePacket(MarshalAgentUpdateVisualEquipment(p.agentId))
-
 	for i := range p.itemMgr.GetNumSlotsInBag(1) {
 		lid, err := p.itemMgr.GetLocalIdForSlot(1, i)
 		if err != nil || lid == -1 {
@@ -437,11 +440,10 @@ func (p *Player) sendInstanceLoadRequestPlayers(payload InstanceLoadRequestPlaye
 
 	// GAME_SMSG_POST_PROCESS
 	p.EnqueuePacket(MarshalPostProcess())
+}
 
-	// party info
-
+func (p *Player) sendPartySetup() {
 	p.EnqueuePacket(MarshalUpdatePartySize(p.playerId, 1))
-
 	p.EnqueuePacket(MarshalUnknown00b0(p.playerId, p.playerId))
 
 	// GAME_SMSG_UPDATE_AGENT_PARTYSIZE - Duplicate!
@@ -463,7 +465,7 @@ func (p *Player) sendInstanceLoadRequestPlayers(payload InstanceLoadRequestPlaye
 	p.EnqueuePacket(MarshalPartySetDifficulty(false))
 
 	// party something
-	resp = GwPacket.NewOut(0x1b1)
+	resp := GwPacket.NewOut(0x1b1)
 	resp.Uint16(1)
 	resp.Uint8(1)
 	p.EnqueuePacket(resp)
@@ -475,10 +477,44 @@ func (p *Player) sendInstanceLoadRequestPlayers(payload InstanceLoadRequestPlaye
 	resp = GwPacket.NewOut(0x016d)
 	resp.Uint8(0)
 	p.EnqueuePacket(resp)
+}
 
-	// GAME_SMSG_INSTANCE_LOAD_FINISH
-	p.EnqueuePacket(MarshalInstanceLoadFinish())
+func (p *Player) sendCreateCharacterInstanceInfo() {
+	p.log.Debug().Msg("sendCreateCharacterInstanceInfo")
+	p.EnqueuePacket(MarshalInstancePlayerDataStart())
+	p.EnqueuePacket(MarshalItemStreamCreate(1))
 
+	// Need at least one item so that the response to Dye change requests is accepted without crash
+	p.itemMgr.AddBag(20, 1) // backpack
+	p.itemMgr.AddBag(9, 2)  // equipments
+
+	p.EnqueuePacket(MarshalAgentUpdateAttributePoints(p.agentId, 0, 0))
+	p.EnqueuePacket(MarshalPlayerUpdateProfession(p.agentId, 1, 0))
+	p.EnqueuePacket(MarshalAgentAttrUpdateInt(64, p.agentId, 0))
+
+	p.EnqueuePacket(MarshalInstancePlayerDataDone())
+}
+
+func (p *Player) sendWorldInstanceHead() {
+	p.EnqueuePacket(MarshalInstancePlayerDataStart())
+	p.EnqueuePacket(MarshalInstanceLoadPlayerName(p.name))
+	p.EnqueuePacket(MarshalInstanceLoadInfo(p.playerId, p.connectedInstance.mapId, p.connectedInstance.IsExplorable(), 1, 0, false))
+}
+
+func (p *Player) sendWorldInstanceBody() {
+	itemStreamId := 1
+	resp := MarshalItemStreamCreate(itemStreamId)
+	p.EnqueuePacket(resp)
+
+	p.EnqueuePacket(MarshalActivateWeaponSet(itemStreamId))
+
+	p.TransmitItems()
+
+	p.EnqueuePacket(MarshalItemWeaponSet(itemStreamId, 1))
+	p.EnqueuePacket(MarshalItemWeaponSet(itemStreamId, 2))
+	p.EnqueuePacket(MarshalItemWeaponSet(itemStreamId, 3))
+
+	p.EnqueuePacket(MarshalHeroInfo())
 }
 
 func (p *Player) sendUnlockedSkills() {
@@ -709,94 +745,14 @@ func (p *Player) OnC2SChatMessage(payload ChatMessage) {
 			return
 		}
 		command := words[0]
+		args := words[1:]
 		// check whether it is an emote command
 		if emote, exists := GetEmoteByCommand(command); exists {
 			p.connectedInstance.BroadcastGeneric(MarshalEmote(p.playerId, p.agentId, emote))
 			return
 		}
 		// not an emote, check for other commands
-		switch command {
-		case "speed":
-			if len(words) < 2 {
-				p.SendChatWarning("Usage: /speed <speed>")
-				return
-			}
-			var speed float32
-			nParsed, err := fmt.Sscanf(words[1], "%f", &speed)
-			if nParsed == 0 || err != nil {
-				p.SendChatWarning("Usage: /speed <speed>")
-				return
-			}
-			p.EnqueuePacket(MarshalAgentUpdateSpeedBase(p.agentId, speed))
-		case "e": // equip test
-			if len(words) < 2 {
-				p.SendChatWarning("Usage: /e <profession>")
-				return
-			}
-			p.equipTest(words[1])
-		case "motd":
-			p.EnqueuePacket(MarshalMessageOfTheDay("\u0108\u0107Test <c=@ItemRare>message\u0001"))
-		case "gv":
-			if len(words) < 3 {
-				p.SendChatWarning("Usage: /gv <typ> <value>")
-				return
-			}
-			var msgType int
-			nParsed, err := fmt.Sscanf(words[1], "%d", &msgType)
-			if nParsed == 0 || err != nil {
-				p.SendChatWarning("Usage: /gv <typ> <value>")
-				return
-			}
-			var value int
-			nParsed, err = fmt.Sscanf(words[2], "%d", &value)
-			if nParsed == 0 || err != nil {
-				p.SendChatWarning("Usage: /gv <typ> <value>")
-				return
-			}
-			p.log.Info().Int("msgType", msgType).Int("value", value).Msg("Sending GenericValue message")
-			// 6 (AddEffect):
-			//   24 = Black effect from eyes
-			//   20 = Blue swirly
-			//   19 = Orb thingy
-			//   18 = Unknown thingy
-			//   17 = Big blue ring
-			//   15 = Blue swirly
-			p.conn.EnqueuePacket(MarshalAgentAttrUpdateInt(msgType, p.agentId, value))
-		case "color":
-			p.SendChatColorTest()
-		case "travel":
-			if len(words) < 2 {
-				p.SendChatWarning("Usage: /travel <mapId> or /travel \"<map_debug_name>\"")
-				return
-			}
-
-			var newMapId int
-			nParsed, err := fmt.Sscanf(words[1], "%d", &newMapId)
-			if nParsed == 0 || err != nil {
-				// maybe it's a name instead of an ID
-				var ok bool
-				newMapId, ok = GetMapIdForName(words[1])
-				if !ok || newMapId == 0 {
-					p.log.Error().Err(err).Msg("failed to find map by id or debug name")
-					return
-				}
-			}
-			p.log.Info().Int("newMapId", newMapId).Msg("travel command")
-			// Is it a valid map?
-			if !HasInstanceDefinitionForMapId(newMapId) {
-				p.SendChatWarning(fmt.Sprintf("Map ID %d is not valid", newMapId))
-				return
-			}
-			// Transfer player to new map
-			err = p.connectedInstance.TransferPlayerToNewMap(p, newMapId)
-			if err != nil {
-				p.log.Error().Err(err).Int("newMapId", newMapId).Msg("failed to transfer player to new map")
-				return
-			}
-
-		default:
-			p.SendChatWarning(fmt.Sprintf("Unknown command: %s", remainder))
-		}
+		HandleCommand(p, command, remainder, args)
 	}
 }
 

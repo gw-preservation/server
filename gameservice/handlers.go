@@ -69,7 +69,7 @@ func (conn *GSConn) onDestroyItem(payload *DestroyItem) error {
 }
 
 func (conn *GSConn) onCreateCharRequestPlayer(payload *CreateCharRequestPlayer) error {
-	conn.sendCreateCharacterInstanceInfo()
+	conn.player.sendCreateCharacterInstanceInfo()
 	return nil
 }
 
@@ -111,7 +111,9 @@ func (conn *GSConn) onCreateCharacterFinish(payload *CreateCharacterFinish) erro
 		conn.EnqueuePacket(MarshalCharCreationError(29))
 		return nil
 	}
-	char := db.AddDbChar(conn.player.dbAcc.ID, payload.name, int(appearance.PrimaryProfession), uint32(payload.appearance), conn.player.charCreationDyes)
+
+	bags := db.CreateDefaultBagsAndItems(0, int(appearance.PrimaryProfession), conn.player.charCreationDyes)
+	char := db.AddDbChar(conn.player.dbAcc.ID, payload.name, int(appearance.PrimaryProfession), uint32(payload.appearance), bags)
 
 	varbs := []byte{}
 	conn.EnqueuePacket(MarshalCharCreationFinish(char.UUID, payload.name, 148, varbs))
@@ -120,7 +122,7 @@ func (conn *GSConn) onCreateCharacterFinish(payload *CreateCharacterFinish) erro
 }
 
 func (conn *GSConn) onMoveToPoint(payload *MoveToPoint) error {
-	conn.player.connectedInstance.UpdateRequestedPlayerPos(&conn.player, payload.x, payload.y)
+	conn.player.connectedInstance.UpdateRequestedPlayerPos(conn.player, payload.x, payload.y)
 	conn.EnqueuePacket(MarshalMoveToPointS2C(conn.player.agentId, payload.x, payload.y, 0))
 	return nil
 }
@@ -154,11 +156,14 @@ func (conn *GSConn) onCancelInteraction(payload *CancelInteraction) error {
 }
 
 func (conn *GSConn) Close() {
-	conn.closed = true
-	if conn.player.connectedInstance != nil {
-		(*conn.player.connectedInstance).RemovePlayer(&conn.player)
-	}
-	conn.socket.Close()
+	conn.closeOnce.Do(func() {
+		conn.closed.Store(true)
+		close(conn.done)
+		if conn.player.connectedInstance != nil {
+			(*conn.player.connectedInstance).RemovePlayer(conn.player)
+		}
+		conn.socket.Close()
+	})
 }
 
 func (conn *GSConn) onClientPingRequest(payload *ClientPingRequest) error {
@@ -188,7 +193,7 @@ func (conn *GSConn) onClientSeed(payload *ClientSeed) error {
 		return fmt.Errorf("error creating rc4 encrypter: %s", err)
 	}
 
-	(*conn.player.connectedInstance).AddPlayer(&conn.player)
+	(*conn.player.connectedInstance).AddPlayer(conn.player)
 
 	return nil
 }
@@ -210,9 +215,16 @@ func (conn *GSConn) onCreateCharRequestArmors(payload *CreateCharRequestArmors) 
 	for _, itemid := range Item.DefaultEquipmentWarrior {
 		// Spawn new items in equipped slots
 		itm := Item.GetItemDefinitionById(itemid)
-		itmlid, _ := conn.player.itemMgr.AddItemToSlot(0, 0, itm, itemid, 0)
+		itmlid, err := conn.player.itemMgr.AddItemToSlot(0, 0, itm, itemid, 0)
+		if err != nil {
+			conn.log.Error().Err(err).Msg("unable to add item to slot during char creation")
+			return nil
+		}
 		slot := int(itm.GetEquipSlot())
-		conn.player.itemMgr.MoveItemByLocalId(itmlid, 1, slot)
+		if err := conn.player.itemMgr.MoveItemByLocalId(itmlid, 1, slot); err != nil {
+			conn.log.Error().Err(err).Msg("unable to move item to equipment slot during char creation")
+			return nil
+		}
 	}
 	return nil
 }
@@ -230,5 +242,5 @@ func (conn *GSConn) onDyeEquipment(payload *DyeEquipment) error {
 
 func (conn *GSConn) onMapTravelToOutpost(payload *MapTravelToOutpost) error {
 	conn.log.Info().Int("mapId", payload.mapId).Msg("MapTravel")
-	return conn.player.connectedInstance.TransferPlayerToNewMap(&conn.player, payload.mapId)
+	return conn.player.connectedInstance.TransferPlayerToNewMap(conn.player, payload.mapId)
 }
