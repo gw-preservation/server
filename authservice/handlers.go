@@ -117,13 +117,13 @@ func (conn *ASConn) on8023(payload *Unknown8023) error {
 }
 
 func (conn *ASConn) onGetAccountInfo(payload *GetAccountInfo) error {
-	conn.log.Info().Hex("uuid1", payload.uuid1[:]).Hex("gameToken", payload.gameTokenFromPortalService[:]).Str("unkString", payload.unk1).Msg("GetAccountInfo")
+	conn.log.Info().Hex("uuid1", payload.uuid1[:]).Hex("authToken", payload.authTokenFromPortalService[:]).Str("unkString", payload.unk1).Msg("GetAccountInfo")
 	// Validate connection token
-	tokenStr := db.UUIDStr(payload.gameTokenFromPortalService[:])
+	tokenStr := db.UUIDStr(payload.authTokenFromPortalService[:])
 	tokenInfo, ok := portalservice.ValidateConnectionToken(tokenStr)
 	if !ok {
 		// Bad connection token!
-		return fmt.Errorf("invalid GameConnectionToken")
+		return fmt.Errorf("invalid AuthConnectionToken")
 	}
 
 	if !bytes.Equal(payload.uuid1[:], tokenInfo.AccountUUID[:]) {
@@ -142,6 +142,13 @@ func (conn *ASConn) onGetAccountInfo(payload *GetAccountInfo) error {
 		// Account does not exist though a token was generated to connect to it?
 		return fmt.Errorf("no such account during GetAccountInfo token verification")
 	}
+
+	// Prevent concurrent logins
+	if !TrackAccount(conn.acc.ID) {
+		conn.EnqueuePacket(MarshalRequestResponse(payload.reqNumber, 35))
+		return fmt.Errorf("account %d already logged in", conn.acc.ID)
+	}
+	conn.accountID = conn.acc.ID
 
 	// Now send all characters belonging to the account:
 	lastCharUUID := []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
@@ -227,6 +234,11 @@ func (conn *ASConn) onGetAccountInfo(payload *GetAccountInfo) error {
 		[]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
 		conn.acc.UUID, lastCharUUID, 3, []byte{0x01, 0x00, 0x06, 0x00}, 0x18, 1,
 	))
+	// Default to first character if client never sends onSetActiveCharacter
+	if len(conn.acc.Characters) > 0 {
+		conn.activeCharacterName = conn.acc.Characters[0].Name
+	}
+
 	conn.EnqueuePacket(MarshalRequestResponse(payload.reqNumber, 0))
 
 	return nil
@@ -245,7 +257,7 @@ func (conn *ASConn) onLanguageInfo(payload *LanguageInfo) error {
 func (conn *ASConn) onDisconnect(payload *Disconnect) error {
 	conn.log.Info().
 		Int("errCode", payload.errorCode).Msg("Disconnect")
-	conn.socket.Close()
+	conn.Close()
 	return nil
 }
 
@@ -321,6 +333,9 @@ func (conn *ASConn) onSetCharacterName(payload *SetCharacterName) error {
 func (conn *ASConn) onSetActiveCharacter(payload *SetActiveCharacter) error {
 	conn.log.Debug().Str("charName", payload.charName).Msg("SetActiveCharacter")
 	if payload.charName != "" {
+		if acc, ok := db.GetFullAccountByID(conn.accountID); ok {
+			conn.acc = acc
+		}
 		if !conn.charBelongsToAccount(payload.charName) {
 			return fmt.Errorf("character %q does not belong to account", payload.charName)
 		}

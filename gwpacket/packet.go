@@ -153,6 +153,9 @@ func (p *In) Bytes(length int) (out []byte, err error) {
 }
 
 func (p *In) Opcode() int {
+	if len(p.data) < 2 {
+		return 0
+	}
 	return int(p.data[0]) | (int(p.data[1]) << 8)
 }
 

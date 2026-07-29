@@ -9,30 +9,13 @@ import (
 func TestUUIDStr(t *testing.T) {
 	uuid := []byte{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F}
 	result := UUIDStr(uuid)
-	assert.Equal(t, "00010203-0405-0607-0809-0a0b0c0d0e0f", result)
+	assert.Equal(t, "03020100-0504-0706-0809-0a0b0c0d0e0f", result)
 }
 
 func TestUUIDStr_AllZeros(t *testing.T) {
 	uuid := make([]byte, 16)
 	result := UUIDStr(uuid)
 	assert.Equal(t, "00000000-0000-0000-0000-000000000000", result)
-}
-
-func TestUUIDStrSwapped(t *testing.T) {
-	uuid := []byte{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F}
-	result := UUIDStrSwapped(uuid)
-	assert.Equal(t, "03020100-0504-0706-0809-0a0b0c0d0e0f", result)
-}
-
-func TestUUIDStrSwapped_AllZeros(t *testing.T) {
-	uuid := make([]byte, 16)
-	result := UUIDStrSwapped(uuid)
-	assert.Equal(t, "00000000-0000-0000-0000-000000000000", result)
-}
-
-func TestUUIDStrSwapped_DiffersFromUUIDStr(t *testing.T) {
-	uuid := []byte{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F}
-	assert.NotEqual(t, UUIDStr(uuid), UUIDStrSwapped(uuid))
 }
 
 func TestModifiersArray_Value(t *testing.T) {

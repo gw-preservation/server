@@ -10,6 +10,8 @@ import (
 	"gorm.io/gorm"
 )
 
+var ErrCharacterNameTaken = errors.New("character name already taken")
+
 var log zerolog.Logger
 var database *gorm.DB
 
@@ -120,7 +122,7 @@ func NewDbBag(forCharacterId uint64, capacity int, bagType int) (bag Bag) {
 	return
 }
 
-func AddDbChar(forAccountId uint64, name string, primaryProfession int, appearanceBits uint32, bags []Bag) (char Character) {
+func AddDbChar(forAccountId uint64, name string, primaryProfession int, appearanceBits uint32, bags []Bag) (char Character, err error) {
 	log.Info().Uint64("forAccountId", forAccountId).Str("name", name).Int("primary", primaryProfession).Uint32("appearance", appearanceBits).Msg("NewDbChar")
 	char.AccountID = forAccountId
 	char.UUID = randUuid()
@@ -129,8 +131,57 @@ func AddDbChar(forAccountId uint64, name string, primaryProfession int, appearan
 	char.ProfessionSecondary = 0
 	char.AppearanceBits = appearanceBits
 	char.Bags = bags
-	database.Create(&char)
+	err = database.Transaction(func(tx *gorm.DB) error {
+		return tx.Create(&char).Error
+	})
 	return
+}
+
+func CreateCharacter(accountID uint64, name string, primaryProfession int, appearanceBits uint32, bags []Bag) (char Character, err error) {
+	err = database.Transaction(func(tx *gorm.DB) error {
+		var id uint64
+		err := tx.Model(&Character{}).Select("id").Where("name = ?", name).Take(&id).Error
+		if err == nil {
+			return ErrCharacterNameTaken
+		}
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+		char.AccountID = accountID
+		char.UUID = randUuid()
+		char.Name = name
+		char.ProfessionPrimary = uint8(primaryProfession)
+		char.ProfessionSecondary = 0
+		char.AppearanceBits = appearanceBits
+		char.Bags = bags
+		return tx.Create(&char).Error
+	})
+	return
+}
+
+func SaveCharacterMapTransfer(charId uint64, newMapId uint16, newBags []Bag) error {
+	return database.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("bag_id IN (SELECT id FROM bags WHERE character_id = ?)", charId).Delete(&Slot{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("character_id = ?", charId).Delete(&Bag{}).Error; err != nil {
+			return err
+		}
+		for i := range newBags {
+			newBags[i].CharacterID = charId
+			if err := tx.Create(&newBags[i]).Error; err != nil {
+				return err
+			}
+		}
+		result := tx.Model(&Character{}).Where("id = ?", charId).Update("last_outpost_id", newMapId)
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected == 0 {
+			return errors.New("character not found")
+		}
+		return nil
+	})
 }
 
 func ReplaceBagsForCharacter(characterId uint64, newBags []Bag) error {

@@ -180,9 +180,9 @@ func UnmarshalGetAccountInfo(in *GwPacket.In) (resp GetAccountInfo, err error) {
 		err = fmt.Errorf("read uuid1: %w", err)
 		return
 	}
-	resp.gameTokenFromPortalService, err = in.Bytes(16)
+	resp.authTokenFromPortalService, err = in.Bytes(16)
 	if err != nil {
-		err = fmt.Errorf("read gameTokenFromPortalService: %w", err)
+		err = fmt.Errorf("read authTokenFromPortalService: %w", err)
 		return
 	}
 	resp.unk1, err = in.UTF16WithLengthPrefix()

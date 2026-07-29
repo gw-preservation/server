@@ -92,13 +92,18 @@ func (srv tcpsrv) handleTCPConnection(conn *net.TCPConn) {
 			}
 			if transport != nil {
 				transport.Close()
+			} else {
+				conn.Close()
 			}
-			conn.Close()
 			return
 		}
 		if numBytesReadFromSocket == 0 {
 			logger.Error().Msg("0 bytes read from tcp socket")
-			conn.Close()
+			if transport != nil {
+				transport.Close()
+			} else {
+				conn.Close()
+			}
 			return
 		}
 		readData := tempBuffer[:numBytesReadFromSocket]

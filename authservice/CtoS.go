@@ -60,7 +60,7 @@ type Unknown8023 struct {
 type GetAccountInfo struct {
 	reqNumber                  int    // wire:uint32
 	uuid1                      []byte // len:16
-	gameTokenFromPortalService []byte // len:16
+	authTokenFromPortalService []byte // len:16
 	unk1                       string
 }
 

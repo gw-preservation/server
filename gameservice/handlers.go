@@ -3,6 +3,7 @@ package gameservice
 import (
 	"bytes"
 	"crypto/rc4"
+	"errors"
 	"fmt"
 	"gw1/server/crypt"
 	"gw1/server/db"
@@ -143,13 +144,18 @@ func (conn *GSConn) onCreateCharacterFinish(payload *CreateCharacterFinish) erro
 	appearance := ParseAppearanceBits(uint32(payload.appearance))
 	conn.log.Info().Str("desiredName", payload.name).Interface("appearance", appearance).Msg("CreateCharacterFinish")
 
-	if db.CharacterNameExists(payload.name) {
+	bags := db.CreateDefaultBagsAndItems(0, int(appearance.PrimaryProfession), conn.player.charCreationDyes)
+	char, err := db.CreateCharacter(conn.player.dbAcc.ID, payload.name, int(appearance.PrimaryProfession), uint32(payload.appearance), bags)
+	if errors.Is(err, db.ErrCharacterNameTaken) {
 		conn.EnqueuePacket(MarshalCharCreationError(29))
 		return nil
 	}
+	if err != nil {
+		conn.log.Error().Err(err).Msg("failed to create character")
+		return nil
+	}
 
-	bags := db.CreateDefaultBagsAndItems(0, int(appearance.PrimaryProfession), conn.player.charCreationDyes)
-	char := db.AddDbChar(conn.player.dbAcc.ID, payload.name, int(appearance.PrimaryProfession), uint32(payload.appearance), bags)
+	conn.player.dbAcc.Characters = append(conn.player.dbAcc.Characters, char)
 
 	varbs := []byte{}
 	conn.EnqueuePacket(MarshalCharCreationFinish(char.UUID, payload.name, 148, varbs))
@@ -197,6 +203,9 @@ func (conn *GSConn) Close() {
 		if conn.player.connectedInstance != nil {
 			conn.player.connectedInstance.RemovePlayer(conn.player)
 		}
+		if conn.accountID != 0 {
+			UntrackAccount(conn.accountID)
+		}
 		conn.socket.Close()
 	})
 }
@@ -237,12 +246,6 @@ func (conn *GSConn) onVerifyClientConnection(payload *VerifyClientConnection) er
 	if info.InstanceTag == CharCreationTag {
 		p.log.Debug().Msg("entering character creation")
 		p.charCreationInProgress = true
-		var zeroUUID [16]byte
-		if !bytes.Equal(payload.characterUUID, zeroUUID[:]) {
-			p.log.Error().Msg("char creation requires zero character UUID")
-			p.Disconnect()
-			return nil
-		}
 		if payload.instanceTag != int(info.InstanceTag) {
 			p.log.Error().Msg("char creation instanceTag mismatch")
 			p.Disconnect()
@@ -279,6 +282,12 @@ func (conn *GSConn) onVerifyClientConnection(payload *VerifyClientConnection) er
 		return nil
 	}
 	p.dbAcc = acc
+	if !TrackAccount(acc.ID) {
+		p.log.Error().Uint64("accountID", acc.ID).Msg("account already logged in")
+		p.Disconnect()
+		return nil
+	}
+	conn.accountID = acc.ID
 	if p.charCreationInProgress {
 		p.log.Debug().Msg("Skip UUID check - entering CharCreation")
 	} else {

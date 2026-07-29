@@ -130,10 +130,7 @@ func (m *ItemMgr) Load(bags []db.Bag, characterId uint64) {
 	}
 }
 
-func (m *ItemMgr) SyncToDB() error {
-	if m.dbCharacterId == 0 {
-		return nil
-	}
+func (m *ItemMgr) BuildDBBags() []db.Bag {
 	var dbBags []db.Bag
 	for _, b := range m.bags {
 		dbBag := db.Bag{
@@ -161,7 +158,14 @@ func (m *ItemMgr) SyncToDB() error {
 		dbBag.Slots = dbSlots
 		dbBags = append(dbBags, dbBag)
 	}
-	return db.ReplaceBagsForCharacter(m.dbCharacterId, dbBags)
+	return dbBags
+}
+
+func (m *ItemMgr) SyncToDB() error {
+	if m.dbCharacterId == 0 {
+		return nil
+	}
+	return db.ReplaceBagsForCharacter(m.dbCharacterId, m.BuildDBBags())
 }
 
 func (m *ItemMgr) AddBag(capacity int, typ int) {

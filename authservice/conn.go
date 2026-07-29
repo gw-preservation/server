@@ -6,6 +6,7 @@ import (
 	"gw1/server/db"
 	GwPacket "gw1/server/gwpacket"
 	"net"
+	"sync"
 
 	"github.com/rs/zerolog"
 )
@@ -30,6 +31,8 @@ type ASConn struct {
 	acc                    db.Account
 	hasLoggedInThisSession bool
 	activeCharacterName    string
+	closeOnce              sync.Once
+	accountID              uint64
 }
 
 func NewASConn(socket *net.TCPConn, logCtx zerolog.Logger) *ASConn {
@@ -100,7 +103,12 @@ func (conn *ASConn) WritePacket(packet *GwPacket.Out) error {
 }
 
 func (conn *ASConn) Close() {
-	conn.socket.Close()
+	conn.closeOnce.Do(func() {
+		if conn.accountID != 0 {
+			UntrackAccount(conn.accountID)
+		}
+		conn.socket.Close()
+	})
 }
 
 func (conn *ASConn) EnqueuePacket(packet GwPacket.Out) {

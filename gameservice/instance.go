@@ -594,10 +594,6 @@ func (i *Instance) TransferPlayerToNewMap(player *Player, newMapId int) error {
 	}
 	// Clear connectedInstance before any disconnect path can trigger a second RemovePlayer
 	player.connectedInstance = nil
-	// Sync items while the player is cleanly detached from the old instance
-	if err := player.itemMgr.SyncToDB(); err != nil {
-		player.log.Error().Err(err).Msg("failed to sync items to database during map transfer")
-	}
 	i.mu.Unlock()
 	// Broadcast despawn AFTER releasing the write lock to avoid deadlock.
 	if removed {
@@ -617,8 +613,8 @@ func (i *Instance) TransferPlayerToNewMap(player *Player, newMapId int) error {
 
 	// Point player at the new instance
 	player.connectedInstance = inst
-	if err := db.SetLastOutpostForChar(player.dbChar.ID, uint16(newMapId)); err != nil {
-		player.log.Error().Err(err).Msg("unable to update last outpost")
+	if err := db.SaveCharacterMapTransfer(player.dbChar.ID, uint16(newMapId), player.itemMgr.BuildDBBags()); err != nil {
+		player.log.Error().Err(err).Msg("unable to save character map transfer data")
 		return err
 	}
 	player.log.Info().Msg("Switched instances and synced db")

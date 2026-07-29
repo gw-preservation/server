@@ -23,6 +23,7 @@ type GSConn struct {
 	done         chan struct{}
 	closeOnce    sync.Once
 	writeTimeout time.Duration
+	accountID    uint64
 }
 
 func NewGSConn(socket *net.TCPConn, logCtx zerolog.Logger, writeTimeout time.Duration) *GSConn {

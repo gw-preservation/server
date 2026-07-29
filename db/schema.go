@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 	Item "gw1/server/item"
+
+	"gorm.io/gorm"
 )
 
 type Account struct {
@@ -76,7 +78,7 @@ func autoMigrate() (err error) {
 	return err
 }
 
-func UUIDStr(uuid []byte) string {
+func UUIDStr__(uuid []byte) string {
 	// "00010203-0405-0607-0809-0A0B0C0D0E0F"
 	return fmt.Sprintf(
 		"%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
@@ -88,7 +90,7 @@ func UUIDStr(uuid []byte) string {
 	)
 }
 
-func UUIDStrSwapped(uuid []byte) string {
+func UUIDStr(uuid []byte) string {
 	// "00010203-0405-0607-0809-0A0B0C0D0E0F"
 	return fmt.Sprintf(
 		"%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
@@ -173,38 +175,70 @@ func maybeBootstrap() (err error) {
 	if count > 0 {
 		return
 	}
-	// Set initial data as there were no accounts
-	rootAccount := Account{
-		Email:        "root@localhost",
-		Password:     "p",
-		PasswordSalt: randSalt(),
-		UUID:         randUuid(),
-	}
-	database.Create(&rootAccount)
-	// One character
-	primaryProfession := uint8(4)
-	AddDbChar(rootAccount.ID, "Default Char", int(primaryProfession), 0x0744943b, CreateDefaultBagsAndItems(0, int(primaryProfession), [7]int{}))
+	err = database.Transaction(func(tx *gorm.DB) error {
+		rootAccount := Account{
+			Email:        "root@localhost",
+			Password:     "p",
+			PasswordSalt: randSalt(),
+			UUID:         randUuid(),
+		}
+		if err := tx.Create(&rootAccount).Error; err != nil {
+			return err
+		}
+		rootChar := Character{
+			AccountID:           rootAccount.ID,
+			UUID:                randUuid(),
+			Name:                "Default Char",
+			ProfessionPrimary:   4,
+			ProfessionSecondary: 0,
+			AppearanceBits:      0x0744943b,
+		}
+		rootChar.Bags = CreateDefaultBagsAndItems(0, int(rootChar.ProfessionPrimary), [7]int{})
+		if err := tx.Create(&rootChar).Error; err != nil {
+			return err
+		}
 
-	// Make an alt account
-	altAccount := Account{
-		Email:        "alt@localhost",
-		Password:     "p",
-		PasswordSalt: randSalt(),
-		UUID:         randUuid(),
-	}
-	database.Create(&altAccount)
-	primaryProfession = uint8(2)
-	AddDbChar(altAccount.ID, "Alt Char 1", int(primaryProfession), 0x042094e6, CreateDefaultBagsAndItems(0, int(primaryProfession), [7]int{}))
+		altAccount := Account{
+			Email:        "alt@localhost",
+			Password:     "p",
+			PasswordSalt: randSalt(),
+			UUID:         randUuid(),
+		}
+		if err := tx.Create(&altAccount).Error; err != nil {
+			return err
+		}
+		altChar := Character{
+			AccountID:           altAccount.ID,
+			UUID:                randUuid(),
+			Name:                "Alt Char 1",
+			ProfessionPrimary:   2,
+			ProfessionSecondary: 0,
+			AppearanceBits:      0x042094e6,
+		}
+		altChar.Bags = CreateDefaultBagsAndItems(0, int(altChar.ProfessionPrimary), [7]int{})
+		if err := tx.Create(&altChar).Error; err != nil {
+			return err
+		}
 
-	// Make a second alt account
-	altAccount2 := Account{
-		Email:        "alt2@localhost",
-		Password:     "p",
-		PasswordSalt: randSalt(),
-		UUID:         randUuid(),
-	}
-	database.Create(&altAccount2)
-	primaryProfession = uint8(5)
-	AddDbChar(altAccount2.ID, "Alt Char 2", int(primaryProfession), 0x045171b5, CreateDefaultBagsAndItems(0, int(primaryProfession), [7]int{}))
+		altAccount2 := Account{
+			Email:        "alt2@localhost",
+			Password:     "p",
+			PasswordSalt: randSalt(),
+			UUID:         randUuid(),
+		}
+		if err := tx.Create(&altAccount2).Error; err != nil {
+			return err
+		}
+		altChar2 := Character{
+			AccountID:           altAccount2.ID,
+			UUID:                randUuid(),
+			Name:                "Alt Char 2",
+			ProfessionPrimary:   5,
+			ProfessionSecondary: 0,
+			AppearanceBits:      0x045171b5,
+		}
+		altChar2.Bags = CreateDefaultBagsAndItems(0, int(altChar2.ProfessionPrimary), [7]int{})
+		return tx.Create(&altChar2).Error
+	})
 	return
 }

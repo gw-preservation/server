@@ -83,7 +83,7 @@ func (conn *PSConn) HandleBytes(data []byte) (int, error) {
 			}
 		case StateSentAccCreationInfo:
 			if hdr.Resource == pathRequestToken {
-				err = conn.handleRequestGameToken(msg)
+				err = conn.handleRequestAuthToken(msg)
 			}
 		}
 	}
@@ -164,7 +164,7 @@ func (conn *PSConn) handleListGameAccounts(msg sts.ReqMsg) error {
 	return nil
 }
 
-func (conn *PSConn) handleRequestGameToken(msg sts.ReqMsg) error {
+func (conn *PSConn) handleRequestAuthToken(msg sts.ReqMsg) error {
 	pl, ok := msg.Payload.(*sts.PayloadRequestGameToken)
 	if !ok {
 		return fmt.Errorf("unexpected payload type %T", msg.Payload)
