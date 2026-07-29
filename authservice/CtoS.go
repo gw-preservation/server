@@ -34,7 +34,7 @@ type ClientHashInfo struct {
 
 // opcode: 0x0400
 type ClientVersionInfo struct {
-	skip          int // wire:uint32
+	skip          int // wire:uint16
 	clientVersion int // wire:uint32
 	unk2          int // wire:uint32
 	unk3          int // wire:uint32
@@ -86,7 +86,6 @@ type SetPlayerOnlineVisibilityStatus struct {
 
 // opcode: 0x4200
 type ClientSeed struct {
-	skip      int    // wire:uint16
 	seedBytes []byte // len:64
 }
 

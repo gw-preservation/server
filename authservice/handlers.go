@@ -38,6 +38,8 @@ func wrap[T any](
 
 // handlers which can be accessed only by unverified connections
 var unverifiedHandlers = map[int]packetHandler{
+	0x0400: wrap(UnmarshalClientVersionInfo, (*ASConn).onClientVersion),
+	0x4200: wrap(UnmarshalClientSeed, (*ASConn).onClientSeed),
 	0x8001: wrap(UnmarshalComputerInfo, (*ASConn).onComputerInfo),
 	0x8002: wrap(UnmarshalClientHashInfo, (*ASConn).onClientHashInfo),
 	0x8038: wrap(UnmarshalGetAccountInfo, (*ASConn).onGetAccountInfo),
@@ -59,22 +61,14 @@ var verifiedHandlers = map[int]packetHandler{
 	0x8007: wrap(UnmarshalDeleteCharacter, (*ASConn).onDeleteCharacter),
 }
 
-func (conn *ASConn) onClientVersion(pkt *GwPacket.In) (int, error) {
-	payload, err := UnmarshalClientVersionInfo(pkt)
-	if err != nil {
-		return 0, fmt.Errorf("UnmarshalClientVersionPacket: %w", err)
-	}
+func (conn *ASConn) onClientVersion(payload *ClientVersionInfo) error {
 	conn.log.Info().
 		Int("version", payload.clientVersion).
 		Msg("ClientVersion")
-	return pkt.Position(), nil
+	return nil
 }
 
-func (conn *ASConn) onClientSeed(pkt *GwPacket.In) (int, error) {
-	payload, err := UnmarshalClientSeed(pkt)
-	if err != nil {
-		return 0, fmt.Errorf("UnmarshalClientSeed: %w", err)
-	}
+func (conn *ASConn) onClientSeed(payload *ClientSeed) error {
 	rc4Key, publicBytes := crypt.GenerateEncryptionKey([64]byte(payload.seedBytes))
 
 	// Reply with ServerSeed, contents being the xored bytes.
@@ -82,16 +76,17 @@ func (conn *ASConn) onClientSeed(pkt *GwPacket.In) (int, error) {
 	conn.WritePacket(&seedOut)
 
 	// Immediately after, enable RC4!
+	var err error
 	conn.enc, err = rc4.NewCipher(rc4Key[:])
 	if err != nil {
-		return 66, fmt.Errorf("error creating rc4 encrypter: %s", err)
+		return fmt.Errorf("error creating rc4 encrypter: %s", err)
 	}
 	conn.dec, err = rc4.NewCipher(rc4Key[:])
 	if err != nil {
-		return 66, fmt.Errorf("error creating rc4 decrypter: %s", err)
+		return fmt.Errorf("error creating rc4 decrypter: %s", err)
 	}
 
-	return 66, nil
+	return nil
 }
 
 func (conn *ASConn) onComputerInfo(payload *ComputerInfo) error {

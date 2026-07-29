@@ -102,7 +102,7 @@ func UnmarshalClientVersionInfo(in *GwPacket.In) (resp ClientVersionInfo, err er
 		err = errors.New("bad opcode")
 		return
 	}
-	resp.skip, err = in.Uint32()
+	resp.skip, err = in.Uint16()
 	if err != nil {
 		err = fmt.Errorf("read skip: %w", err)
 		return
@@ -243,11 +243,6 @@ func UnmarshalSetPlayerOnlineVisibilityStatus(in *GwPacket.In) (resp SetPlayerOn
 func UnmarshalClientSeed(in *GwPacket.In) (resp ClientSeed, err error) {
 	if in.Opcode() != 0x4200 {
 		err = errors.New("bad opcode")
-		return
-	}
-	resp.skip, err = in.Uint16()
-	if err != nil {
-		err = fmt.Errorf("read skip: %w", err)
 		return
 	}
 	resp.seedBytes, err = in.Bytes(64)
