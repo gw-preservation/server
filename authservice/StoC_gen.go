@@ -102,7 +102,7 @@ func MarshalInstanceServerInfo(reqNumber int, worldHash int, mapId int, socketDa
 	return
 }
 
-func MarshalUnknown0000(unk1 int, unk2 int) (resp GwPacket.Out) {
+func MarshalServerHeartbeat(unk1 int, unk2 int) (resp GwPacket.Out) {
 	resp = GwPacket.NewOut(0x0)
 	resp.Uint32(unk1)
 	resp.Uint32(unk2)

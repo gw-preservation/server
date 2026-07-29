@@ -147,7 +147,7 @@ func TestRejectsWrongClientIP(t *testing.T) {
 	attackerIP := "10.0.0.99"
 	securityTag := GenerateConnectionTokenForInstance(42, false, charUUID, accUUID, attackerIP)
 
-	gsConn := NewGSConn(serverConn, zerolog.Nop(), 0)
+	gsConn := NewGSConn(serverConn, zerolog.Nop())
 	defer gsConn.Close()
 
 	payload := &VerifyClientConnection{

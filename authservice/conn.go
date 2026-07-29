@@ -13,14 +13,6 @@ import (
 
 type State int
 
-const (
-	StateReadClientVersion State = iota
-	StateReadClientSeed
-	StateCharacterScreen
-	StateCreateCharacter
-	StateInInstance
-)
-
 type ASConn struct {
 	socket                 *net.TCPConn
 	state                  State
@@ -29,6 +21,7 @@ type ASConn struct {
 	out                    GwPacket.Out
 	log                    zerolog.Logger
 	acc                    db.Account
+	verified               bool
 	hasLoggedInThisSession bool
 	activeCharacterName    string
 	closeOnce              sync.Once
@@ -38,10 +31,10 @@ type ASConn struct {
 func NewASConn(socket *net.TCPConn, logCtx zerolog.Logger) *ASConn {
 	conn := ASConn{
 		socket:                 socket,
-		state:                  StateReadClientVersion,
 		log:                    logCtx.With().Str("srv", "auth").Logger(),
 		out:                    GwPacket.NewOutRaw(),
 		hasLoggedInThisSession: false,
+		verified:               false,
 	}
 	return &conn
 }
@@ -60,29 +53,34 @@ func (conn *ASConn) EncryptBytes(data []byte) {
 	}
 }
 
-func (conn *ASConn) HandleBytes(data []byte) (int, error) {
-	inPkt := GwPacket.NewIn(data)
-	switch conn.state {
-	case StateReadClientVersion:
-		return conn.onClientVersion(&inPkt)
-	case StateReadClientSeed:
-		return conn.onClientSeed(&inPkt)
-	default:
-		return conn.onRegularPacket(&inPkt)
-	}
-}
-
-func (conn *ASConn) onRegularPacket(in *GwPacket.In) (consumed int, err error) {
+func (conn *ASConn) HandleBytes(data []byte) (consumed int, err error) {
+	in := GwPacket.NewIn(data)
 	op, err := in.Uint16()
 	if err != nil {
 		return 0, err
 	}
 
-	handler, ok := packetHandlers[op]
-	if !ok {
-		return 0, fmt.Errorf("[%04x] UNEXPECTED; len=%d", op, in.Remaining())
+	if op == 0x8000 {
+		fmt.Printf("Heartbeat\n")
+		conn.EnqueuePacket(MarshalServerHeartbeat(0x8002e647, 0x17))
+		return 6, nil
 	}
-	consumed, err = handler(conn, in)
+
+	if conn.verified {
+		// verified can access regular handlers
+		handler, ok := verifiedHandlers[op]
+		if !ok {
+			return 0, fmt.Errorf("[%04x] unexpected for verified client; len=%d", op, in.Remaining())
+		}
+		consumed, err = handler(conn, &in)
+	} else {
+		// unverified only access unverified handlers, as we have not yet confirmed identity
+		handler, ok := unverifiedHandlers[op]
+		if !ok {
+			return 0, fmt.Errorf("[%04x] unexpected for unverified client; len=%d", op, in.Remaining())
+		}
+		consumed, err = handler(conn, &in)
+	}
 
 	if len(conn.out.GetBytes()) > 0 {
 		conn.WritePacket(&conn.out)
@@ -115,7 +113,7 @@ func (conn *ASConn) EnqueuePacket(packet GwPacket.Out) {
 	conn.out.Merge(packet)
 }
 
-func (conn *ASConn) getLastMapId() (mapId int, uuid []byte, ok bool) {
+func (conn *ASConn) getLastOutpostId() (mapId int, uuid []byte, ok bool) {
 	if conn.activeCharacterName == "" {
 		return 0, nil, false
 	}

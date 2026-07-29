@@ -41,7 +41,7 @@ type ClientVersionInfo struct {
 }
 
 // opcode: 0x8000
-type Unknown8000 struct {
+type ClientHeartbeat struct {
 	unk1 int // wire:uint32
 }
 

@@ -161,7 +161,7 @@ type InstanceServerInfo struct {
 }
 
 // opcode: 0x0000
-type Unknown0000 struct {
+type ServerHeartbeat struct {
 	unk1 int // wire:uint32
 	unk2 int // wire:uint32
 }

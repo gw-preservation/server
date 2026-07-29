@@ -22,7 +22,7 @@ func TestClose_UntracksAccount(t *testing.T) {
 	serverConn, err := listener.AcceptTCP()
 	assert.NoError(t, err)
 
-	conn := NewGSConn(serverConn, zerolog.Nop(), 0)
+	conn := NewGSConn(serverConn, zerolog.Nop())
 	conn.accountID = 42
 	TrackAccount(42)
 
@@ -47,7 +47,7 @@ func TestClose_ZeroAccountIDDoesNotUntrack(t *testing.T) {
 	serverConn, err := listener.AcceptTCP()
 	assert.NoError(t, err)
 
-	conn := NewGSConn(serverConn, zerolog.Nop(), 0)
+	conn := NewGSConn(serverConn, zerolog.Nop())
 	TrackAccount(42)
 
 	conn.Close()
@@ -69,7 +69,7 @@ func TestClose_Idempotent(t *testing.T) {
 	serverConn, err := listener.AcceptTCP()
 	assert.NoError(t, err)
 
-	conn := NewGSConn(serverConn, zerolog.Nop(), 0)
+	conn := NewGSConn(serverConn, zerolog.Nop())
 	conn.accountID = 42
 	TrackAccount(42)
 

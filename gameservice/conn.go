@@ -13,26 +13,24 @@ import (
 )
 
 type GSConn struct {
-	socket       *net.TCPConn
-	enc          *rc4.Cipher
-	dec          *rc4.Cipher
-	out          GwPacket.Out
-	closed       atomic.Bool
-	log          zerolog.Logger
-	player       *Player
-	done         chan struct{}
-	closeOnce    sync.Once
-	writeTimeout time.Duration
-	accountID    uint64
+	socket    *net.TCPConn
+	enc       *rc4.Cipher
+	dec       *rc4.Cipher
+	out       GwPacket.Out
+	closed    atomic.Bool
+	log       zerolog.Logger
+	player    *Player
+	done      chan struct{}
+	closeOnce sync.Once
+	accountID uint64
 }
 
-func NewGSConn(socket *net.TCPConn, logCtx zerolog.Logger, writeTimeout time.Duration) *GSConn {
+func NewGSConn(socket *net.TCPConn, logCtx zerolog.Logger) *GSConn {
 	conn := GSConn{
-		socket:       socket,
-		out:          GwPacket.NewOutRaw(),
-		log:          logCtx.With().Str("srv", "game").Logger(),
-		done:         make(chan struct{}),
-		writeTimeout: writeTimeout,
+		socket: socket,
+		out:    GwPacket.NewOutRaw(),
+		log:    logCtx.With().Str("srv", "game").Logger(),
+		done:   make(chan struct{}),
 	}
 	conn.player = NewPlayer(&conn, logCtx)
 	go func() {
@@ -42,9 +40,6 @@ func NewGSConn(socket *net.TCPConn, logCtx zerolog.Logger, writeTimeout time.Dur
 				return
 			case <-time.After(50 * time.Millisecond):
 				if len(conn.out.GetBytes()) > 0 {
-					if conn.writeTimeout > 0 {
-						conn.socket.SetWriteDeadline(time.Now().Add(conn.writeTimeout))
-					}
 					if err := conn.WritePacket(&conn.out); err != nil {
 						conn.log.Error().Err(err).Msg("flush write failed, closing")
 						conn.Close()

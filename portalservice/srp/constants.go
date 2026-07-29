@@ -18,7 +18,7 @@ const (
 )
 
 const (
-	handshakeTimeout = 30 * time.Second
+	handshakeTimeout = 300 * time.Second
 )
 
 var (

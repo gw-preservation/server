@@ -10,6 +10,7 @@ import (
 	GwPacket "gw1/server/gwpacket"
 	Item "gw1/server/item"
 	"gw1/server/portalservice"
+	"math/rand"
 	"net"
 )
 
@@ -35,10 +36,16 @@ func wrap[T any](
 	}
 }
 
-var packetHandlers = map[int]packetHandler{
-	0x8000: wrap(UnmarshalUnknown8000, (*ASConn).on8000),
+// handlers which can be accessed only by unverified connections
+var unverifiedHandlers = map[int]packetHandler{
 	0x8001: wrap(UnmarshalComputerInfo, (*ASConn).onComputerInfo),
 	0x8002: wrap(UnmarshalClientHashInfo, (*ASConn).onClientHashInfo),
+	0x8038: wrap(UnmarshalGetAccountInfo, (*ASConn).onGetAccountInfo),
+	0x8023: wrap(UnmarshalUnknown8023, (*ASConn).on8023),
+}
+
+// handlers which can be accessed only by verified connections
+var verifiedHandlers = map[int]packetHandler{
 	0x8009: wrap(UnmarshalSetCharacterName, (*ASConn).onSetCharacterName),
 	0x800a: wrap(UnmarshalSetActiveCharacter, (*ASConn).onSetActiveCharacter),
 	0x800d: wrap(UnmarshalDisconnect, (*ASConn).onDisconnect),
@@ -47,10 +54,8 @@ var packetHandlers = map[int]packetHandler{
 	0x801c: wrap(UnmarshalAddAccessKey, (*ASConn).onAddAccessKey),
 	0x8020: wrap(UnmarshalUpdateSettings, (*ASConn).onUpdateSettings),
 	0x8021: wrap(UnmarshalUpdateSettingsLength, (*ASConn).onUpdateSettingsLength),
-	0x8023: wrap(UnmarshalUnknown8023, (*ASConn).on8023),
 	0x8029: wrap(UnmarshalLoginCharacter, (*ASConn).onLoginCharacter),
 	0x8035: wrap(UnmarshalAskServerResponse, (*ASConn).onAskServerResponse),
-	0x8038: wrap(UnmarshalGetAccountInfo, (*ASConn).onGetAccountInfo),
 	0x8007: wrap(UnmarshalDeleteCharacter, (*ASConn).onDeleteCharacter),
 }
 
@@ -62,7 +67,6 @@ func (conn *ASConn) onClientVersion(pkt *GwPacket.In) (int, error) {
 	conn.log.Info().
 		Int("version", payload.clientVersion).
 		Msg("ClientVersion")
-	conn.state = StateReadClientSeed
 	return pkt.Position(), nil
 }
 
@@ -76,7 +80,6 @@ func (conn *ASConn) onClientSeed(pkt *GwPacket.In) (int, error) {
 	// Reply with ServerSeed, contents being the xored bytes.
 	seedOut := MarshalServerSeed(publicBytes[:])
 	conn.WritePacket(&seedOut)
-	conn.state = StateCharacterScreen
 
 	// Immediately after, enable RC4!
 	conn.enc, err = rc4.NewCipher(rc4Key[:])
@@ -101,23 +104,21 @@ func (conn *ASConn) onClientHashInfo(payload *ClientHashInfo) error {
 		// Wrong client version
 		return fmt.Errorf("bad client version %d", payload.clientVersion)
 	}
-	conn.log.Debug().Int("clientVersion", payload.clientVersion).Msg("ClientHashInfo")
+	conn.log.Debug().Hex("unk", payload.unkHash).Int("clientVersion", payload.clientVersion).Msg("ClientHashInfo")
 
-	conn.EnqueuePacket(MarshalSessionSaltInfo(0x51c6ea1d, 0xffffffff)) // Salt unknown
-	return nil
-}
-
-func (conn *ASConn) on8000(payload *Unknown8000) error {
+	conn.EnqueuePacket(MarshalSessionSaltInfo(rand.Int(), 0xffffffff)) // Salt unknown
 	return nil
 }
 
 func (conn *ASConn) on8023(payload *Unknown8023) error {
-	conn.EnqueuePacket(MarshalUnknown0000(0x8002e647, 0x17))
 	return nil
 }
 
 func (conn *ASConn) onGetAccountInfo(payload *GetAccountInfo) error {
 	conn.log.Info().Hex("uuid1", payload.uuid1[:]).Hex("authToken", payload.authTokenFromPortalService[:]).Str("unkString", payload.unk1).Msg("GetAccountInfo")
+	if conn.verified {
+		return fmt.Errorf("connection already verified")
+	}
 	// Validate connection token
 	tokenStr := db.UUIDStr(payload.authTokenFromPortalService[:])
 	tokenInfo, ok := portalservice.ValidateConnectionToken(tokenStr)
@@ -240,6 +241,7 @@ func (conn *ASConn) onGetAccountInfo(payload *GetAccountInfo) error {
 	}
 
 	conn.EnqueuePacket(MarshalRequestResponse(payload.reqNumber, 0))
+	conn.verified = true
 
 	return nil
 }
@@ -262,9 +264,6 @@ func (conn *ASConn) onDisconnect(payload *Disconnect) error {
 }
 
 func (conn *ASConn) onLoginCharacter(payload *LoginCharacter) error {
-	//if conn.state != StateCharacterScreen {
-	//	return 0, fmt.Errorf("LoginCharacter: bad client state %v", conn.state)
-	//}
 	conn.log.Debug().
 		Int("unk2", payload.unk1).
 		Int("mapId", payload.mapId).
@@ -275,30 +274,28 @@ func (conn *ASConn) onLoginCharacter(payload *LoginCharacter) error {
 
 	var (
 		instanceTag uint32
-		mapId       int
+		outpostId   int
 		charUUID    []byte
 	)
 	if payload.mapId == 0 {
 		conn.log.Debug().Msg("State = StateCreateCharacter")
-		conn.state = StateCreateCharacter
 		instanceTag = gameservice.CharCreationTag
-		mapId = 0
+		outpostId = 0
 		charUUID = nil
 	} else {
-		conn.state = StateInInstance
 		var ok bool
-		mapId, charUUID, ok = conn.getLastMapId()
+		outpostId, charUUID, ok = conn.getLastOutpostId()
 		if !ok {
 			return fmt.Errorf("unable to find character for login")
 		}
-		inst, err := gameservice.InstanceManager.GetOrCreateInstanceByMapId(mapId)
+		inst, err := gameservice.InstanceManager.GetOrCreateInstanceByMapId(outpostId)
 		if err != nil {
-			return fmt.Errorf("unable to get create instance for mapId %d", mapId)
+			return fmt.Errorf("unable to get create instance for outpostId %d", outpostId)
 		}
 		instanceTag = inst.GetTag()
 	}
 	securityTag := gameservice.GenerateConnectionTokenForInstance(instanceTag, conn.hasLoggedInThisSession, charUUID, conn.acc.UUID, conn.clientIP())
-	conn.EnqueuePacket(MarshalInstanceServerInfo(payload.reqNumber, int(instanceTag), mapId, []byte{
+	conn.EnqueuePacket(MarshalInstanceServerInfo(payload.reqNumber, int(instanceTag), outpostId, []byte{
 		0x02, 0x00, // AF_INET
 		0x17, 0xe0, // Port 6112
 		ServerIP[0], ServerIP[1], ServerIP[2], ServerIP[3], // server IP

@@ -124,7 +124,7 @@ func UnmarshalClientVersionInfo(in *GwPacket.In) (resp ClientVersionInfo, err er
 	}
 	return
 }
-func UnmarshalUnknown8000(in *GwPacket.In) (resp Unknown8000, err error) {
+func UnmarshalClientHeartbeat(in *GwPacket.In) (resp ClientHeartbeat, err error) {
 	if in.Opcode() != 0x8000 {
 		err = errors.New("bad opcode")
 		return
