@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"time"
 )
 
 type Conn struct {
@@ -15,6 +16,8 @@ type Conn struct {
 	writeCipher *CipherState
 
 	plainBuf []byte
+
+	HandshakeTimeout time.Duration
 }
 
 func Server(conn net.Conn, lookup SRPLookup) *Conn {
@@ -26,6 +29,8 @@ func Server(conn net.Conn, lookup SRPLookup) *Conn {
 			Writer: conn,
 			Lookup: lookup,
 		},
+
+		HandshakeTimeout: handshakeTimeout,
 	}
 }
 
@@ -34,7 +39,14 @@ func (c *Conn) Username() string {
 }
 
 func (c *Conn) Handshake() error {
+	if err := c.Conn.SetReadDeadline(time.Now().Add(c.HandshakeTimeout)); err != nil {
+		return fmt.Errorf("failed to set handshake deadline: %w", err)
+	}
+
+	c.server.handshakeTimeout = c.HandshakeTimeout
+
 	err := c.server.HandshakeIt()
+
 	if c.server.Handshake.ClientHello != nil {
 		// also set in case of error
 		c.username = c.server.Handshake.ClientHello.SRPUsername
@@ -46,6 +58,11 @@ func (c *Conn) Handshake() error {
 
 	c.readCipher = hs.ReadCipher
 	c.writeCipher = hs.WriteCipher
+
+	if err := c.Conn.SetReadDeadline(time.Time{}); err != nil {
+		return fmt.Errorf("failed to clear handshake deadline: %w", err)
+	}
+
 	return nil
 }
 

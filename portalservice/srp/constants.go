@@ -1,6 +1,9 @@
 package srp
 
-import "errors"
+import (
+	"errors"
+	"time"
+)
 
 const (
 	TLS_SRP_SHA_WITH_AES_256_CBC_SHA uint16 = 0xc020
@@ -12,6 +15,10 @@ const (
 
 const (
 	extensionSRP uint16 = 12
+)
+
+const (
+	handshakeTimeout = 30 * time.Second
 )
 
 var (

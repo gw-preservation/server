@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"net"
 	"slices"
 	"time"
 )
@@ -383,12 +384,23 @@ type ServerConnection struct {
 	Lookup SRPLookup
 
 	Handshake ServerHandshake
+
+	handshakeTimeout time.Duration
 }
 
 func (c *ServerConnection) HandshakeIt() error {
 	c.Handshake.Lookup = c.Lookup
 
+	timeout := c.handshakeTimeout
+	if timeout == 0 {
+		timeout = handshakeTimeout
+	}
+
 	for {
+		if err := c.Reader.(net.Conn).SetReadDeadline(time.Now().Add(timeout)); err != nil {
+			return fmt.Errorf("failed to set read deadline: %w", err)
+		}
+
 		rec, err := ReadRecord(c.Reader)
 		if err != nil {
 			return err

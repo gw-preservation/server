@@ -61,6 +61,7 @@ func (g *SRPGroup) Multiplier() *big.Int {
 
 	return new(big.Int).SetBytes(h.Sum(nil))
 }
+
 func padBigInt(v *big.Int, size int) []byte {
 	out := make([]byte, size)
 
@@ -80,8 +81,12 @@ func padBigInt(v *big.Int, size int) []byte {
 }
 
 func NewSRPServer(group *SRPGroup, user *SRPUser) (*SRPServer, error) {
-	b := big.NewInt(123456789)
-	//b, err := newRandomBigIntBytes(size)
+	size := (group.N.BitLen() + 7) / 8
+
+	b, err := newRandomBigIntBytes(size)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate server secret: %w", err)
+	}
 
 	k := group.Multiplier()
 
@@ -103,7 +108,7 @@ func NewSRPServer(group *SRPGroup, user *SRPUser) (*SRPServer, error) {
 
 	B.Mod(B, group.N)
 
-	if B.Sign() == 0 {
+	if B.Sign() == 0 || B.Cmp(group.N) >= 0 {
 		return nil, fmt.Errorf("invalid B")
 	}
 

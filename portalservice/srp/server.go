@@ -92,6 +92,10 @@ func (h *ServerHandshake) BuildServerFlight() ([]*Handshake, error) {
 		return nil, err
 	}
 
+	if user == nil {
+		return nil, fmt.Errorf("user %q not found", h.ClientHello.SRPUsername)
+	}
+
 	srp, err := NewSRPServer(
 		SRP1024(),
 		user,
