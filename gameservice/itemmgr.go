@@ -75,18 +75,22 @@ func (m *ItemMgr) Load(bags []db.Bag, characterId uint64) {
 
 		if m.player != nil {
 			if int(dbBag.Type) == 1 {
-				backpackDefinition := Item.GetItemDefinitionById(Item.ItemBackpack)
-				m.player.EnqueuePacket(MarshalItemGeneralInfo(
-					b.localId,
-					int(backpackDefinition.ModelFileId()),
-					int(backpackDefinition.Type()),
-					1, 0, 0, 0,
-					0x20001000,
-					backpackDefinition.MerchValue(),
-					32, 1,
-					backpackDefinition.EncodeName(),
-					backpackDefinition.MarshalModifiers(),
-				))
+				backpackDefinition, err := Item.GetItemDefinitionById(Item.ItemBackpack)
+				if err != nil {
+					m.player.log.Error().Err(err).Msg("Load: missing backpack definition")
+				} else {
+					m.player.EnqueuePacket(MarshalItemGeneralInfo(
+						b.localId,
+						int(backpackDefinition.ModelFileId()),
+						int(backpackDefinition.Type()),
+						1, 0, 0, 0,
+						0x20001000,
+						backpackDefinition.MerchValue(),
+						32, 1,
+						backpackDefinition.EncodeName(),
+						backpackDefinition.MarshalModifiers(),
+					))
+				}
 				m.player.EnqueuePacket(MarshalInventoryCreateBag(1, int(dbBag.Type), 0, i, len(b.slots), b.localId))
 				m.player.EnqueuePacket(MarshalItemUpdateName(b.localId, m.player.name))
 			} else if int(dbBag.Type) == 2 {
@@ -99,7 +103,13 @@ func (m *ItemMgr) Load(bags []db.Bag, characterId uint64) {
 			if dbSlot.ItemID == 0 {
 				continue
 			}
-			itemDef := Item.GetItemDefinitionById(Item.ItemId(dbSlot.ItemID))
+			itemDef, err := Item.GetItemDefinitionById(Item.ItemId(dbSlot.ItemID))
+			if err != nil {
+				if m.player != nil {
+					m.player.log.Warn().Err(err).Uint32("itemID", dbSlot.ItemID).Msg("Load: skipping unknown item")
+				}
+				continue
+			}
 			lid := m.getAndIncreaseLocalIdCounter()
 			m.bags[bagIdx].slots[slotIdx] = slot{
 				localId:   lid,
@@ -178,22 +188,26 @@ func (m *ItemMgr) AddBag(capacity int, typ int) {
 	if m.player != nil {
 		if typ == 1 {
 			// Inventory
-			backpackDefinition := Item.GetItemDefinitionById(Item.ItemBackpack)
-			m.player.EnqueuePacket(MarshalItemGeneralInfo(
-				b.localId,
-				int(backpackDefinition.ModelFileId()),
-				int(backpackDefinition.Type()),
-				1,
-				0,
-				0,
-				0,
-				0x20001000,
-				backpackDefinition.MerchValue(),
-				32,
-				1,
-				backpackDefinition.EncodeName(),
-				backpackDefinition.MarshalModifiers(),
-			))
+			backpackDefinition, err := Item.GetItemDefinitionById(Item.ItemBackpack)
+			if err != nil {
+				m.player.log.Error().Err(err).Msg("AddBag: missing backpack definition")
+			} else {
+				m.player.EnqueuePacket(MarshalItemGeneralInfo(
+					b.localId,
+					int(backpackDefinition.ModelFileId()),
+					int(backpackDefinition.Type()),
+					1,
+					0,
+					0,
+					0,
+					0x20001000,
+					backpackDefinition.MerchValue(),
+					32,
+					1,
+					backpackDefinition.EncodeName(),
+					backpackDefinition.MarshalModifiers(),
+				))
+			}
 			m.player.EnqueuePacket(MarshalInventoryCreateBag(1, typ, 0, len(m.bags), capacity, b.localId))
 			m.player.EnqueuePacket(MarshalItemUpdateName(b.localId, m.player.name))
 		} else if typ == 2 {

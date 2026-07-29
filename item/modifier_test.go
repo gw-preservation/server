@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBuildModifierInt(t *testing.T) {
@@ -78,7 +79,8 @@ func TestDamageRange(t *testing.T) {
 }
 
 func TestModifierRoundTrip_ViaItemMods(t *testing.T) {
-	item := GetItemDefinitionById(ItemEverlastingGhostlyStaff)
+	item, err := GetItemDefinitionById(ItemEverlastingGhostlyStaff)
+	require.NoError(t, err)
 	mods := item.MarshalModifiers()
 	assert.Len(t, mods, 7)
 	assert.Equal(t, uint32(AttributeRequirement(12, 9)), mods[0])

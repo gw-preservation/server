@@ -5,6 +5,7 @@ import (
 
 	Item "gw1/server/item"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBuildDBBags_Empty(t *testing.T) {
@@ -29,7 +30,8 @@ func TestBuildDBBags_WithBags(t *testing.T) {
 }
 
 func TestBuildDBBags_WithItems(t *testing.T) {
-	item := Item.GetItemDefinitionById(Item.ItemStarterHammer)
+	item, err := Item.GetItemDefinitionById(Item.ItemStarterHammer)
+	require.NoError(t, err)
 	im := NewItemMgr(nil)
 	im.AddBag(20, 1)
 
@@ -57,8 +59,10 @@ func TestBuildDBBags_EmptySlots(t *testing.T) {
 }
 
 func TestBuildDBBags_MultipleBagsWithItems(t *testing.T) {
-	hammer := Item.GetItemDefinitionById(Item.ItemStarterHammer)
-	bow := Item.GetItemDefinitionById(Item.ItemStarterBow)
+	hammer, err := Item.GetItemDefinitionById(Item.ItemStarterHammer)
+	require.NoError(t, err)
+	bow, err := Item.GetItemDefinitionById(Item.ItemStarterBow)
+	require.NoError(t, err)
 	im := NewItemMgr(nil)
 	im.AddBag(10, 1)
 	im.AddBag(5, 2)

@@ -1,11 +1,14 @@
 package Item
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 	"unicode/utf16"
 )
+
+var ErrItemNotFound = errors.New("item not found")
 
 func (i Item) MarshalModifiers() (out []uint32) {
 	for _, mod := range i.inherentMods {
@@ -350,13 +353,12 @@ var DefaultEquipmentElementalist = []ItemId{
 	ItemStarterElementalRod,
 }
 
-func GetItemDefinitionById(id ItemId) (item Item) {
-	var ok bool
-	item, ok = itemDefinitions[id]
+func GetItemDefinitionById(id ItemId) (Item, error) {
+	item, ok := itemDefinitions[id]
 	if !ok {
-		panic(fmt.Sprintf("GetItemDefinitionById(%d): no definition!", id))
+		return Item{}, fmt.Errorf("%w: %d", ErrItemNotFound, id)
 	}
-	return
+	return item, nil
 }
 
 func (i *Item) ComputeInteractionFlags() int {

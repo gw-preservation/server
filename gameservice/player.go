@@ -154,8 +154,11 @@ func (p *Player) equipTest(profession string) {
 		equipmentIds = Item.DefaultEquipmentRanger
 	}
 	for _, itemid := range equipmentIds {
-		// Spawn new items in equipped slots
-		itm := Item.GetItemDefinitionById(itemid)
+		itm, err := Item.GetItemDefinitionById(itemid)
+		if err != nil {
+			p.log.Warn().Err(err).Msg("equipTest: skipping unknown item")
+			continue
+		}
 		itmlid, err := p.itemMgr.AddItemToSlot(1, int(itm.GetEquipSlot()), itm, itemid, 0)
 		if err != nil {
 			p.log.Error().Err(err).Msg("unable to add item to slot")

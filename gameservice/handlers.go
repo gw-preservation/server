@@ -355,8 +355,11 @@ func (conn *GSConn) onCreateCharRequestArmors(payload *CreateCharRequestArmors) 
 	conn.log.Debug().Msg("CreateCharRequestArmors")
 
 	for _, itemid := range Item.DefaultEquipmentWarrior {
-		// Spawn new items in equipped slots
-		itm := Item.GetItemDefinitionById(itemid)
+		itm, err := Item.GetItemDefinitionById(itemid)
+		if err != nil {
+			conn.log.Warn().Err(err).Msg("onCreateCharRequestArmors: skipping unknown item")
+			continue
+		}
 		itmlid, err := conn.player.itemMgr.AddItemToSlot(0, 0, itm, itemid, 0)
 		if err != nil {
 			conn.log.Error().Err(err).Msg("unable to add item to slot during char creation")
@@ -412,8 +415,11 @@ func (conn *GSConn) onUpdateProfessionChoice(payload *UpdateProfessionChoice) er
 		equips = Item.DefaultEquipmentElementalist
 	}
 	for _, itemid := range equips {
-		// Spawn new items in equipped slots
-		itm := Item.GetItemDefinitionById(itemid)
+		itm, err := Item.GetItemDefinitionById(itemid)
+		if err != nil {
+			p.log.Warn().Err(err).Msg("onUpdateProfessionChoice: skipping unknown item")
+			continue
+		}
 		itmlid, err := p.itemMgr.AddItemToSlot(0, 0, itm, itemid, 0)
 		if err != nil {
 			p.log.Error().Err(err).Msg("unable to add item to slot during profession change")

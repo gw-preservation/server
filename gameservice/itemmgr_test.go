@@ -7,7 +7,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var testItem = Item.GetItemDefinitionById(Item.ItemStarterHammer)
+var testItem Item.Item
+
+func init() {
+	var err error
+	testItem, err = Item.GetItemDefinitionById(Item.ItemStarterHammer)
+	if err != nil {
+		panic(err)
+	}
+}
 
 func TestNewItemMgr_CounterStartsAt1(t *testing.T) {
 	im := NewItemMgr(nil)

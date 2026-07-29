@@ -4,68 +4,76 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
+func requireItem(t *testing.T, id ItemId) Item {
+	t.Helper()
+	item, err := GetItemDefinitionById(id)
+	require.NoError(t, err)
+	return item
+}
+
 func TestGetItemDefinitionById_Exists(t *testing.T) {
-	item := GetItemDefinitionById(ItemStarterHammer)
+	item, err := GetItemDefinitionById(ItemStarterHammer)
+	assert.NoError(t, err)
 	assert.Equal(t, "StarterHammer", item.Name())
 }
 
-func TestGetItemDefinitionById_PanicsOnMissing(t *testing.T) {
-	assert.Panics(t, func() {
-		GetItemDefinitionById(99999)
-	})
+func TestGetItemDefinitionById_ErrorOnMissing(t *testing.T) {
+	_, err := GetItemDefinitionById(99999)
+	assert.ErrorIs(t, err, ErrItemNotFound)
 }
 
 func TestName(t *testing.T) {
-	item := GetItemDefinitionById(ItemBackpack)
+	item := requireItem(t, ItemBackpack)
 	assert.Equal(t, "Backpack", item.Name())
 }
 
 func TestType(t *testing.T) {
-	item := GetItemDefinitionById(ItemStarterHammer)
+	item := requireItem(t, ItemStarterHammer)
 	assert.Equal(t, ItemTypeHammer, item.Type())
 }
 
 func TestMerchValue(t *testing.T) {
-	item := GetItemDefinitionById(ItemBackpack)
+	item := requireItem(t, ItemBackpack)
 	assert.Equal(t, 5, item.MerchValue())
 }
 
 func TestModelFileId(t *testing.T) {
-	item := GetItemDefinitionById(ItemBackpack)
+	item := requireItem(t, ItemBackpack)
 	assert.Equal(t, 0x1b536, item.ModelFileId())
 }
 
 func TestRarity(t *testing.T) {
-	item := GetItemDefinitionById(ItemSummoningStone)
+	item := requireItem(t, ItemSummoningStone)
 	assert.Equal(t, RarityPurple, item.Rarity())
 
-	item = GetItemDefinitionById(ItemEverlastingGhostlyStaff)
+	item = requireItem(t, ItemEverlastingGhostlyStaff)
 	assert.Equal(t, RarityGreen, item.Rarity())
 
-	item = GetItemDefinitionById(ItemEternalBlade)
+	item = requireItem(t, ItemEternalBlade)
 	assert.Equal(t, RarityGold, item.Rarity())
 }
 
 func TestEncName(t *testing.T) {
-	item := GetItemDefinitionById(ItemBackpack)
+	item := requireItem(t, ItemBackpack)
 	assert.Equal(t, "21a8 d157 b58f 166f", item.EncName())
 
-	item = GetItemDefinitionById(ItemEternalBlade)
+	item = requireItem(t, ItemEternalBlade)
 	assert.Equal(t, "", item.EncName())
 }
 
 func TestInherentMods(t *testing.T) {
-	item := GetItemDefinitionById(ItemBackpack)
+	item := requireItem(t, ItemBackpack)
 	assert.Len(t, item.InherentMods(), 1)
 
-	item = GetItemDefinitionById(ItemStarterHammer)
+	item = requireItem(t, ItemStarterHammer)
 	assert.Len(t, item.InherentMods(), 0)
 }
 
 func TestMarshalModifiers(t *testing.T) {
-	item := GetItemDefinitionById(ItemBackpack)
+	item := requireItem(t, ItemBackpack)
 	mods := item.MarshalModifiers()
 	assert.Len(t, mods, 1)
 	assert.IsType(t, uint32(0), mods[0])
@@ -83,7 +91,7 @@ func TestGetEquipSlot_Weapons(t *testing.T) {
 		{ItemEternalShield, EquipSlotLeftHand},
 	}
 	for _, tt := range tests {
-		item := GetItemDefinitionById(tt.id)
+		item := requireItem(t, tt.id)
 		assert.Equal(t, tt.expected, item.GetEquipSlot(), "item %d", tt.id)
 	}
 }
@@ -100,13 +108,13 @@ func TestGetEquipSlot_Armor(t *testing.T) {
 		{ItemRecruitsCap, EquipSlotHead},
 	}
 	for _, tt := range tests {
-		item := GetItemDefinitionById(tt.id)
+		item := requireItem(t, tt.id)
 		assert.Equal(t, tt.expected, item.GetEquipSlot(), "item %d", tt.id)
 	}
 }
 
 func TestGetEquipSlot_Unknown(t *testing.T) {
-	item := GetItemDefinitionById(ItemBackpack)
+	item := requireItem(t, ItemBackpack)
 	assert.Equal(t, EquipSlotUnknown, item.GetEquipSlot())
 }
 
@@ -120,7 +128,7 @@ func TestGetVisualEquipSlot_Weapons(t *testing.T) {
 		{ItemEternalShield, EquipVisualSlotLeftHand},
 	}
 	for _, tt := range tests {
-		item := GetItemDefinitionById(tt.id)
+		item := requireItem(t, tt.id)
 		assert.Equal(t, tt.expected, item.GetVisualEquipSlot(), "item %d", tt.id)
 	}
 }
@@ -137,13 +145,13 @@ func TestGetVisualEquipSlot_Armor(t *testing.T) {
 		{ItemRecruitsCap, EquipVisualSlotHead},
 	}
 	for _, tt := range tests {
-		item := GetItemDefinitionById(tt.id)
+		item := requireItem(t, tt.id)
 		assert.Equal(t, tt.expected, item.GetVisualEquipSlot(), "item %d", tt.id)
 	}
 }
 
 func TestGetVisualEquipSlot_Unknown(t *testing.T) {
-	item := GetItemDefinitionById(ItemBackpack)
+	item := requireItem(t, ItemBackpack)
 	assert.Equal(t, EquipVisualSlotUnknown, item.GetVisualEquipSlot())
 }
 
@@ -156,31 +164,31 @@ func TestGetRarityFlag(t *testing.T) {
 }
 
 func TestComputeInteractionFlags_Weapon(t *testing.T) {
-	item := GetItemDefinitionById(ItemStarterHammer)
+	item := requireItem(t, ItemStarterHammer)
 	flags := item.ComputeInteractionFlags()
 	assert.Equal(t, 0x20000000, flags)
 }
 
 func TestComputeInteractionFlags_Armor(t *testing.T) {
-	item := GetItemDefinitionById(ItemRingmailHauberk)
+	item := requireItem(t, ItemRingmailHauberk)
 	flags := item.ComputeInteractionFlags()
 	assert.Equal(t, 0x20000004, flags) // base | (1 << 2) = armor flag
 }
 
 func TestComputeInteractionFlags_ThirdEye(t *testing.T) {
-	item := GetItemDefinitionById(ItemThirdEye)
+	item := requireItem(t, ItemThirdEye)
 	flags := item.ComputeInteractionFlags()
 	assert.Equal(t, 0x20001202, flags)
 }
 
 func TestComputeInteractionFlags_StarterTruncheon(t *testing.T) {
-	item := GetItemDefinitionById(ItemStarterTruncheon)
+	item := requireItem(t, ItemStarterTruncheon)
 	flags := item.ComputeInteractionFlags()
 	assert.Equal(t, 0x22001000, flags)
 }
 
 func TestEncodeName_Encoded(t *testing.T) {
-	item := GetItemDefinitionById(ItemBackpack)
+	item := requireItem(t, ItemBackpack)
 	enc := item.EncodeName()
 	assert.NotEmpty(t, enc)
 	// Encoded name should have bytes for each hex word + prefix

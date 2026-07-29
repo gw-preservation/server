@@ -5,6 +5,7 @@ import (
 	"gw1/server/authservice"
 	"gw1/server/db"
 	"gw1/server/gameservice"
+	"gw1/server/portalservice"
 	"log"
 	"net"
 	"os"
@@ -33,7 +34,9 @@ func main() {
 	go func() {
 		sig := <-sigs
 		log.Printf("Received signal: %s, shutting down...", sig)
-		db.Close() // clean shutdown
+		portalservice.StopCleanup()
+		gameservice.StopCleanup()
+		db.Close()
 		os.Exit(0)
 	}()
 

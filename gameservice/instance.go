@@ -411,10 +411,9 @@ func (i *Instance) AddPlayer(player *Player) {
 	i.players = append(i.players, player)
 	i.agents = append(i.agents, player.Agent)
 	i.mu.Unlock()
-	fmt.Printf("%s added to instance.\n", player.name)
-	fmt.Printf("%d players in instance:\n", len(i.players))
-	for i, v := range i.players {
-		fmt.Printf("  #%d = PlayerID=%d AgentID=%d Name=%s\n", i, v.playerId, v.agentId, v.name)
+	i.log.Info().Int("count", len(i.players)).Msgf("%s added to instance", player.name)
+	for idx, v := range i.players {
+		i.log.Debug().Int("index", idx).Int("playerID", v.playerId).Int("agentID", v.agentId).Str("name", v.name).Msg("player in instance")
 	}
 	player.EnqueuePacket(MarshalInstanceLoadHead())
 	player.posX, player.posY, player.plane = i.NextSpawnPoint()

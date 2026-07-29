@@ -144,7 +144,11 @@ func CreateDefaultBagsAndItems(characterId uint64, primaryProfession int, equipD
 		equips = Item.DefaultEquipmentElementalist
 	}
 	for _, itemid := range equips {
-		itm := Item.GetItemDefinitionById(itemid)
+		itm, err := Item.GetItemDefinitionById(itemid)
+		if err != nil {
+			log.Warn().Err(err).Msg("CreateDefaultBagsAndItems: skipping unknown item")
+			continue
+		}
 		eSlot := itm.GetEquipSlot()
 		equipment.Slots[eSlot] = Slot{
 			BagID:        equipment.ID,

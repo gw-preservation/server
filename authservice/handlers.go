@@ -182,7 +182,11 @@ func (conn *ASConn) onGetAccountInfo(payload *GetAccountInfo) error {
 			if slot.ItemID == 0 {
 				continue
 			}
-			itm := Item.GetItemDefinitionById(Item.ItemId(slot.ItemID))
+			itm, err := Item.GetItemDefinitionById(Item.ItemId(slot.ItemID))
+			if err != nil {
+				conn.log.Warn().Err(err).Uint32("itemID", slot.ItemID).Msg("onLoginCharacter: unknown itemid, preventing login")
+				return fmt.Errorf("unknown itemid %d", slot.ItemID)
+			}
 			if itm.GetEquipSlot() == Item.EquipSlotUnknown {
 				continue
 			}

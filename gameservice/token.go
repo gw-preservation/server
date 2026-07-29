@@ -60,18 +60,30 @@ func ValidateConnectionToken(securityTag uint32) (info ConnectionInfo, ok bool) 
 	return entry.info, ok
 }
 
+var tokenCleanupStop = make(chan struct{})
+
+func StopCleanup() {
+	close(tokenCleanupStop)
+}
+
 func init() {
 	go func() {
+		ticker := time.NewTicker(1 * time.Minute)
+		defer ticker.Stop()
 		for {
-			time.Sleep(1 * time.Minute)
-			now := time.Now()
-			activeTokensMu.Lock()
-			for k, v := range activeTokens {
-				if now.Sub(v.createdAt) > 5*time.Minute {
-					delete(activeTokens, k)
+			select {
+			case <-ticker.C:
+				now := time.Now()
+				activeTokensMu.Lock()
+				for k, v := range activeTokens {
+					if now.Sub(v.createdAt) > 5*time.Minute {
+						delete(activeTokens, k)
+					}
 				}
+				activeTokensMu.Unlock()
+			case <-tokenCleanupStop:
+				return
 			}
-			activeTokensMu.Unlock()
 		}
 	}()
 }
