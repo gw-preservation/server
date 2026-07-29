@@ -69,6 +69,9 @@ func (conn *FSConn) onLoadingStatus(in *GwPacket.In) (int, error) {
 	if err != nil {
 		return 0, fmt.Errorf("read len: %w", err)
 	}
+	if len < 4 {
+		return 0, nil
+	}
 	len -= 4
 	if in.Remaining() < len {
 		return 0, nil

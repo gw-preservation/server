@@ -17,6 +17,7 @@ import (
 )
 
 var log zerolog.Logger
+var ServerIP [4]byte
 
 func init() {
 	log = zerolog.New(zerolog.NewConsoleWriter())
@@ -622,7 +623,7 @@ func (i *Instance) TransferPlayerToNewMap(player *Player, newMapId int) error {
 	player.conn.EnqueuePacket(MarshalTransferGameServerInfo([]byte{
 		0x02, 0x00, // AF_INET
 		0x17, 0xe0, // Port 6112
-		0xc0, 0xa8, 0x01, 0x7c, // 192.168.1.124
+		ServerIP[0], ServerIP[1], ServerIP[2], ServerIP[3], // server IP
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	}, int(instanceTag), region, newMapId, i.IsExplorable(), int(securityTag)))
