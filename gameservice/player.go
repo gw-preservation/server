@@ -23,7 +23,8 @@ type Player struct {
 	xp                 int
 	itemMgr            ItemMgr
 
-	charCreationDyes [7]int
+	charCreationDyes      [7]int
+	charCreationInProgress bool
 
 	isTransfer bool
 	dbAcc      db.Account
@@ -96,6 +97,9 @@ func (p *Player) Disconnect() {
 }
 
 func (p *Player) UpdatePosition(x, y float32) {
+	if p.connectedInstance == nil {
+		return
+	}
 	p.connectedInstance.UpdateRequestedPlayerPos(p, x, y)
 }
 

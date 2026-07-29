@@ -7,8 +7,8 @@ import (
 	"gw1/server/gameservice"
 	"gw1/server/portalservice"
 	"io"
-
 	"net"
+	"time"
 
 	"github.com/charmbracelet/log"
 	"github.com/rs/zerolog"
@@ -17,8 +17,20 @@ import (
 var logger zerolog.Logger
 
 type tcpsrv struct {
-	laddr    *net.TCPAddr
-	listener *net.TCPListener
+	laddr        *net.TCPAddr
+	listener     *net.TCPListener
+	readTimeout  time.Duration
+	writeTimeout time.Duration
+}
+
+type Option func(*tcpsrv)
+
+func WithReadTimeout(d time.Duration) Option {
+	return func(s *tcpsrv) { s.readTimeout = d }
+}
+
+func WithWriteTimeout(d time.Duration) Option {
+	return func(s *tcpsrv) { s.writeTimeout = d }
 }
 
 type Transport interface {
@@ -35,7 +47,7 @@ func init() {
 	logger = logger.With().Timestamp().Logger()
 }
 
-func NewTCPServer() tcpsrv {
+func NewTCPServer(opts ...Option) tcpsrv {
 	addr, err := net.ResolveTCPAddr("tcp", ":6112")
 	if err != nil {
 		panic(err)
@@ -45,8 +57,13 @@ func NewTCPServer() tcpsrv {
 		logger.Fatal().Msg("unable to bind to port 6112 - is a server already running?")
 	}
 	srv := tcpsrv{
-		listener: listener,
-		laddr:    addr,
+		listener:     listener,
+		laddr:        addr,
+		readTimeout:  30 * time.Second,
+		writeTimeout: 30 * time.Second,
+	}
+	for _, opt := range opts {
+		opt(&srv)
 	}
 	return srv
 }
@@ -58,6 +75,7 @@ func (srv tcpsrv) handleTCPConnection(conn *net.TCPConn) {
 	var servicerName string
 	tempBuffer := make([]byte, 32*1024)
 	for {
+		conn.SetReadDeadline(time.Now().Add(srv.readTimeout))
 		var numBytesReadFromSocket int
 		var err error
 		if transport != nil {
@@ -66,7 +84,12 @@ func (srv tcpsrv) handleTCPConnection(conn *net.TCPConn) {
 			numBytesReadFromSocket, err = conn.Read(tempBuffer)
 		}
 		if err != nil {
-			logger.Info().Str("remoteAddr", conn.RemoteAddr().String()).Msg("connection closed")
+			var netErr net.Error
+			if errors.As(err, &netErr) && netErr.Timeout() {
+				logger.Info().Str("remoteAddr", conn.RemoteAddr().String()).Msg("read timed out")
+			} else {
+				logger.Info().Str("remoteAddr", conn.RemoteAddr().String()).Msg("connection closed")
+			}
 			if transport != nil {
 				transport.Close()
 			}
@@ -94,21 +117,24 @@ func (srv tcpsrv) handleTCPConnection(conn *net.TCPConn) {
 				transport = authservice.NewASConn(conn, logger)
 				servicerName = "auth"
 			} else if len(buffer) == 64 {
-				transport = gameservice.NewGSConn(conn, logger)
+				transport = gameservice.NewGSConn(conn, logger, srv.writeTimeout)
 				servicerName = "game"
 			} else if len(buffer) > 6 && string(buffer[:3]) == "P /" {
 				transport = portalservice.NewPSConn(conn, logger)
 				servicerName = "portal"
 			} else {
-				logger.Error().Msg("unrecognised connection type")
+				logger.Error().Int("len", len(buffer)).Msg("unrecognised connection type")
 				conn.Close()
 				return
 			}
 		}
+		if transport != nil {
+			conn.SetWriteDeadline(time.Now().Add(srv.writeTimeout))
+		}
 		for len(buffer) > 0 {
 			numConsumedThisTime, err := transport.HandleBytes(buffer)
 			if err != nil {
-				if errors.Is(errors.Unwrap(err), io.ErrUnexpectedEOF) {
+				if errors.Is(err, io.ErrUnexpectedEOF) {
 				} else {
 					logger.Err(err).Str("servicer", servicerName).Msg("servicer reported error")
 					transport.Close()

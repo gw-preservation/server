@@ -5,11 +5,6 @@ var instanceDefinitions = struct {
 	Agents    map[string]agentDefinition
 }{
 	Instances: map[int]instanceDefinition{
-		0: {
-			Name:      "Character Creation",
-			MapFileId: 0,
-			PartySize: 0,
-		},
 		2: {
 			Name:      "DEV Test Arena (1v1)",
 			Expansion: "core",

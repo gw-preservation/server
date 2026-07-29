@@ -85,6 +85,10 @@ func handleColorCommand(p *Player, args []string) bool {
 }
 
 func handleTravelCommand(p *Player, args []string) bool {
+	if p.connectedInstance == nil {
+		p.SendChatWarning("You are not in a game instance")
+		return false
+	}
 	if len(args) < 1 {
 		p.SendChatWarning("Usage: /travel <mapId> or /travel \"<map_debug_name>\"")
 		return false

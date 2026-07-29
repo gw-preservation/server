@@ -29,6 +29,7 @@ type ASConn struct {
 	log                    zerolog.Logger
 	acc                    db.Account
 	hasLoggedInThisSession bool
+	activeCharacterName    string
 }
 
 func NewASConn(socket *net.TCPConn, logCtx zerolog.Logger) *ASConn {
@@ -69,7 +70,10 @@ func (conn *ASConn) HandleBytes(data []byte) (int, error) {
 }
 
 func (conn *ASConn) onRegularPacket(in *GwPacket.In) (consumed int, err error) {
-	op, _ := in.Uint16()
+	op, err := in.Uint16()
+	if err != nil {
+		return 0, err
+	}
 
 	handler, ok := packetHandlers[op]
 	if !ok {
@@ -101,4 +105,33 @@ func (conn *ASConn) Close() {
 
 func (conn *ASConn) EnqueuePacket(packet GwPacket.Out) {
 	conn.out.Merge(packet)
+}
+
+func (conn *ASConn) getLastMapId() (mapId int, uuid []byte, ok bool) {
+	if conn.activeCharacterName == "" {
+		return 0, nil, false
+	}
+	for _, char := range conn.acc.Characters {
+		if char.Name == conn.activeCharacterName {
+			return int(char.LastOutpostID), char.UUID, true
+		}
+	}
+	return 0, nil, false
+}
+
+func (conn *ASConn) clientIP() string {
+	host, _, err := net.SplitHostPort(conn.socket.RemoteAddr().String())
+	if err != nil {
+		return conn.socket.RemoteAddr().String()
+	}
+	return host
+}
+
+func (conn *ASConn) charBelongsToAccount(name string) bool {
+	for _, char := range conn.acc.Characters {
+		if char.Name == name {
+			return true
+		}
+	}
+	return false
 }

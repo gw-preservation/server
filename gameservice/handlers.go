@@ -8,6 +8,7 @@ import (
 	"gw1/server/db"
 	GwPacket "gw1/server/gwpacket"
 	Item "gw1/server/item"
+	"net"
 	"strings"
 )
 
@@ -112,7 +113,9 @@ func (conn *GSConn) onChatMessage(payload *ChatMessage) error {
 	var remainder = payload.message[1:]
 	switch channel {
 	case '!':
-		p.connectedInstance.BroadcastLocalChat(p, remainder)
+		if p.connectedInstance != nil {
+			p.connectedInstance.BroadcastLocalChat(p, remainder)
+		}
 	case '/':
 		// emote / command
 		// extract next command word
@@ -125,7 +128,9 @@ func (conn *GSConn) onChatMessage(payload *ChatMessage) error {
 		args := words[1:]
 		// check whether it is an emote command
 		if emote, exists := GetEmoteByCommand(command); exists {
-			p.connectedInstance.BroadcastGeneric(MarshalEmote(p.playerId, p.agentId, emote))
+			if p.connectedInstance != nil {
+				p.connectedInstance.BroadcastGeneric(MarshalEmote(p.playerId, p.agentId, emote))
+			}
 			return nil
 		}
 		// not an emote, check for other commands
@@ -190,7 +195,7 @@ func (conn *GSConn) Close() {
 		conn.closed.Store(true)
 		close(conn.done)
 		if conn.player.connectedInstance != nil {
-			(*conn.player.connectedInstance).RemovePlayer(conn.player)
+			conn.player.connectedInstance.RemovePlayer(conn.player)
 		}
 		conn.socket.Close()
 	})
@@ -209,23 +214,61 @@ func (conn *GSConn) onVerifyClientConnection(payload *VerifyClientConnection) er
 		return nil
 	}
 
-	inst, err := InstanceManager.GetOrCreateInstanceByMapId(payload.mapId)
-	if inst == nil || err != nil {
-		p.log.Error().Err(err).Msg("unable to create instance")
+	if info.InstanceTag != CharCreationTag && !bytes.Equal(payload.characterUUID[:], info.CharacterUUID[:]) {
+		p.log.Error().Str("characterUUID", db.UUIDStr(payload.characterUUID[:])).Msg("character UUID does not match token")
 		p.Disconnect()
 		return nil
 	}
 
-	if payload.instanceTag != int(info.InstanceTag) {
-		p.log.Error().Str("characterUUID", db.UUIDStr(payload.characterUUID[:])).Msg("instanceTag does not match expected value")
+	if !bytes.Equal(payload.accountUUID[:], info.AccountUUID[:]) {
+		p.log.Error().Str("accUUID", db.UUIDStr(payload.accountUUID[:])).Msg("account UUID does not match token")
 		p.Disconnect()
 		return nil
 	}
 
-	if info.InstanceTag != inst.GetTag() {
-		p.log.Error().Str("characterUUID", db.UUIDStr(payload.characterUUID[:])).Msg("instance no longer has instanceTag specified by token")
+	expectedIP := net.ParseIP(info.ClientIP)
+	actualIP := net.ParseIP(conn.clientIP())
+	if expectedIP == nil || actualIP == nil || !expectedIP.Equal(actualIP) {
+		p.log.Error().Str("expected", info.ClientIP).Str("got", conn.clientIP()).Msg("client IP does not match token")
 		p.Disconnect()
 		return nil
+	}
+
+	if info.InstanceTag == CharCreationTag {
+		p.log.Debug().Msg("entering character creation")
+		p.charCreationInProgress = true
+		var zeroUUID [16]byte
+		if !bytes.Equal(payload.characterUUID, zeroUUID[:]) {
+			p.log.Error().Msg("char creation requires zero character UUID")
+			p.Disconnect()
+			return nil
+		}
+		if payload.instanceTag != int(info.InstanceTag) {
+			p.log.Error().Msg("char creation instanceTag mismatch")
+			p.Disconnect()
+			return nil
+		}
+	} else {
+		inst, err := InstanceManager.GetOrCreateInstanceByMapId(payload.mapId)
+		if inst == nil || err != nil {
+			p.log.Error().Err(err).Msg("unable to create instance")
+			p.Disconnect()
+			return nil
+		}
+
+		if payload.instanceTag != int(info.InstanceTag) {
+			p.log.Error().Str("characterUUID", db.UUIDStr(payload.characterUUID[:])).Msg("instanceTag does not match expected value")
+			p.Disconnect()
+			return nil
+		}
+
+		if info.InstanceTag != inst.GetTag() {
+			p.log.Error().Str("characterUUID", db.UUIDStr(payload.characterUUID[:])).Msg("instance no longer has instanceTag specified by token")
+			p.Disconnect()
+			return nil
+		}
+
+		p.connectedInstance = inst
 	}
 	p.isTransfer = info.IsTransfer
 	verified := false
@@ -236,8 +279,8 @@ func (conn *GSConn) onVerifyClientConnection(payload *VerifyClientConnection) er
 		return nil
 	}
 	p.dbAcc = acc
-	if payload.mapId == 0 {
-		p.log.Debug().Msg("Skip UUID check - entering CharCreation instance")
+	if p.charCreationInProgress {
+		p.log.Debug().Msg("Skip UUID check - entering CharCreation")
 	} else {
 		// Check character UUID exists:
 		for _, char := range acc.Characters {
@@ -255,9 +298,6 @@ func (conn *GSConn) onVerifyClientConnection(payload *VerifyClientConnection) er
 	}
 
 	// TODO: Here we should verify the map is adjacent to the LastOutpostID if its explorable!
-
-	// Hook client up to an instance
-	p.connectedInstance = inst
 
 	p.log.Debug().Str("instanceTag", fmt.Sprintf("%08x", payload.instanceTag)).Str("securityTag", fmt.Sprintf("%08x", payload.securityTag)).Int("mapId", payload.mapId).Int("unk3", payload.unk3).Int("unk4", payload.unk4).Int("unk5", payload.unk5).Int("unk6", payload.unk6).Msg("VerifyClientConnection")
 	return nil
@@ -281,7 +321,12 @@ func (conn *GSConn) onClientSeed(payload *ClientSeed) error {
 		return fmt.Errorf("error creating rc4 encrypter: %s", err)
 	}
 
-	(*conn.player.connectedInstance).AddPlayer(conn.player)
+	if conn.player.charCreationInProgress {
+		conn.player.EnqueuePacket(MarshalInstanceLoadHead())
+		conn.player.EnqueuePacket(MarshalCharCreationStart())
+	} else {
+		conn.player.connectedInstance.AddPlayer(conn.player)
+	}
 
 	return nil
 }
@@ -319,6 +364,9 @@ func (conn *GSConn) onCreateCharRequestArmors(payload *CreateCharRequestArmors) 
 
 func (conn *GSConn) onUpdateProfessionChoice(payload *UpdateProfessionChoice) error {
 	p := conn.player
+	if !p.charCreationInProgress {
+		return nil
+	}
 	p.log.Debug().
 		Int("profession", payload.professionId).
 		Int("unk1", payload.unk1).
@@ -326,7 +374,6 @@ func (conn *GSConn) onUpdateProfessionChoice(payload *UpdateProfessionChoice) er
 	if payload.professionId == p.primaryProfession {
 		return nil
 	}
-	// TODO: validate we're actually in char creation instance!
 	// TODO: validate profession id
 	p.primaryProfession = payload.professionId
 	// Marshal 1: delete equipped items
@@ -374,7 +421,7 @@ func (conn *GSConn) onUpdateProfessionChoice(payload *UpdateProfessionChoice) er
 
 func (conn *GSConn) onDyeEquipment(payload *DyeEquipment) error {
 	p := conn.player
-	if !p.connectedInstance.IsCharCreationInstance() {
+	if !p.charCreationInProgress {
 		return nil
 	}
 	if payload.color < 0 || payload.color > 9 {
@@ -408,6 +455,9 @@ func (conn *GSConn) onDyeEquipment(payload *DyeEquipment) error {
 }
 
 func (conn *GSConn) onMapTravelToOutpost(payload *MapTravelToOutpost) error {
+	if conn.player.connectedInstance == nil {
+		return nil
+	}
 	conn.log.Info().Int("mapId", payload.mapId).Msg("MapTravel")
 	return conn.player.connectedInstance.TransferPlayerToNewMap(conn.player, payload.mapId)
 }

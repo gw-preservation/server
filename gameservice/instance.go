@@ -113,9 +113,6 @@ func GetMapIdForName(name string) (int, bool) {
 }
 
 func HasInstanceDefinitionForMapId(mapId int) bool {
-	if mapId == 0 {
-		return false // char creation instance is not a real map
-	}
 	_, ok := instanceDefinitions.Instances[mapId]
 	return ok
 }
@@ -185,9 +182,6 @@ func (im *instanceManager) AddInstance(instance *Instance) {
 	im.mu.Lock()
 	im.instances[instance.uuid] = instance
 	im.mu.Unlock()
-	if instance.mapId == 0 {
-		return
-	}
 	go instance.MainLoop()
 	go instance.MovementTickLoop()
 }
@@ -285,10 +279,6 @@ func NewInstance(mapId int, definition instanceDefinition) (i Instance) {
 		//log.Info().Str("name", agentToSpawn.Name).Int("agentId", ag.agentId).Msg("added agent!")
 	}
 	return
-}
-
-func (i Instance) IsCharCreationInstance() bool {
-	return i.mapId == 0
 }
 
 func (i *Instance) MainLoop() {
@@ -427,19 +417,15 @@ func (i *Instance) AddPlayer(player *Player) {
 		fmt.Printf("  #%d = PlayerID=%d AgentID=%d Name=%s\n", i, v.playerId, v.agentId, v.name)
 	}
 	player.EnqueuePacket(MarshalInstanceLoadHead())
-	if i.IsCharCreationInstance() {
-		player.EnqueuePacket(MarshalCharCreationStart())
-	} else {
-		player.posX, player.posY, player.plane = i.NextSpawnPoint()
-		player.sendWorldInstanceHead()
-		player.sendWorldInstanceBody()
-		player.EnqueuePacket(MarshalUpdateCurrentMapId(i.mapId))
-		player.EnqueuePacket(MarshalReadyForMapSpawn())
-		player.EnqueuePacket(MarshalInstanceManifestDone(0, i.mapId, 0))
-		player.SendWelcomeChatMessage()
+	player.posX, player.posY, player.plane = i.NextSpawnPoint()
+	player.sendWorldInstanceHead()
+	player.sendWorldInstanceBody()
+	player.EnqueuePacket(MarshalUpdateCurrentMapId(i.mapId))
+	player.EnqueuePacket(MarshalReadyForMapSpawn())
+	player.EnqueuePacket(MarshalInstanceManifestDone(0, i.mapId, 0))
+	player.SendWelcomeChatMessage()
 
-		i.TransmitPlayerToOthers(player)
-	}
+	i.TransmitPlayerToOthers(player)
 }
 
 func (i *Instance) SendActiveAgents(to *Player) {
@@ -589,7 +575,7 @@ func (i *Instance) TransferPlayerToNewMap(player *Player, newMapId int) error {
 
 	// Generate a security token for the transfer
 	instanceTag := inst.GetTag()
-	securityTag := GenerateConnectionTokenForInstance(instanceTag, true)
+	securityTag := GenerateConnectionTokenForInstance(instanceTag, true, player.dbChar.UUID, player.dbAcc.UUID, player.conn.clientIP())
 
 	// Hold the old instance lock while removing the player and updating their state,
 	// so no other goroutine (movement tick, main loop) can observe an intermediate state.

@@ -172,7 +172,7 @@ func (conn *PSConn) handleRequestGameToken(msg sts.ReqMsg) error {
 	if pl.GameCode != gameCodeGuildWars {
 		return fmt.Errorf("unexpected GameCode %s", pl.GameCode)
 	}
-	connectionToken := generateConnectionToken(conn.acc.ID)
+	connectionToken := generateConnectionToken(conn.acc.ID, conn.clientIP(), conn.acc.UUID)
 	gameToken, err := sts.NewGameTokenMsg(200, msg.Header.Seq, connectionToken)
 	if err != nil {
 		return err
@@ -205,4 +205,12 @@ func (conn *PSConn) Close() {
 		conn.tlsConn.Close()
 	}
 	conn.socket.Close()
+}
+
+func (conn *PSConn) clientIP() string {
+	host, _, err := net.SplitHostPort(conn.socket.RemoteAddr().String())
+	if err != nil {
+		return conn.socket.RemoteAddr().String()
+	}
+	return host
 }

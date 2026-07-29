@@ -1,6 +1,7 @@
 package authservice
 
 import (
+	"bytes"
 	"crypto/rc4"
 	"fmt"
 	"gw1/server/crypt"
@@ -9,6 +10,7 @@ import (
 	GwPacket "gw1/server/gwpacket"
 	Item "gw1/server/item"
 	"gw1/server/portalservice"
+	"net"
 )
 
 var ServerIP [4]byte
@@ -118,13 +120,24 @@ func (conn *ASConn) onGetAccountInfo(payload *GetAccountInfo) error {
 	conn.log.Info().Hex("uuid1", payload.uuid1[:]).Hex("gameToken", payload.gameTokenFromPortalService[:]).Str("unkString", payload.unk1).Msg("GetAccountInfo")
 	// Validate connection token
 	tokenStr := db.UUIDStr(payload.gameTokenFromPortalService[:])
-	accountId, ok := portalservice.ValidateConnectionToken(tokenStr)
+	tokenInfo, ok := portalservice.ValidateConnectionToken(tokenStr)
 	if !ok {
 		// Bad connection token!
 		return fmt.Errorf("invalid GameConnectionToken")
 	}
+
+	if !bytes.Equal(payload.uuid1[:], tokenInfo.AccountUUID[:]) {
+		return fmt.Errorf("account UUID does not match token")
+	}
+
+	expectedIP := net.ParseIP(tokenInfo.ClientIP)
+	actualIP := net.ParseIP(conn.clientIP())
+	if expectedIP == nil || actualIP == nil || !expectedIP.Equal(actualIP) {
+		return fmt.Errorf("client IP does not match token")
+	}
+
 	// Re-retrieve account from DB:
-	conn.acc, ok = db.GetFullAccountByID(accountId)
+	conn.acc, ok = db.GetFullAccountByID(tokenInfo.AccountID)
 	if !ok {
 		// Account does not exist though a token was generated to connect to it?
 		return fmt.Errorf("no such account during GetAccountInfo token verification")
@@ -248,20 +261,32 @@ func (conn *ASConn) onLoginCharacter(payload *LoginCharacter) error {
 		Int("unk6", payload.unk4).
 		Msg("LoginCharacter")
 
-	// TODO: we trust the mapId from client, whereas we ought to be using database value
+	var (
+		instanceTag uint32
+		mapId       int
+		charUUID    []byte
+	)
 	if payload.mapId == 0 {
 		conn.log.Debug().Msg("State = StateCreateCharacter")
 		conn.state = StateCreateCharacter
+		instanceTag = gameservice.CharCreationTag
+		mapId = 0
+		charUUID = nil
 	} else {
 		conn.state = StateInInstance
+		var ok bool
+		mapId, charUUID, ok = conn.getLastMapId()
+		if !ok {
+			return fmt.Errorf("unable to find character for login")
+		}
+		inst, err := gameservice.InstanceManager.GetOrCreateInstanceByMapId(mapId)
+		if err != nil {
+			return fmt.Errorf("unable to get create instance for mapId %d", mapId)
+		}
+		instanceTag = inst.GetTag()
 	}
-	inst, err := gameservice.InstanceManager.GetOrCreateInstanceByMapId(payload.mapId)
-	if err != nil {
-		conn.log.Error().Err(err).Msg("unable to create instance")
-	}
-	instanceTag := inst.GetTag()
-	securityTag := gameservice.GenerateConnectionTokenForInstance(instanceTag, conn.hasLoggedInThisSession)
-	conn.EnqueuePacket(MarshalInstanceServerInfo(payload.reqNumber, int(instanceTag), payload.mapId, []byte{
+	securityTag := gameservice.GenerateConnectionTokenForInstance(instanceTag, conn.hasLoggedInThisSession, charUUID, conn.acc.UUID, conn.clientIP())
+	conn.EnqueuePacket(MarshalInstanceServerInfo(payload.reqNumber, int(instanceTag), mapId, []byte{
 		0x02, 0x00, // AF_INET
 		0x17, 0xe0, // Port 6112
 		ServerIP[0], ServerIP[1], ServerIP[2], ServerIP[3], // server IP
@@ -295,6 +320,12 @@ func (conn *ASConn) onSetCharacterName(payload *SetCharacterName) error {
 
 func (conn *ASConn) onSetActiveCharacter(payload *SetActiveCharacter) error {
 	conn.log.Debug().Str("charName", payload.charName).Msg("SetActiveCharacter")
+	if payload.charName != "" {
+		if !conn.charBelongsToAccount(payload.charName) {
+			return fmt.Errorf("character %q does not belong to account", payload.charName)
+		}
+		conn.activeCharacterName = payload.charName
+	}
 	// Client sends this with empty charName if the active char was already selected upon a login char request
 	conn.EnqueuePacket(MarshalRequestResponse(payload.reqNumber, 0))
 	return nil
