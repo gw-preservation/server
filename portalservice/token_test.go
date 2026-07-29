@@ -1,4 +1,4 @@
-package PortalService
+package portalservice
 
 import (
 	"testing"

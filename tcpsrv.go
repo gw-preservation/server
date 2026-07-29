@@ -2,10 +2,10 @@ package gw1
 
 import (
 	"errors"
-	AuthService "gw1/server/authservice"
-	FileService "gw1/server/fileservice"
-	GameService "gw1/server/gameservice"
-	PortalService "gw1/server/portalservice"
+	"gw1/server/authservice"
+	"gw1/server/fileservice"
+	"gw1/server/gameservice"
+	"gw1/server/portalservice"
 	"io"
 
 	"net"
@@ -79,25 +79,25 @@ func (srv tcpsrv) handleTCPConnection(conn *net.TCPConn) {
 			return
 		}
 		readData := tempBuffer[:numBytesReadFromSocket]
-		if client, ok := transport.(*AuthService.ASConn); ok {
+		if client, ok := transport.(*authservice.ASConn); ok {
 			client.DecryptBytes(readData)
 		}
-		if client, ok := transport.(*GameService.GSConn); ok {
+		if client, ok := transport.(*gameservice.GSConn); ok {
 			client.DecryptBytes(readData)
 		}
 		buffer = append(buffer, readData...)
 		if transport == nil {
 			if len(buffer) == 21 {
-				transport = FileService.NewFSConn(conn, logger)
+				transport = fileservice.NewFSConn(conn, logger)
 				servicerName = "file"
 			} else if len(buffer) == 16 {
-				transport = AuthService.NewASConn(conn, logger)
+				transport = authservice.NewASConn(conn, logger)
 				servicerName = "auth"
 			} else if len(buffer) == 64 {
-				transport = GameService.NewGSConn(conn, logger)
+				transport = gameservice.NewGSConn(conn, logger)
 				servicerName = "game"
 			} else if len(buffer) > 6 && string(buffer[:3]) == "P /" {
-				transport = PortalService.NewPSConn(conn, logger)
+				transport = portalservice.NewPSConn(conn, logger)
 				servicerName = "portal"
 			} else {
 				logger.Error().Msg("unrecognised connection type")

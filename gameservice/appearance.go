@@ -1,6 +1,6 @@
 // This package defines the Appearance struct and provides functions to parse and build appearance bits.
 
-package GameService
+package gameservice
 
 // Appearance represents the attributes of a game character's appearance.
 // The struct includes bits for gender, height, skin color, hair color,

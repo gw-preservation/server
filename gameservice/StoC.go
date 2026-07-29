@@ -2,7 +2,7 @@
 //go:generate go run ../cmd/codegen/main.go s2c fmt math
 //go:generate go fmt
 
-package GameService
+package gameservice
 
 import GwPacket "gw1/server/gwpacket"
 

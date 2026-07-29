@@ -1,14 +1,14 @@
-package AuthService
+package authservice
 
 import (
 	"crypto/rc4"
 	"fmt"
 	"gw1/server/crypt"
 	"gw1/server/db"
-	GameService "gw1/server/gameservice"
+	"gw1/server/gameservice"
 	GwPacket "gw1/server/gwpacket"
 	Item "gw1/server/item"
-	PortalService "gw1/server/portalservice"
+	"gw1/server/portalservice"
 )
 
 var ServerIP [4]byte
@@ -118,7 +118,7 @@ func (conn *ASConn) onGetAccountInfo(payload *GetAccountInfo) error {
 	conn.log.Info().Hex("uuid1", payload.uuid1[:]).Hex("gameToken", payload.gameTokenFromPortalService[:]).Str("unkString", payload.unk1).Msg("GetAccountInfo")
 	// Validate connection token
 	tokenStr := db.UUIDStr(payload.gameTokenFromPortalService[:])
-	accountId, ok := PortalService.ValidateConnectionToken(tokenStr)
+	accountId, ok := portalservice.ValidateConnectionToken(tokenStr)
 	if !ok {
 		// Bad connection token!
 		return fmt.Errorf("invalid GameConnectionToken")
@@ -255,12 +255,12 @@ func (conn *ASConn) onLoginCharacter(payload *LoginCharacter) error {
 	} else {
 		conn.state = StateInInstance
 	}
-	inst, err := GameService.InstanceManager.GetOrCreateInstanceByMapId(payload.mapId)
+	inst, err := gameservice.InstanceManager.GetOrCreateInstanceByMapId(payload.mapId)
 	if err != nil {
 		conn.log.Error().Err(err).Msg("unable to create instance")
 	}
 	instanceTag := inst.GetTag()
-	securityTag := GameService.GenerateConnectionTokenForInstance(instanceTag, conn.hasLoggedInThisSession)
+	securityTag := gameservice.GenerateConnectionTokenForInstance(instanceTag, conn.hasLoggedInThisSession)
 	conn.EnqueuePacket(MarshalInstanceServerInfo(payload.reqNumber, int(instanceTag), payload.mapId, []byte{
 		0x02, 0x00, // AF_INET
 		0x17, 0xe0, // Port 6112

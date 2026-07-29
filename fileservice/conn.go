@@ -1,4 +1,4 @@
-package FileService
+package fileservice
 
 import (
 	"fmt"

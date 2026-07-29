@@ -1,4 +1,4 @@
-package GameService
+package gameservice
 
 type Agent struct {
 	agentId             int

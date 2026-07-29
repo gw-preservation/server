@@ -1,4 +1,4 @@
-package GameService
+package gameservice
 
 var instanceDefinitions = struct {
 	Instances map[int]instanceDefinition

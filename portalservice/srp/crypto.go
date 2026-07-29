@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"crypto/sha1"
 	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/binary"
 	"fmt"
 	"hash"
@@ -244,19 +245,40 @@ func (c *CipherState) Decrypt(
 
 	mode.CryptBlocks(plaintext, body)
 
-	plaintext, err = tlsUnpad(plaintext)
-	if err != nil {
+	// --- Constant-time Lucky13-hardened unpadding ---
+	n := len(plaintext)
+	if n == 0 {
 		return nil, ErrBadRecordMAC
 	}
 
-	if len(plaintext) < macKeyLen {
-		return nil, ErrBadRecordMAC
+	padVal := int(plaintext[n-1])
+	padLen := padVal + 1
+
+	valid := 1
+	if padLen > n {
+		valid = 0
+		padLen = n
 	}
 
-	dataLen := len(plaintext) - macKeyLen
+	for i := 0; i < n; i++ {
+		inPadding := subtle.ConstantTimeLessOrEq(n-padLen, i)
+		byteOk := subtle.ConstantTimeByteEq(plaintext[i], byte(padVal))
+		check := subtle.ConstantTimeSelect(inPadding, byteOk, 1)
+		valid = valid & check
+	}
 
-	data := plaintext[:dataLen]
-	receivedMAC := plaintext[dataLen:]
+	// --- Always compute MAC regardless of padding validity ---
+	dataLen := n - padLen - macKeyLen
+	var data []byte
+	var receivedMAC []byte
+
+	if dataLen < 0 {
+		data = []byte{}
+		receivedMAC = make([]byte, macKeyLen)
+	} else {
+		data = plaintext[:dataLen]
+		receivedMAC = plaintext[dataLen : dataLen+macKeyLen]
+	}
 
 	expectedMAC := c.mac(
 		contentType,
@@ -264,7 +286,9 @@ func (c *CipherState) Decrypt(
 		data,
 	)
 
-	if !hmac.Equal(receivedMAC, expectedMAC) {
+	macOk := subtle.ConstantTimeCompare(receivedMAC, expectedMAC)
+
+	if valid != 1 || macOk != 1 {
 		return nil, ErrBadRecordMAC
 	}
 
@@ -291,24 +315,30 @@ func tlsPad(data []byte, blockSize int) []byte {
 }
 
 func tlsUnpad(data []byte) ([]byte, error) {
-	if len(data) == 0 {
+	n := len(data)
+	if n == 0 {
 		return nil, fmt.Errorf("empty padded data")
 	}
 
-	padding := int(data[len(data)-1])
+	padVal := int(data[n-1])
+	padLen := padVal + 1
 
-	paddingLength := padding + 1
-
-	if paddingLength > len(data) {
+	if padLen > n {
 		return nil, fmt.Errorf("invalid padding")
 	}
 
-	for i := len(data) - paddingLength; i < len(data); i++ {
-		if int(data[i]) != padding {
-			return nil, fmt.Errorf("invalid padding bytes")
-		}
+	valid := 1
+	for i := 0; i < n; i++ {
+		inPadding := subtle.ConstantTimeLessOrEq(n-padLen, i)
+		byteOk := subtle.ConstantTimeByteEq(data[i], byte(padVal))
+		check := subtle.ConstantTimeSelect(inPadding, byteOk, 1)
+		valid = valid & check
 	}
 
-	return data[:len(data)-paddingLength], nil
+	if valid != 1 {
+		return nil, fmt.Errorf("invalid padding bytes")
+	}
+
+	return data[:n-padLen], nil
 
 }

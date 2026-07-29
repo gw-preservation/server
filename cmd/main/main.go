@@ -2,9 +2,9 @@ package main
 
 import (
 	gw1 "gw1/server"
-	AuthService "gw1/server/authservice"
+	"gw1/server/authservice"
 	"gw1/server/db"
-	GameService "gw1/server/gameservice"
+	"gw1/server/gameservice"
 	"log"
 	"net"
 	"os"
@@ -18,12 +18,12 @@ func main() {
 	if err := db.Initialize(); err != nil {
 		panic(err)
 	}
-	if err := GameService.InitializeInstances(); err != nil {
+	if err := gameservice.InitializeInstances(); err != nil {
 		panic(err)
 	}
 	ip := net.ParseIP(serverIP).To4()
-	copy(AuthService.ServerIP[:], ip)
-	copy(GameService.ServerIP[:], ip)
+	copy(authservice.ServerIP[:], ip)
+	copy(gameservice.ServerIP[:], ip)
 	srv := gw1.NewTCPServer()
 
 	// Set up signal channel

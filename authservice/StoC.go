@@ -2,7 +2,7 @@
 //go:generate go run ../cmd/codegen/main.go s2c fmt
 //go:generate go fmt
 
-package AuthService
+package authservice
 
 type VarByte []byte
 

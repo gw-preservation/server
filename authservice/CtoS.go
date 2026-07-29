@@ -2,7 +2,7 @@
 //go:generate go run ../cmd/codegen/main.go c2s fmt errors
 //go:generate go fmt
 
-package AuthService
+package authservice
 
 // opcode: 0x800a
 type SetActiveCharacter struct {

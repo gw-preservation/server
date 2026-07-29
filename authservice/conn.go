@@ -1,4 +1,4 @@
-package AuthService
+package authservice
 
 import (
 	"crypto/rc4"

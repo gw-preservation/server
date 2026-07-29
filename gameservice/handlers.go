@@ -1,4 +1,4 @@
-package GameService
+package gameservice
 
 import (
 	"bytes"
@@ -392,7 +392,6 @@ func (conn *GSConn) onDyeEquipment(payload *DyeEquipment) error {
 		return nil
 	}
 	if lid == -1 {
-		p.log.Debug().Int("slot", payload.slot).Msg("no item in slot to dye")
 		return nil
 	}
 

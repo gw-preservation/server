@@ -2,7 +2,7 @@
 //go:generate go run ../cmd/codegen/main.go c2s errors fmt
 //go:generate go fmt
 
-package GameService
+package gameservice
 
 type VarByte []byte
 type VarUTF16 []byte

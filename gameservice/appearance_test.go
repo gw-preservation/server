@@ -1,4 +1,4 @@
-package GameService
+package gameservice
 
 import (
 	"testing"
@@ -17,7 +17,7 @@ func TestParseAppearanceBits_Female(t *testing.T) {
 }
 
 func TestParseAppearanceBits_Height(t *testing.T) {
-	a := ParseAppearanceBits(0x2)  // height = 1
+	a := ParseAppearanceBits(0x2) // height = 1
 	assert.Equal(t, uint8(1), a.Height)
 
 	a = ParseAppearanceBits(0x10) // height = 8
@@ -55,14 +55,14 @@ func TestParseAppearanceBits_Campaign(t *testing.T) {
 }
 
 func TestParseAppearanceBits_AllFields(t *testing.T) {
-	bits := uint32(0x1)          // female
-	bits |= uint32(7) << 1      // height = 7
-	bits |= uint32(25) << 5     // skinColor = 25
-	bits |= uint32(15) << 10    // hairColor = 15
-	bits |= uint32(31) << 15    // faceStyle = 31
-	bits |= uint32(12) << 20    // primaryProfession = 12
-	bits |= uint32(50) << 24    // hairStyle = 50
-	bits |= uint32(2) << 30     // campaign = 2
+	bits := uint32(0x1)      // female
+	bits |= uint32(7) << 1   // height = 7
+	bits |= uint32(25) << 5  // skinColor = 25
+	bits |= uint32(15) << 10 // hairColor = 15
+	bits |= uint32(31) << 15 // faceStyle = 31
+	bits |= uint32(12) << 20 // primaryProfession = 12
+	bits |= uint32(50) << 24 // hairStyle = 50
+	bits |= uint32(2) << 30  // campaign = 2
 
 	a := ParseAppearanceBits(bits)
 	assert.True(t, a.Female)
@@ -156,10 +156,10 @@ func TestBuildAppearanceBits_MasksOverflow(t *testing.T) {
 	bits := BuildAppearanceBits(false, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF)
 	a := ParseAppearanceBits(bits)
 
-	assert.Equal(t, uint8(15), a.Height)          // 4 bits: 0xFF & 0xF = 0xF
-	assert.Equal(t, uint8(31), a.SkinColor)        // 5 bits: 0xFF & 0x1F = 0x1F
-	assert.Equal(t, uint8(31), a.HairColor)        // 5 bits
-	assert.Equal(t, uint8(31), a.FaceStyle)        // 5 bits
+	assert.Equal(t, uint8(15), a.Height)            // 4 bits: 0xFF & 0xF = 0xF
+	assert.Equal(t, uint8(31), a.SkinColor)         // 5 bits: 0xFF & 0x1F = 0x1F
+	assert.Equal(t, uint8(31), a.HairColor)         // 5 bits
+	assert.Equal(t, uint8(31), a.FaceStyle)         // 5 bits
 	assert.Equal(t, uint8(15), a.PrimaryProfession) // 4 bits
 	assert.Equal(t, uint8(63), a.HairStyle)         // 6 bits: 0xFF & 0x3F = 0x3F
 	assert.Equal(t, uint8(3), a.Campaign)           // 2 bits
