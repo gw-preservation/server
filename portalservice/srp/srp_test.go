@@ -202,29 +202,7 @@ func TestSRPVerifier_DifferentPasswords(t *testing.T) {
 	assert.NotEqual(t, v1, v2)
 }
 
-func TestCreateSRPUser(t *testing.T) {
-	g := SRP1024()
-	user, err := CreateSRPUser(g, "testuser", "testpass")
-	require.NoError(t, err)
-	assert.Equal(t, "testuser", user.Username)
-	assert.NotEmpty(t, user.Salt)
-	assert.NotNil(t, user.Verifier)
-}
 
-func TestSRPServer_BNonZero(t *testing.T) {
-	g := SRP1024()
-
-	// Create a user with a known verifier
-	user := &SRPUser{
-		Username: "test",
-		Salt:     []byte{0x01, 0x02, 0x03, 0x04},
-		Verifier: SRPVerifier("test", "pass", []byte{0x01, 0x02, 0x03, 0x04}, g),
-	}
-
-	server, err := NewSRPServer(g, user)
-	require.NoError(t, err)
-	assert.True(t, server.B.Sign() > 0)
-}
 
 func TestComputeSharedSecret_RandomA(t *testing.T) {
 	g := SRP1024()
@@ -242,6 +220,53 @@ func TestComputeSharedSecret_RandomA(t *testing.T) {
 	S, err := server.ComputeSharedSecret(A)
 	require.NoError(t, err)
 	assert.True(t, S.Sign() > 0)
+}
+
+func TestPadBigInt_Nil(t *testing.T) {
+	padded := padBigInt(nil, 4)
+	assert.Equal(t, []byte{0, 0, 0, 0}, padded)
+}
+
+func TestPadBigInt_BytesLargerThanSize(t *testing.T) {
+	v := new(big.Int).SetBytes([]byte{1, 2, 3, 4, 5})
+	padded := padBigInt(v, 3)
+	// Should truncate to last 3 bytes
+	assert.Equal(t, []byte{3, 4, 5}, padded)
+}
+
+func TestNewSRPServer_ZeroVerifier(t *testing.T) {
+	g := SRP1024()
+	user := &SRPUser{
+		Username: "test",
+		Salt:     []byte{1, 2, 3, 4},
+		Verifier: big.NewInt(0),
+	}
+
+	server, err := NewSRPServer(g, user)
+	require.NoError(t, err)
+	assert.NotNil(t, server)
+	assert.True(t, server.B.Sign() > 0)
+}
+
+func TestPremasterSecret_InvalidA(t *testing.T) {
+	g := SRP1024()
+	user := &SRPUser{
+		Username: "test",
+		Salt:     []byte{1, 2, 3, 4},
+		Verifier: big.NewInt(42),
+	}
+
+	server, err := NewSRPServer(g, user)
+	require.NoError(t, err)
+
+	// A = N (A mod N == 0)
+	_, err = server.PremasterSecret(new(big.Int).Set(g.N))
+	assert.Error(t, err)
+
+	// A > N
+	overN := new(big.Int).Add(g.N, big.NewInt(1))
+	_, err = server.PremasterSecret(overN)
+	assert.Error(t, err)
 }
 
 func TestPadBigInt_Random(t *testing.T) {

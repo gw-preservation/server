@@ -2,8 +2,11 @@ package srp
 
 import (
 	"bytes"
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/rand"
 	"crypto/sha256"
+	"net"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -334,6 +337,142 @@ func TestCipherState_Decrypt_InvalidMAC(t *testing.T) {
 	dec := &CipherState{MACKey: macKey, Key: key, Sequence: 0}
 	_, err := dec.Decrypt(recordApplicationData, tls12, tampered)
 	assert.ErrorIs(t, err, ErrBadRecordMAC)
+}
+
+func TestCipherState_Decrypt_NonBlockAligned(t *testing.T) {
+	key := make([]byte, 32)
+	macKey := make([]byte, 20)
+	dec := &CipherState{MACKey: macKey, Key: key, Sequence: 0}
+
+	// IV + 1 byte (not block-aligned)
+	ciphertext := make([]byte, ivLen+1)
+	_, err := dec.Decrypt(recordApplicationData, tls12, ciphertext)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid ciphertext length")
+}
+
+func TestCipherState_Decrypt_BadPadding(t *testing.T) {
+	key := make([]byte, 32)
+	macKey := make([]byte, 20)
+	rand.Read(key)
+	rand.Read(macKey)
+
+	enc := &CipherState{MACKey: macKey, Key: key, Sequence: 0}
+	plaintext := []byte("test data that is long enough")
+	ciphertext, err := enc.Encrypt(recordApplicationData, tls12, plaintext)
+	require.NoError(t, err)
+
+	// Tamper the last byte of the last ciphertext block
+	// After CBC decryption this corrupts the padding value
+	ciphertext[len(ciphertext)-1] ^= 0xFF
+
+	dec := &CipherState{MACKey: macKey, Key: key, Sequence: 0}
+	_, err = dec.Decrypt(recordApplicationData, tls12, ciphertext)
+	assert.ErrorIs(t, err, ErrBadRecordMAC)
+}
+
+func TestCipherState_Decrypt_ShortPlaintext(t *testing.T) {
+	key := make([]byte, 32)
+	macKey := make([]byte, 20)
+	rand.Read(key)
+	rand.Read(macKey)
+
+	// Build a ciphertext whose CBC decryption yields a block with valid
+	// TLS padding (all bytes = 15), leaving 0 bytes after unpadding — too
+	// short for the 20-byte MAC.
+	block, err := aes.NewCipher(key)
+	require.NoError(t, err)
+
+	iv := make([]byte, ivLen)
+	rand.Read(iv)
+
+	plaintextBlock := bytes.Repeat([]byte{15}, 16)
+	ciphertextBlock := make([]byte, 16)
+	mode := cipher.NewCBCEncrypter(block, iv)
+	mode.CryptBlocks(ciphertextBlock, plaintextBlock)
+
+	dec := &CipherState{MACKey: macKey, Key: key, Sequence: 0}
+	_, err = dec.Decrypt(recordApplicationData, tls12, append(iv, ciphertextBlock...))
+	assert.ErrorIs(t, err, ErrBadRecordMAC)
+}
+
+func TestCipherState_Encrypt_InvalidKey(t *testing.T) {
+	// Use a key that's too short for AES (not 16, 24, or 32 bytes)
+	enc := &CipherState{
+		MACKey: make([]byte, 20),
+		Key:    make([]byte, 10), // invalid AES key size
+	}
+	_, err := enc.Encrypt(recordApplicationData, tls12, []byte("test"))
+	assert.Error(t, err)
+}
+
+func TestCipherState_Decrypt_InvalidKey(t *testing.T) {
+	dec := &CipherState{
+		MACKey: make([]byte, 20),
+		Key:    make([]byte, 10), // invalid AES key size
+	}
+	ciphertext := make([]byte, ivLen+16)
+	_, err := dec.Decrypt(recordApplicationData, tls12, ciphertext)
+	assert.Error(t, err)
+}
+
+func TestWriteRecord_WriteError(t *testing.T) {
+	// Use a closed pipe to trigger write error
+	pr, pw := net.Pipe()
+	pw.Close()
+
+	rec := &Record{
+		Type:    recordHandshake,
+		Version: tls12,
+		Data:    []byte{0x01},
+	}
+
+	err := WriteRecord(pr, rec)
+	assert.Error(t, err)
+}
+
+func TestEncryptHandshake_Error(t *testing.T) {
+	// Use an invalid key to cause AES encryption to fail
+	cipher := &CipherState{
+		MACKey: make([]byte, 20),
+		Key:    make([]byte, 10), // invalid AES key
+	}
+	hs := &Handshake{
+		Type: handshakeFinished,
+		Body: make([]byte, 12),
+	}
+
+	_, err := EncryptHandshake(cipher, hs)
+	assert.Error(t, err)
+}
+
+func TestTlsPad_BlockSizeAlignment(t *testing.T) {
+	// Test various data sizes to ensure alignment
+	for size := 0; size < 50; size++ {
+		data := make([]byte, size)
+		for i := range data {
+			data[i] = byte(i)
+		}
+		padded := tlsPad(data, ivLen)
+		assert.Equal(t, 0, len(padded)%ivLen, "size %d not aligned", size)
+
+		unpadded, err := tlsUnpad(padded)
+		require.NoError(t, err, "size %d failed to unpad", size)
+		assert.Equal(t, data, unpadded, "size %d round-trip failed", size)
+	}
+}
+
+func TestTlsPRF_LongOutput(t *testing.T) {
+	secret := []byte("secret")
+	label := []byte("label")
+	seed := []byte("seed")
+	// Request more output than a single hash block
+	result := tlsPRF(secret, label, seed, 256)
+	assert.Equal(t, 256, len(result))
+
+	// Verify determinism
+	result2 := tlsPRF(secret, label, seed, 256)
+	assert.Equal(t, result, result2)
 }
 
 func TestCipherState_Decrypt_WrongKey(t *testing.T) {

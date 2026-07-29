@@ -225,6 +225,54 @@ func TestCodecRoundTrip_Vector8(t *testing.T) {
 	assert.Equal(t, original, v)
 }
 
+func TestParser_Vector24_Underflow(t *testing.T) {
+	p := newParser([]byte{0x01, 0x02})
+	_, err := p.Vector24()
+	assert.Error(t, err)
+}
+
+func TestParser_Vector24_DataUnderflow(t *testing.T) {
+	p := newParser([]byte{0, 0, 5, 0x01, 0x02}) // claims 5 bytes, has 2
+	_, err := p.Vector24()
+	assert.Error(t, err)
+}
+
+func TestParser_Vector8Uint_Underflow(t *testing.T) {
+	p := newParser([]byte{}) // empty
+	_, err := p.Vector8Uint()
+	assert.Error(t, err)
+}
+
+func TestParser_Vector16Uint_Empty(t *testing.T) {
+	p := newParser([]byte{0, 0}) // length 0
+	u, err := p.Vector16Uint()
+	require.NoError(t, err)
+	assert.Empty(t, u)
+}
+
+func TestEncoder_Empty(t *testing.T) {
+	var e encoder
+	assert.Empty(t, e.BytesSlice())
+}
+
+func TestEncoder_Vector8_Empty(t *testing.T) {
+	var e encoder
+	e.Vector8([]byte{})
+	assert.Equal(t, []byte{0}, e.BytesSlice())
+}
+
+func TestEncoder_Vector16_Empty(t *testing.T) {
+	var e encoder
+	e.Vector16([]byte{})
+	assert.Equal(t, []byte{0, 0}, e.BytesSlice())
+}
+
+func TestEncoder_Vector24_Empty(t *testing.T) {
+	var e encoder
+	e.Vector24([]byte{})
+	assert.Equal(t, []byte{0, 0, 0}, e.BytesSlice())
+}
+
 func TestCodecRoundTrip_Vector16(t *testing.T) {
 	original := []byte{0xDE, 0xAD, 0xBE, 0xEF, 0xCA, 0xFE}
 	var e encoder
@@ -232,6 +280,28 @@ func TestCodecRoundTrip_Vector16(t *testing.T) {
 
 	p := newParser(e.BytesSlice())
 	v, err := p.Vector16()
+	require.NoError(t, err)
+	assert.Equal(t, original, v)
+}
+
+func TestCodecRoundTrip_Vector24(t *testing.T) {
+	original := []byte{0x01, 0x02, 0x03, 0x04, 0x05}
+	var e encoder
+	e.Vector24(original)
+
+	p := newParser(e.BytesSlice())
+	v, err := p.Vector24()
+	require.NoError(t, err)
+	assert.Equal(t, original, v)
+}
+
+func TestCodecRoundTrip_Vector8Uint(t *testing.T) {
+	original := []uint8{0x0A, 0x14, 0x1E}
+	var e encoder
+	e.Vector8([]byte(original))
+
+	p := newParser(e.BytesSlice())
+	v, err := p.Vector8Uint()
 	require.NoError(t, err)
 	assert.Equal(t, original, v)
 }

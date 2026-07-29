@@ -1,6 +1,7 @@
 package srp
 
 import (
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -31,15 +32,6 @@ func TestCreateSRPUser_DifferentUsers(t *testing.T) {
 }
 
 // --- SRPVerifier ---
-
-func TestSRPVerifier_MatchesCreateUser(t *testing.T) {
-	g := SRP1024()
-	salt := []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}
-
-	v1 := SRPVerifier("user", "pass", salt, g)
-	v2 := SRPVerifier("user", "pass", salt, g)
-	assert.Equal(t, v1, v2)
-}
 
 // --- BuildServerFlight ---
 
@@ -206,26 +198,6 @@ func TestActivateReadCipher_NoMasterSecret(t *testing.T) {
 
 // --- EncryptHandshake ---
 
-func TestEncryptHandshake_RoundTrip(t *testing.T) {
-	key := make([]byte, 32)
-	macKey := make([]byte, 20)
-	for i := range macKey {
-		key[i] = byte(i)
-		macKey[i] = byte(i)
-	}
-
-	cipher := &CipherState{MACKey: macKey, Key: key}
-	hs := &Handshake{
-		Type: handshakeFinished,
-		Body: make([]byte, 12),
-	}
-
-	enc, err := EncryptHandshake(cipher, hs)
-	require.NoError(t, err)
-	assert.Equal(t, recordHandshake, enc.Type)
-	assert.Equal(t, tls12, enc.Version)
-}
-
 func TestHandleClientFinished_Valid(t *testing.T) {
 	g := SRP1024()
 	user, _ := CreateSRPUser(g, "testuser", "testpass")
@@ -347,6 +319,251 @@ func TestHandleClientFinished_InvalidFinished(t *testing.T) {
 }
 
 // --- Full server handshake flow ---
+
+func TestBuildServerFinishedFlight_Valid(t *testing.T) {
+	g := SRP1024()
+	user, _ := CreateSRPUser(g, "testuser", "testpass")
+
+	lookup := func(username string) (*SRPUser, error) {
+		return user, nil
+	}
+
+	h := &ServerHandshake{
+		Lookup: lookup,
+		ClientHello: &ClientHello{
+			Version:            tls12,
+			Random:             make([]byte, 32),
+			CipherSuites:       []uint16{TLS_SRP_SHA_WITH_AES_256_CBC_SHA},
+			CompressionMethods: []uint8{compressionNull},
+			SRPUsername:        "testuser",
+			SessionID:          []byte{},
+		},
+	}
+
+	_, _ = h.BuildServerFlight()
+
+	a := big.NewInt(99999)
+	A := new(big.Int).Exp(g.g, a, g.N)
+
+	var ckeEncoder encoder
+	ckeEncoder.Vector16(A.Bytes())
+	cke := &Handshake{
+		Type: handshakeClientKeyExchange,
+		Body: ckeEncoder.BytesSlice(),
+	}
+
+	_ = h.HandleClientKeyExchange(cke)
+	_ = h.ActivateReadCipher()
+
+	// Manually set state to stateClientFinishedReceived
+	h.State = stateClientFinishedReceived
+
+	records, err := h.BuildServerFinishedFlight()
+	require.NoError(t, err)
+	assert.Len(t, records, 2) // ChangeCipherSpec + encrypted Finished
+	assert.Equal(t, recordChangeCipherSpec, records[0].Type)
+	assert.Equal(t, recordHandshake, records[1].Type)
+	assert.Equal(t, stateEstablished, h.State)
+}
+
+func TestBuildServerFinishedFlight_WrongState(t *testing.T) {
+	h := &ServerHandshake{State: stateInitial}
+	_, err := h.BuildServerFinishedFlight()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "unexpected state")
+}
+
+func TestBuildServerFinishedFlight_NoWriteCipher(t *testing.T) {
+	h := &ServerHandshake{
+		State: stateClientFinishedReceived,
+	}
+	_, err := h.BuildServerFinishedFlight()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "write cipher not active")
+}
+
+func TestBuildServerFlight_LookupError(t *testing.T) {
+	g := SRP1024()
+	user, _ := CreateSRPUser(g, "testuser", "testpass")
+	_ = user
+
+	lookup := func(username string) (*SRPUser, error) {
+		return nil, fmt.Errorf("database error")
+	}
+
+	h := &ServerHandshake{
+		Lookup: lookup,
+		ClientHello: &ClientHello{
+			Version:            tls12,
+			Random:             make([]byte, 32),
+			CipherSuites:       []uint16{TLS_SRP_SHA_WITH_AES_256_CBC_SHA},
+			CompressionMethods: []uint8{compressionNull},
+			SRPUsername:        "testuser",
+			SessionID:          []byte{},
+		},
+	}
+
+	_, err := h.BuildServerFlight()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "database error")
+}
+
+func TestBuildServerFlight_UserNotFound(t *testing.T) {
+	lookup := func(username string) (*SRPUser, error) {
+		return nil, nil
+	}
+
+	h := &ServerHandshake{
+		Lookup: lookup,
+		ClientHello: &ClientHello{
+			Version:            tls12,
+			Random:             make([]byte, 32),
+			CipherSuites:       []uint16{TLS_SRP_SHA_WITH_AES_256_CBC_SHA},
+			CompressionMethods: []uint8{compressionNull},
+			SRPUsername:        "missinguser",
+			SessionID:          []byte{},
+		},
+	}
+
+	_, err := h.BuildServerFlight()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "not found")
+}
+
+func TestHandleClientKeyExchange_BadParse(t *testing.T) {
+	g := SRP1024()
+	user, _ := CreateSRPUser(g, "testuser", "testpass")
+
+	lookup := func(username string) (*SRPUser, error) {
+		return user, nil
+	}
+
+	h := &ServerHandshake{
+		Lookup: lookup,
+		ClientHello: &ClientHello{
+			Version:            tls12,
+			Random:             make([]byte, 32),
+			CipherSuites:       []uint16{TLS_SRP_SHA_WITH_AES_256_CBC_SHA},
+			CompressionMethods: []uint8{compressionNull},
+			SRPUsername:        "testuser",
+			SessionID:          []byte{},
+		},
+	}
+
+	_, _ = h.BuildServerFlight()
+
+	// Send a ClientKeyExchange with wrong type
+	cke := &Handshake{
+		Type: handshakeServerHello, // wrong type
+		Body: []byte{},
+	}
+	err := h.HandleClientKeyExchange(cke)
+	assert.Error(t, err)
+}
+
+func TestActivateReadCipher_SplitKeyBlockError(t *testing.T) {
+	// splitKeyBlock error via ActivateReadCipher is not reachable because
+	// deriveKeyBlock always produces keyBlockLen bytes via TLS PRF.
+	// Just verify splitKeyBlock error directly.
+	_, err := splitKeyBlock(make([]byte, 10))
+	assert.Error(t, err)
+}
+
+func TestHandleClientFinished_DecryptError(t *testing.T) {
+	g := SRP1024()
+	user, _ := CreateSRPUser(g, "testuser", "testpass")
+
+	lookup := func(username string) (*SRPUser, error) {
+		return user, nil
+	}
+
+	h := &ServerHandshake{
+		Lookup: lookup,
+		ClientHello: &ClientHello{
+			Version:            tls12,
+			Random:             make([]byte, 32),
+			CipherSuites:       []uint16{TLS_SRP_SHA_WITH_AES_256_CBC_SHA},
+			CompressionMethods: []uint8{compressionNull},
+			SRPUsername:        "testuser",
+			SessionID:          []byte{},
+		},
+	}
+
+	_, _ = h.BuildServerFlight()
+
+	a := big.NewInt(99999)
+	A := new(big.Int).Exp(g.g, a, g.N)
+
+	var ckeEncoder encoder
+	ckeEncoder.Vector16(A.Bytes())
+	cke := &Handshake{
+		Type: handshakeClientKeyExchange,
+		Body: ckeEncoder.BytesSlice(),
+	}
+
+	_ = h.HandleClientKeyExchange(cke)
+	_ = h.ActivateReadCipher()
+
+	// Send a record that will fail to decrypt (too short)
+	shortRecord := &Record{
+		Type:    recordHandshake,
+		Version: tls12,
+		Data:    make([]byte, 5), // too short for IV
+	}
+
+	_, err := h.HandleClientFinished(shortRecord)
+	assert.Error(t, err)
+}
+
+func TestHandleClientFinished_BadFinishedVerifyData(t *testing.T) {
+	g := SRP1024()
+	user, _ := CreateSRPUser(g, "testuser", "testpass")
+
+	lookup := func(username string) (*SRPUser, error) {
+		return user, nil
+	}
+
+	h := &ServerHandshake{
+		Lookup: lookup,
+		ClientHello: &ClientHello{
+			Version:            tls12,
+			Random:             make([]byte, 32),
+			CipherSuites:       []uint16{TLS_SRP_SHA_WITH_AES_256_CBC_SHA},
+			CompressionMethods: []uint8{compressionNull},
+			SRPUsername:        "testuser",
+			SessionID:          []byte{},
+		},
+	}
+
+	_, _ = h.BuildServerFlight()
+
+	a := big.NewInt(99999)
+	A := new(big.Int).Exp(g.g, a, g.N)
+
+	var ckeEncoder encoder
+	ckeEncoder.Vector16(A.Bytes())
+	cke := &Handshake{
+		Type: handshakeClientKeyExchange,
+		Body: ckeEncoder.BytesSlice(),
+	}
+
+	_ = h.HandleClientKeyExchange(cke)
+	_ = h.ActivateReadCipher()
+
+	// Create a properly encrypted Finished with wrong verify data
+	badFinished := &Finished{VerifyData: make([]byte, finishedLength)}
+	clientCipher := &CipherState{
+		MACKey:   h.ReadCipher.MACKey,
+		Key:      h.ReadCipher.Key,
+		Sequence: 0,
+	}
+	encRecord, err := EncryptHandshake(clientCipher, badFinished.Encode())
+	require.NoError(t, err)
+
+	_, err = h.HandleClientFinished(encRecord)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid client Finished")
+}
 
 func TestServerHandshake_FullFlow(t *testing.T) {
 	g := SRP1024()
