@@ -2,13 +2,17 @@ package main
 
 import (
 	gw1 "gw1/server"
+	AuthService "gw1/server/authservice"
 	"gw1/server/db"
 	GameService "gw1/server/gameservice"
 	"log"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
 )
+
+const serverIP = "192.168.1.124"
 
 func main() {
 	if err := db.Initialize(); err != nil {
@@ -17,6 +21,9 @@ func main() {
 	if err := GameService.InitializeInstances(); err != nil {
 		panic(err)
 	}
+	ip := net.ParseIP(serverIP).To4()
+	copy(AuthService.ServerIP[:], ip)
+	copy(GameService.ServerIP[:], ip)
 	srv := gw1.NewTCPServer()
 
 	// Set up signal channel

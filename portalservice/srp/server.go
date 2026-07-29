@@ -2,6 +2,7 @@ package srp
 
 import (
 	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha1"
 	"fmt"
 	"math/big"
@@ -39,8 +40,7 @@ type ServerHandshake struct {
 func (h *ServerHandshake) addHandshake(hs *Handshake) {
 	h.Transcript.Add(hs)
 }
-func CreateSRPUser(group *SRPGroup, username, password string) (*SRPUser, error) {
-	salt := []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}
+func CreateSRPUser(group *SRPGroup, username, password string, salt []byte) (*SRPUser, error) {
 
 	inner := sha1.Sum([]byte(username + ":" + password))
 
@@ -93,7 +93,22 @@ func (h *ServerHandshake) BuildServerFlight() ([]*Handshake, error) {
 	}
 
 	if user == nil {
-		return nil, fmt.Errorf("user %q not found", h.ClientHello.SRPUsername)
+		fakeSalt := make([]byte, 8)
+		if _, err := rand.Read(fakeSalt); err != nil {
+			return nil, err
+		}
+		fakeVerifier, err := newRandomBigIntBytes(128)
+		if err != nil {
+			return nil, err
+		}
+		if fakeVerifier.Sign() == 0 {
+			fakeVerifier = big.NewInt(1)
+		}
+		user = &SRPUser{
+			Username: h.ClientHello.SRPUsername,
+			Salt:     fakeSalt,
+			Verifier: fakeVerifier,
+		}
 	}
 
 	srp, err := NewSRPServer(

@@ -3,14 +3,22 @@ package PortalService
 import (
 	"crypto/rand"
 	"gw1/server/db"
+	"time"
 )
 
-var activeTokens = make(map[string]uint64, 0)
+type portalToken struct {
+	accountId uint64
+	createdAt time.Time
+}
+
+var activeTokens = make(map[string]portalToken)
 
 func generateConnectionTokenWithRandomBytes(accountId uint64, tokenBytes []byte) (token string) {
 	token = db.UUIDStr(tokenBytes)
-	// bear in mind client requests in byte swapped order
-	activeTokens[db.UUIDStrSwapped(tokenBytes)] = accountId
+	activeTokens[db.UUIDStrSwapped(tokenBytes)] = portalToken{
+		accountId: accountId,
+		createdAt: time.Now(),
+	}
 	return token
 }
 
@@ -21,11 +29,24 @@ func generateConnectionToken(accountId uint64) (token string) {
 }
 
 func ValidateConnectionToken(token string) (accountId uint64, ok bool) {
-	accountId, ok = activeTokens[token]
+	entry, ok := activeTokens[token]
 	if ok {
 		delete(activeTokens, token)
+		return entry.accountId, true
 	}
-	return
+	return 0, false
 }
 
-// TODO: GC
+func init() {
+	go func() {
+		for {
+			time.Sleep(1 * time.Minute)
+			now := time.Now()
+			for k, v := range activeTokens {
+				if now.Sub(v.createdAt) > 5*time.Minute {
+					delete(activeTokens, k)
+				}
+			}
+		}
+	}()
+}

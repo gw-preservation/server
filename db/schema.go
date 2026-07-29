@@ -10,11 +10,12 @@ import (
 )
 
 type Account struct {
-	ID         uint64 `gorm:"primaryKey"`
-	UUID       []byte `gorm:"type:binary(16);unique"` // Fixed-length 16-byte UUID field
-	Email      string `gorm:"unique"`
-	Password   string
-	Characters []Character `gorm:"foreignKey:AccountID;constraint:OnDelete:CASCADE;"` // One-to-many relation, cascade delete
+	ID           uint64 `gorm:"primaryKey"`
+	UUID         []byte `gorm:"type:binary(16);unique"` // Fixed-length 16-byte UUID field
+	Email        string `gorm:"unique"`
+	Password     string
+	PasswordSalt []byte      `gorm:"type:binary(8)"`
+	Characters   []Character `gorm:"foreignKey:AccountID;constraint:OnDelete:CASCADE;"` // One-to-many relation, cascade delete
 }
 
 type Character struct {
@@ -105,6 +106,12 @@ func randUuid() []byte {
 	return res
 }
 
+func randSalt() []byte {
+	res := make([]byte, 8)
+	rand.Read(res)
+	return res
+}
+
 func CreateDefaultBagsAndItems(characterId uint64, primaryProfession int, equipDyes [7]int) []Bag {
 	inventory := NewDbBag(characterId, 20, 1)
 	equipment := NewDbBag(characterId, 9, 2)
@@ -168,9 +175,10 @@ func maybeBootstrap() (err error) {
 	}
 	// Set initial data as there were no accounts
 	rootAccount := Account{
-		Email:    "root@localhost",
-		Password: "p",
-		UUID:     randUuid(),
+		Email:        "root@localhost",
+		Password:     "p",
+		PasswordSalt: randSalt(),
+		UUID:         randUuid(),
 	}
 	database.Create(&rootAccount)
 	// One character
@@ -179,9 +187,10 @@ func maybeBootstrap() (err error) {
 
 	// Make an alt account
 	altAccount := Account{
-		Email:    "alt@localhost",
-		Password: "p",
-		UUID:     randUuid(),
+		Email:        "alt@localhost",
+		Password:     "p",
+		PasswordSalt: randSalt(),
+		UUID:         randUuid(),
 	}
 	database.Create(&altAccount)
 	primaryProfession = uint8(2)
@@ -189,9 +198,10 @@ func maybeBootstrap() (err error) {
 
 	// Make a second alt account
 	altAccount2 := Account{
-		Email:    "alt2@localhost",
-		Password: "p",
-		UUID:     randUuid(),
+		Email:        "alt2@localhost",
+		Password:     "p",
+		PasswordSalt: randSalt(),
+		UUID:         randUuid(),
 	}
 	database.Create(&altAccount2)
 	primaryProfession = uint8(5)

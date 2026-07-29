@@ -1,6 +1,7 @@
 package srp
 
 import (
+	"crypto/rand"
 	"fmt"
 	"math/big"
 	"testing"
@@ -9,11 +10,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func randSalt() []byte {
+	res := make([]byte, 8)
+	rand.Read(res)
+	return res
+}
+
 // --- CreateSRPUser ---
 
 func TestCreateSRPUser_Fields(t *testing.T) {
 	g := SRP1024()
-	user, err := CreateSRPUser(g, "alice", "secret123")
+	user, err := CreateSRPUser(g, "alice", "secret123", randSalt())
 	require.NoError(t, err)
 
 	assert.Equal(t, "alice", user.Username)
@@ -25,8 +32,8 @@ func TestCreateSRPUser_Fields(t *testing.T) {
 
 func TestCreateSRPUser_DifferentUsers(t *testing.T) {
 	g := SRP1024()
-	u1, _ := CreateSRPUser(g, "alice", "pass1")
-	u2, _ := CreateSRPUser(g, "bob", "pass2")
+	u1, _ := CreateSRPUser(g, "alice", "pass1", randSalt())
+	u2, _ := CreateSRPUser(g, "bob", "pass2", randSalt())
 
 	assert.NotEqual(t, u1.Verifier, u2.Verifier)
 }
@@ -37,7 +44,7 @@ func TestCreateSRPUser_DifferentUsers(t *testing.T) {
 
 func TestBuildServerFlight_Valid(t *testing.T) {
 	g := SRP1024()
-	user, _ := CreateSRPUser(g, "testuser", "testpass")
+	user, _ := CreateSRPUser(g, "testuser", "testpass", randSalt())
 
 	lookup := func(username string) (*SRPUser, error) {
 		return user, nil
@@ -103,7 +110,7 @@ func TestBuildServerFlight_InvalidClientHello(t *testing.T) {
 
 func TestHandleClientKeyExchange_Valid(t *testing.T) {
 	g := SRP1024()
-	user, _ := CreateSRPUser(g, "testuser", "testpass")
+	user, _ := CreateSRPUser(g, "testuser", "testpass", randSalt())
 
 	lookup := func(username string) (*SRPUser, error) {
 		return user, nil
@@ -151,7 +158,7 @@ func TestHandleClientKeyExchange_WrongState(t *testing.T) {
 
 func TestActivateReadCipher_Valid(t *testing.T) {
 	g := SRP1024()
-	user, _ := CreateSRPUser(g, "testuser", "testpass")
+	user, _ := CreateSRPUser(g, "testuser", "testpass", randSalt())
 
 	lookup := func(username string) (*SRPUser, error) {
 		return user, nil
@@ -200,7 +207,7 @@ func TestActivateReadCipher_NoMasterSecret(t *testing.T) {
 
 func TestHandleClientFinished_Valid(t *testing.T) {
 	g := SRP1024()
-	user, _ := CreateSRPUser(g, "testuser", "testpass")
+	user, _ := CreateSRPUser(g, "testuser", "testpass", randSalt())
 
 	lookup := func(username string) (*SRPUser, error) {
 		return user, nil
@@ -239,8 +246,8 @@ func TestHandleClientFinished_Valid(t *testing.T) {
 
 	// Create a "client-side" cipher with the same keys as the server's read cipher (sequence 0)
 	clientCipher := &CipherState{
-		MACKey:  h.ReadCipher.MACKey,
-		Key:     h.ReadCipher.Key,
+		MACKey:   h.ReadCipher.MACKey,
+		Key:      h.ReadCipher.Key,
 		Sequence: 0,
 	}
 
@@ -269,7 +276,7 @@ func TestHandleClientFinished_NoReadCipher(t *testing.T) {
 
 func TestHandleClientFinished_InvalidFinished(t *testing.T) {
 	g := SRP1024()
-	user, _ := CreateSRPUser(g, "testuser", "testpass")
+	user, _ := CreateSRPUser(g, "testuser", "testpass", randSalt())
 
 	lookup := func(username string) (*SRPUser, error) {
 		return user, nil
@@ -322,7 +329,7 @@ func TestHandleClientFinished_InvalidFinished(t *testing.T) {
 
 func TestBuildServerFinishedFlight_Valid(t *testing.T) {
 	g := SRP1024()
-	user, _ := CreateSRPUser(g, "testuser", "testpass")
+	user, _ := CreateSRPUser(g, "testuser", "testpass", randSalt())
 
 	lookup := func(username string) (*SRPUser, error) {
 		return user, nil
@@ -384,7 +391,7 @@ func TestBuildServerFinishedFlight_NoWriteCipher(t *testing.T) {
 
 func TestBuildServerFlight_LookupError(t *testing.T) {
 	g := SRP1024()
-	user, _ := CreateSRPUser(g, "testuser", "testpass")
+	user, _ := CreateSRPUser(g, "testuser", "testpass", randSalt())
 	_ = user
 
 	lookup := func(username string) (*SRPUser, error) {
@@ -425,14 +432,20 @@ func TestBuildServerFlight_UserNotFound(t *testing.T) {
 		},
 	}
 
-	_, err := h.BuildServerFlight()
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "not found")
+	flight, err := h.BuildServerFlight()
+	require.NoError(t, err)
+	assert.Len(t, flight, 3)
+	assert.Equal(t, handshakeServerHello, flight[0].Type)
+	assert.Equal(t, handshakeServerKeyExchange, flight[1].Type)
+	assert.Equal(t, handshakeServerHelloDone, flight[2].Type)
+	assert.NotNil(t, h.SRP)
+	assert.Equal(t, "missinguser", h.SRP.User.Username)
+	assert.Equal(t, stateServerFlightSent, h.State)
 }
 
 func TestHandleClientKeyExchange_BadParse(t *testing.T) {
 	g := SRP1024()
-	user, _ := CreateSRPUser(g, "testuser", "testpass")
+	user, _ := CreateSRPUser(g, "testuser", "testpass", randSalt())
 
 	lookup := func(username string) (*SRPUser, error) {
 		return user, nil
@@ -471,7 +484,7 @@ func TestActivateReadCipher_SplitKeyBlockError(t *testing.T) {
 
 func TestHandleClientFinished_DecryptError(t *testing.T) {
 	g := SRP1024()
-	user, _ := CreateSRPUser(g, "testuser", "testpass")
+	user, _ := CreateSRPUser(g, "testuser", "testpass", randSalt())
 
 	lookup := func(username string) (*SRPUser, error) {
 		return user, nil
@@ -517,7 +530,7 @@ func TestHandleClientFinished_DecryptError(t *testing.T) {
 
 func TestHandleClientFinished_BadFinishedVerifyData(t *testing.T) {
 	g := SRP1024()
-	user, _ := CreateSRPUser(g, "testuser", "testpass")
+	user, _ := CreateSRPUser(g, "testuser", "testpass", randSalt())
 
 	lookup := func(username string) (*SRPUser, error) {
 		return user, nil
@@ -567,7 +580,7 @@ func TestHandleClientFinished_BadFinishedVerifyData(t *testing.T) {
 
 func TestServerHandshake_FullFlow(t *testing.T) {
 	g := SRP1024()
-	user, _ := CreateSRPUser(g, "testuser", "testpass")
+	user, _ := CreateSRPUser(g, "testuser", "testpass", randSalt())
 
 	lookup := func(username string) (*SRPUser, error) {
 		return user, nil

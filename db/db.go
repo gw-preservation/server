@@ -82,37 +82,25 @@ func DeleteDbChar(name string, requestedByAccId uint64) error {
 
 func GetAccountByEmail(email string) (acc Account, ok bool) {
 	err := database.Where("email = ?", email).First(&acc).Error
-	if err != nil {
-		ok = false
-	}
-	ok = true
+	ok = err == nil
 	return
 }
 
 func GetFullAccountByID(accountId uint64) (acc Account, ok bool) {
 	err := database.Preload("Characters").First(&acc, "ID = ?", accountId).Error
-	if err != nil {
-		ok = false
-	}
-	ok = true
+	ok = err == nil
 	return
 }
 
 func GetFullAccountByUUID(accountUUID []byte) (acc Account, ok bool) {
 	err := database.Preload("Characters").First(&acc, "UUID = ?", accountUUID).Error
-	if err != nil {
-		ok = false
-	}
-	ok = true
+	ok = err == nil
 	return
 }
 
 func GetBagsForCharacterByID(characterId uint64) (bags []Bag, ok bool) {
 	err := database.Where("character_id = ?", characterId).Preload("Slots").Find(&bags).Error
-	if err != nil {
-		ok = false
-	}
-	ok = true
+	ok = err == nil
 	return
 }
 

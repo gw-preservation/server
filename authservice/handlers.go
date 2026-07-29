@@ -11,6 +11,8 @@ import (
 	PortalService "gw1/server/portalservice"
 )
 
+var ServerIP [4]byte
+
 type packetHandler func(*ASConn, *GwPacket.In) (int, error)
 
 func wrap[T any](
@@ -262,7 +264,7 @@ func (conn *ASConn) onLoginCharacter(payload *LoginCharacter) error {
 	conn.EnqueuePacket(MarshalInstanceServerInfo(payload.reqNumber, int(instanceTag), payload.mapId, []byte{
 		0x02, 0x00, // AF_INET
 		0x17, 0xe0, // Port 6112
-		0xc0, 0xa8, 0x01, 0x7c, // 192.168.1.124
+		ServerIP[0], ServerIP[1], ServerIP[2], ServerIP[3], // server IP
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	}, int(securityTag),

@@ -90,13 +90,15 @@ func (conn *PSConn) HandleBytes(data []byte) (int, error) {
 	return msg.Length(), err
 }
 
+var ErrUnknownUser = errors.New("unknown user")
+
 func lookup(username string) (*srp.SRPUser, error) {
 	acc, ok := db.GetAccountByEmail(username)
 	if !ok {
-		return nil, fmt.Errorf("unknown user")
+		return nil, nil
 	}
 
-	user, err := srp.CreateSRPUser(srp.SRP1024(), username, acc.Password)
+	user, err := srp.CreateSRPUser(srp.SRP1024(), username, acc.Password, acc.PasswordSalt)
 	if err != nil {
 		return nil, err
 	}
@@ -104,6 +106,7 @@ func lookup(username string) (*srp.SRPUser, error) {
 }
 
 func (conn *PSConn) handleStartTls(msg sts.ReqMsg) error {
+	// headerCode < 400 shows error on client
 	m, err := sts.NewErrorRespMsg(400, msg.Header.Seq, "1001", "2", "1146")
 	if err != nil {
 		return err

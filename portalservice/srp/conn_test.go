@@ -47,7 +47,7 @@ func buildClientHelloBytes(username string) []byte {
 
 func TestConn_Handshake_Timeout_Stall(t *testing.T) {
 	g := SRP1024()
-	user, err := CreateSRPUser(g, "testuser", "testpass")
+	user, err := CreateSRPUser(g, "testuser", "testpass", randSalt())
 	require.NoError(t, err)
 
 	lookup := func(username string) (*SRPUser, error) {
@@ -96,7 +96,7 @@ func TestConn_Handshake_Timeout_Stall(t *testing.T) {
 
 func TestConn_Handshake_Timeout_NoData(t *testing.T) {
 	g := SRP1024()
-	user, err := CreateSRPUser(g, "testuser", "testpass")
+	user, err := CreateSRPUser(g, "testuser", "testpass", randSalt())
 	require.NoError(t, err)
 
 	lookup := func(username string) (*SRPUser, error) {
@@ -134,7 +134,7 @@ func TestConn_Handshake_Timeout_NoData(t *testing.T) {
 
 func TestConn_Handshake_Timeout_PartialClientHello(t *testing.T) {
 	g := SRP1024()
-	user, err := CreateSRPUser(g, "testuser", "testpass")
+	user, err := CreateSRPUser(g, "testuser", "testpass", randSalt())
 	require.NoError(t, err)
 
 	lookup := func(username string) (*SRPUser, error) {
@@ -179,7 +179,7 @@ func TestConn_Handshake_Timeout_PartialClientHello(t *testing.T) {
 
 func TestConn_Handshake_Timeout_AfterClientHello(t *testing.T) {
 	g := SRP1024()
-	user, err := CreateSRPUser(g, "testuser", "testpass")
+	user, err := CreateSRPUser(g, "testuser", "testpass", randSalt())
 	require.NoError(t, err)
 
 	lookup := func(username string) (*SRPUser, error) {
@@ -234,7 +234,7 @@ func TestConn_Handshake_Timeout_AfterClientHello(t *testing.T) {
 
 func TestConn_Handshake_Timeout_BeforeClientHello(t *testing.T) {
 	g := SRP1024()
-	user, err := CreateSRPUser(g, "testuser", "testpass")
+	user, err := CreateSRPUser(g, "testuser", "testpass", randSalt())
 	require.NoError(t, err)
 
 	lookup := func(username string) (*SRPUser, error) {
@@ -278,7 +278,7 @@ func TestConn_Handshake_Timeout_BeforeClientHello(t *testing.T) {
 
 func TestConn_Username(t *testing.T) {
 	g := SRP1024()
-	user, err := CreateSRPUser(g, "testuser", "testpass")
+	user, err := CreateSRPUser(g, "testuser", "testpass", randSalt())
 	require.NoError(t, err)
 
 	lookup := func(username string) (*SRPUser, error) {
@@ -638,7 +638,7 @@ func TestConn_Read_PartialBufferConsumption(t *testing.T) {
 
 func TestConn_Handshake_Success_SetsDeadline(t *testing.T) {
 	g := SRP1024()
-	user, err := CreateSRPUser(g, "testuser", "testpass")
+	user, err := CreateSRPUser(g, "testuser", "testpass", randSalt())
 	require.NoError(t, err)
 
 	lookup := func(username string) (*SRPUser, error) {

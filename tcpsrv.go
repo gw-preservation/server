@@ -53,11 +53,10 @@ func NewTCPServer() tcpsrv {
 
 func (srv tcpsrv) handleTCPConnection(conn *net.TCPConn) {
 	logger.Info().Str("remoteAddr", conn.RemoteAddr().String()).Msg("connection established")
-	var buffer []byte // to store leftover data that wasn't consumed
+	var buffer []byte
 	var transport Transport = nil
 	var servicerName string
-	var unconsumedBytes = 0
-	tempBuffer := make([]byte, 32*1024) // Buffer to read data into
+	tempBuffer := make([]byte, 32*1024)
 	for {
 		var numBytesReadFromSocket int
 		var err error
@@ -67,9 +66,6 @@ func (srv tcpsrv) handleTCPConnection(conn *net.TCPConn) {
 			numBytesReadFromSocket, err = conn.Read(tempBuffer)
 		}
 		if err != nil {
-			//if err != io.EOF && !errors.Is(err, net.ErrClosed) && !errors.Is(err, syscall.ECONNRESET) {
-			//	log.Errorf("error reading from tcp socket: %s", err)
-			//}
 			logger.Info().Str("remoteAddr", conn.RemoteAddr().String()).Msg("connection closed")
 			if transport != nil {
 				transport.Close()
@@ -82,25 +78,25 @@ func (srv tcpsrv) handleTCPConnection(conn *net.TCPConn) {
 			conn.Close()
 			return
 		}
-		// Add newly read data to the buffer
-		buffer = append(buffer, tempBuffer[:numBytesReadFromSocket]...)
+		readData := tempBuffer[:numBytesReadFromSocket]
+		if client, ok := transport.(*AuthService.ASConn); ok {
+			client.DecryptBytes(readData)
+		}
+		if client, ok := transport.(*GameService.GSConn); ok {
+			client.DecryptBytes(readData)
+		}
+		buffer = append(buffer, readData...)
 		if transport == nil {
-			//logger := RootLogger.With().Str("ip", conn.RemoteAddr().(*net.TCPAddr).IP.String()).Logger()
-			// Determine what kind of connection this is for
 			if len(buffer) == 21 {
-				// FileClient
 				transport = FileService.NewFSConn(conn, logger)
 				servicerName = "file"
 			} else if len(buffer) == 16 {
-				// AuthClient
 				transport = AuthService.NewASConn(conn, logger)
 				servicerName = "auth"
 			} else if len(buffer) == 64 {
-				// GameClient
 				transport = GameService.NewGSConn(conn, logger)
 				servicerName = "game"
 			} else if len(buffer) > 6 && string(buffer[:3]) == "P /" {
-				// PortalClient
 				transport = PortalService.NewPSConn(conn, logger)
 				servicerName = "portal"
 			} else {
@@ -109,25 +105,10 @@ func (srv tcpsrv) handleTCPConnection(conn *net.TCPConn) {
 				return
 			}
 		}
-		if client, ok := transport.(*AuthService.ASConn); ok {
-			if unconsumedBytes > 0 {
-				client.DecryptBytes(buffer[unconsumedBytes:])
-			} else {
-				client.DecryptBytes(buffer)
-			}
-		}
-		if client, ok := transport.(*GameService.GSConn); ok {
-			if unconsumedBytes > 0 {
-				client.DecryptBytes(buffer[unconsumedBytes:])
-			} else {
-				client.DecryptBytes(buffer)
-			}
-		}
 		for len(buffer) > 0 {
 			numConsumedThisTime, err := transport.HandleBytes(buffer)
 			if err != nil {
 				if errors.Is(errors.Unwrap(err), io.ErrUnexpectedEOF) {
-					// OK, just need more data
 				} else {
 					logger.Err(err).Str("servicer", servicerName).Msg("servicer reported error")
 					transport.Close()
@@ -135,15 +116,12 @@ func (srv tcpsrv) handleTCPConnection(conn *net.TCPConn) {
 				}
 			}
 			if numConsumedThisTime == 0 {
-				unconsumedBytes += len(buffer)
 				if len(buffer) >= 2 {
 					logger.Warn().Msgf("Possible message fragmentation! Partially read %d / %d bytes [%02x%02x]", numConsumedThisTime, len(buffer), buffer[1], buffer[0])
 				} else {
-					logger.Warn().Msgf("Possible message fragmenation! Partially read %d / %d bytes", numConsumedThisTime, len(buffer))
+					logger.Warn().Msgf("Possible message fragmentation! Partially read %d / %d bytes", numConsumedThisTime, len(buffer))
 				}
 				break
-			} else {
-				unconsumedBytes -= numConsumedThisTime
 			}
 			buffer = buffer[numConsumedThisTime:]
 		}

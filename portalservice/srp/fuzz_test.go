@@ -202,10 +202,10 @@ func FuzzCipherStateDecrypt(f *testing.F) {
 	// Seed: encrypt valid data then fuzz the ciphertext
 	ciphertext, _ := enc.Encrypt(recordApplicationData, tls12, []byte("hello"))
 	f.Add(ciphertext)
-	f.Add([]byte{})                            // empty ciphertext
-	f.Add(make([]byte, ivLen))                  // just IV, no body
-	f.Add(make([]byte, ivLen+1))                // IV + 1 byte (not block-aligned)
-	f.Add(make([]byte, ivLen+16))               // IV + one block
+	f.Add([]byte{})               // empty ciphertext
+	f.Add(make([]byte, ivLen))    // just IV, no body
+	f.Add(make([]byte, ivLen+1))  // IV + 1 byte (not block-aligned)
+	f.Add(make([]byte, ivLen+16)) // IV + one block
 	ffBlock := bytes.Repeat([]byte{0xFF}, ivLen)
 	f.Add(append(make([]byte, ivLen), ffBlock...))
 
@@ -334,7 +334,7 @@ func FuzzParseHandshakeBytes(f *testing.F) {
 
 func FuzzComputeSharedSecret(f *testing.F) {
 	g := SRP1024()
-	user, _ := CreateSRPUser(g, "fuzzuser", "fuzzpass")
+	user, _ := CreateSRPUser(g, "fuzzuser", "fuzzpass", randSalt())
 	server, _ := NewSRPServer(g, user)
 
 	f.Add(big.NewInt(1).Bytes())

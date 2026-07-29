@@ -202,11 +202,9 @@ func TestSRPVerifier_DifferentPasswords(t *testing.T) {
 	assert.NotEqual(t, v1, v2)
 }
 
-
-
 func TestComputeSharedSecret_RandomA(t *testing.T) {
 	g := SRP1024()
-	user, err := CreateSRPUser(g, "testuser", "testpass")
+	user, err := CreateSRPUser(g, "testuser", "testpass", randSalt())
 	require.NoError(t, err)
 
 	server, err := NewSRPServer(g, user)

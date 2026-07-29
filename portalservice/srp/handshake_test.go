@@ -88,11 +88,11 @@ func TestHandshake_Bytes(t *testing.T) {
 
 func TestParseClientHello_Valid(t *testing.T) {
 	var e encoder
-	e.Uint16(tls12)                           // version
-	e.Bytes(make([]byte, 32))                  // random
-	e.Vector8([]byte{})                        // session ID
-	e.Vector16([]byte{0xc0, 0x20})            // cipher suites (TLS_SRP_SHA_WITH_AES_256_CBC_SHA)
-	e.Vector8([]byte{compressionNull})         // compression
+	e.Uint16(tls12)                    // version
+	e.Bytes(make([]byte, 32))          // random
+	e.Vector8([]byte{})                // session ID
+	e.Vector16([]byte{0xc0, 0x20})     // cipher suites (TLS_SRP_SHA_WITH_AES_256_CBC_SHA)
+	e.Vector8([]byte{compressionNull}) // compression
 
 	// SRP extension
 	ext := encoder{}
@@ -249,11 +249,11 @@ func TestServerHello_WithExtensions(t *testing.T) {
 
 	hs := sh.Encode()
 	p := newParser(hs.Body)
-	p.Uint16()   // version
-	p.Bytes(32)  // random
-	p.Vector8()  // session ID
-	p.Uint16()   // cipher suite
-	p.Uint8()    // compression
+	p.Uint16()  // version
+	p.Bytes(32) // random
+	p.Vector8() // session ID
+	p.Uint16()  // cipher suite
+	p.Uint8()   // compression
 	ext, err := p.Vector16()
 	assert.NoError(t, err)
 	assert.Equal(t, []byte{0x00, 0x01}, ext)
@@ -598,7 +598,7 @@ func TestHandshakeIt_InvalidState(t *testing.T) {
 
 func TestHandshakeIt_BuildFlightWriteError(t *testing.T) {
 	g := SRP1024()
-	user, _ := CreateSRPUser(g, "testuser", "testpass")
+	user, _ := CreateSRPUser(g, "testuser", "testpass", randSalt())
 	lookup := func(username string) (*SRPUser, error) {
 		return user, nil
 	}
@@ -653,7 +653,7 @@ func TestHandshakeIt_BuildFlightWriteError(t *testing.T) {
 
 func TestHandshakeIt_CCSWriteError(t *testing.T) {
 	g := SRP1024()
-	user, _ := CreateSRPUser(g, "testuser", "testpass")
+	user, _ := CreateSRPUser(g, "testuser", "testpass", randSalt())
 	lookup := func(username string) (*SRPUser, error) {
 		return user, nil
 	}
@@ -717,10 +717,10 @@ func TestHandshakeIt_CCSWriteError(t *testing.T) {
 	defer pr.Close()
 
 	sc := &ServerConnection{
-		Reader: pr,
-		Writer: pw,
-		Lookup: lookup,
-		Handshake: *h,
+		Reader:           pr,
+		Writer:           pw,
+		Lookup:           lookup,
+		Handshake:        *h,
 		handshakeTimeout: 1 * time.Second,
 	}
 
@@ -744,7 +744,7 @@ func TestHandshakeIt_CCSWriteError(t *testing.T) {
 
 func TestHandshakeIt_ClientFinishedWriteError(t *testing.T) {
 	g := SRP1024()
-	user, _ := CreateSRPUser(g, "testuser", "testpass")
+	user, _ := CreateSRPUser(g, "testuser", "testpass", randSalt())
 	lookup := func(username string) (*SRPUser, error) {
 		return user, nil
 	}
@@ -778,10 +778,10 @@ func TestHandshakeIt_ClientFinishedWriteError(t *testing.T) {
 	defer pr.Close()
 
 	sc := &ServerConnection{
-		Reader: pr,
-		Writer: pw,
-		Lookup: lookup,
-		Handshake: *h,
+		Reader:           pr,
+		Writer:           pw,
+		Lookup:           lookup,
+		Handshake:        *h,
 		handshakeTimeout: 1 * time.Second,
 	}
 
@@ -804,7 +804,7 @@ func TestHandshakeIt_ClientFinishedWriteError(t *testing.T) {
 
 func TestHandshakeIt_ClientFinishedBadMAC(t *testing.T) {
 	g := SRP1024()
-	user, _ := CreateSRPUser(g, "testuser", "testpass")
+	user, _ := CreateSRPUser(g, "testuser", "testpass", randSalt())
 	lookup := func(username string) (*SRPUser, error) {
 		return user, nil
 	}
@@ -847,10 +847,10 @@ func TestHandshakeIt_ClientFinishedBadMAC(t *testing.T) {
 		}
 		defer conn.Close()
 		sc := &ServerConnection{
-			Reader: conn,
-			Writer: conn,
-			Lookup: lookup,
-			Handshake: *h,
+			Reader:           conn,
+			Writer:           conn,
+			Lookup:           lookup,
+			Handshake:        *h,
 			handshakeTimeout: 2 * time.Second,
 		}
 		serverDone <- sc.HandshakeIt()
@@ -879,7 +879,7 @@ func TestHandshakeIt_ClientFinishedBadMAC(t *testing.T) {
 
 func TestHandshakeIt_ClientFinishedDecryptionError(t *testing.T) {
 	g := SRP1024()
-	user, _ := CreateSRPUser(g, "testuser", "testpass")
+	user, _ := CreateSRPUser(g, "testuser", "testpass", randSalt())
 	lookup := func(username string) (*SRPUser, error) {
 		return user, nil
 	}
@@ -921,10 +921,10 @@ func TestHandshakeIt_ClientFinishedDecryptionError(t *testing.T) {
 		}
 		defer conn.Close()
 		sc := &ServerConnection{
-			Reader: conn,
-			Writer: conn,
-			Lookup: lookup,
-			Handshake: *h,
+			Reader:           conn,
+			Writer:           conn,
+			Lookup:           lookup,
+			Handshake:        *h,
 			handshakeTimeout: 2 * time.Second,
 		}
 		serverDone <- sc.HandshakeIt()
@@ -951,7 +951,7 @@ func TestHandshakeIt_ClientFinishedDecryptionError(t *testing.T) {
 
 func TestHandshakeIt_CCSInvalid(t *testing.T) {
 	g := SRP1024()
-	user, _ := CreateSRPUser(g, "testuser", "testpass")
+	user, _ := CreateSRPUser(g, "testuser", "testpass", randSalt())
 	lookup := func(username string) (*SRPUser, error) {
 		return user, nil
 	}
@@ -992,10 +992,10 @@ func TestHandshakeIt_CCSInvalid(t *testing.T) {
 		}
 		defer conn.Close()
 		sc := &ServerConnection{
-			Reader: conn,
-			Writer: conn,
-			Lookup: lookup,
-			Handshake: *h,
+			Reader:           conn,
+			Writer:           conn,
+			Lookup:           lookup,
+			Handshake:        *h,
 			handshakeTimeout: 2 * time.Second,
 		}
 		serverDone <- sc.HandshakeIt()
@@ -1079,7 +1079,7 @@ func TestHandshakeIt_ExpectedClientHello(t *testing.T) {
 
 func TestHandshakeIt_ExpectedClientKeyExchange(t *testing.T) {
 	g := SRP1024()
-	user, _ := CreateSRPUser(g, "testuser", "testpass")
+	user, _ := CreateSRPUser(g, "testuser", "testpass", randSalt())
 	lookup := func(username string) (*SRPUser, error) {
 		return user, nil
 	}
@@ -1114,7 +1114,7 @@ func TestHandshakeIt_ExpectedClientKeyExchange(t *testing.T) {
 
 func TestHandshakeIt_ChangeCipherSpec(t *testing.T) {
 	g := SRP1024()
-	user, _ := CreateSRPUser(g, "testuser", "testpass")
+	user, _ := CreateSRPUser(g, "testuser", "testpass", randSalt())
 	lookup := func(username string) (*SRPUser, error) {
 		return user, nil
 	}
@@ -1148,10 +1148,10 @@ func TestHandshakeIt_ChangeCipherSpec(t *testing.T) {
 	defer pw.Close()
 
 	sc := &ServerConnection{
-		Reader: pr,
-		Writer: pw,
-		Lookup: lookup,
-		Handshake: *h,
+		Reader:           pr,
+		Writer:           pw,
+		Lookup:           lookup,
+		Handshake:        *h,
 		handshakeTimeout: 100 * time.Millisecond,
 	}
 
@@ -1170,7 +1170,7 @@ func TestHandshakeIt_ChangeCipherSpec(t *testing.T) {
 
 func TestHandshakeIt_ExpectedFinished(t *testing.T) {
 	g := SRP1024()
-	user, _ := CreateSRPUser(g, "testuser", "testpass")
+	user, _ := CreateSRPUser(g, "testuser", "testpass", randSalt())
 	lookup := func(username string) (*SRPUser, error) {
 		return user, nil
 	}
@@ -1204,10 +1204,10 @@ func TestHandshakeIt_ExpectedFinished(t *testing.T) {
 	defer pw.Close()
 
 	sc := &ServerConnection{
-		Reader: pr,
-		Writer: pw,
-		Lookup: lookup,
-		Handshake: *h,
+		Reader:           pr,
+		Writer:           pw,
+		Lookup:           lookup,
+		Handshake:        *h,
 		handshakeTimeout: 100 * time.Millisecond,
 	}
 
@@ -1227,8 +1227,8 @@ func TestHandshakeIt_ExpectedFinished(t *testing.T) {
 
 func TestParseChangeCipherSpec_EmptyData(t *testing.T) {
 	rec := &Record{
-		Type:    recordChangeCipherSpec,
-		Data:    []byte{},
+		Type: recordChangeCipherSpec,
+		Data: []byte{},
 	}
 	err := ParseChangeCipherSpec(rec)
 	assert.Error(t, err)
@@ -1236,8 +1236,8 @@ func TestParseChangeCipherSpec_EmptyData(t *testing.T) {
 
 func TestParseChangeCipherSpec_WrongRecordType(t *testing.T) {
 	rec := &Record{
-		Type:    recordHandshake,
-		Data:    []byte{1},
+		Type: recordHandshake,
+		Data: []byte{1},
 	}
 	err := ParseChangeCipherSpec(rec)
 	assert.Error(t, err)
@@ -1401,7 +1401,7 @@ func TestValidateCipherSuites(t *testing.T) {
 
 func TestNewServerKeyExchange(t *testing.T) {
 	g := SRP1024()
-	user, _ := CreateSRPUser(g, "testuser", "testpass")
+	user, _ := CreateSRPUser(g, "testuser", "testpass", randSalt())
 	srp, _ := NewSRPServer(g, user)
 
 	ske := NewServerKeyExchange(srp)

@@ -2,6 +2,7 @@ package PortalService
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -30,8 +31,7 @@ func TestValidateConnectionToken(t *testing.T) {
 	_, ok := ValidateConnectionToken(anotherTokenStr)
 	assert.False(t, ok)
 
-	// insert active entry
-	activeTokens[anotherTokenStr2] = 0x1000
+	activeTokens[anotherTokenStr2] = portalToken{accountId: 0x1000, createdAt: time.Now()}
 
 	accountId, ok := ValidateConnectionToken(anotherTokenStr2)
 	assert.True(t, ok)
