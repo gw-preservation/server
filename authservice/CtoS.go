@@ -6,24 +6,24 @@ package authservice
 
 // opcode: 0x800a
 type SetActiveCharacter struct {
-	reqNumber int // wire:uint32
-	charName  string
+	transactionId int // wire:uint32
+	charName      string
 }
 
 // opcode: 0x8029
 type LoginCharacter struct {
-	reqNumber int // wire:uint32
-	unk1      int // wire:uint32
-	mapId     int // wire:uint32
-	unk2      int // wire:uint32
-	unk3      int // wire:uint32
-	unk4      int // wire:uint32
+	transactionId int // wire:uint32
+	unk1          int // wire:uint32
+	mapId         int // wire:uint32
+	unk2          int // wire:uint32
+	unk3          int // wire:uint32
+	unk4          int // wire:uint32
 }
 
 // opcode: 0x801c
 type AddAccessKey struct {
-	reqNumber int // wire:uint32
-	key       string
+	transactionId int // wire:uint32
+	key           string
 }
 
 // opcode: 0x8002
@@ -58,7 +58,7 @@ type Unknown8023 struct {
 
 // opcode: 0x8038
 type GetAccountInfo struct {
-	reqNumber                  int    // wire:uint32
+	transactionId              int    // wire:uint32
 	uuid1                      []byte // len:16
 	authTokenFromPortalService []byte // len:16
 	unk1                       string
@@ -66,7 +66,7 @@ type GetAccountInfo struct {
 
 // opcode: 0x8035
 type AskServerResponse struct {
-	reqNumber int // wire:uint32
+	transactionId int // wire:uint32
 }
 
 // opcode: 0x8016
@@ -91,8 +91,8 @@ type ClientSeed struct {
 
 // opcode: 0x8021
 type UpdateSettingsLength struct {
-	reqNumber int // wire:uint32
-	unk2      int // wire:uint32
+	transactionId int // wire:uint32
+	unk2          int // wire:uint32
 }
 
 // opcode: 0x8020
@@ -103,13 +103,20 @@ type UpdateSettings struct {
 
 // opcode: 0x8007
 type DeleteCharacter struct {
-	reqNumber int // wire:uint32
-	name      string
+	transactionId int // wire:uint32
+	name          string
 }
 
 // opcode: 0x8009
 type SetCharacterName struct {
-	reqNumber int // wire:uint32
-	charName  string
-	unk3      VarByte
+	transactionId int // wire:uint32
+	charName      string
+	unk3          VarByte
+}
+
+// opcode: 0x8037
+type RenameCharacter struct {
+	transactionId int // wire:uint32
+	oldName       string
+	newName       string
 }

@@ -23,7 +23,7 @@ type Player struct {
 	xp                 int
 	itemMgr            ItemMgr
 
-	charCreationDyes      [7]int
+	charCreationDyes       [7]int
 	charCreationInProgress bool
 
 	isTransfer bool

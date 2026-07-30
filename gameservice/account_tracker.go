@@ -3,7 +3,7 @@ package gameservice
 import "sync"
 
 var (
-	mu   sync.RWMutex
+	mu       sync.RWMutex
 	loggedIn = map[uint64]struct{}{}
 )
 

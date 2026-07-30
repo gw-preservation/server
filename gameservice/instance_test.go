@@ -3,9 +3,9 @@ package gameservice
 import (
 	"testing"
 
-	Item "gw1/server/item"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	Item "gw1/server/item"
 )
 
 func TestBuildDBBags_Empty(t *testing.T) {

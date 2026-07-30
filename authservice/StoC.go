@@ -100,28 +100,28 @@ type VarByte []byte
 	// 247 - Legacy 2FA - asks user to open email link to verify login
 */
 type RequestResponse struct {
-	reqNumber    int // wire:uint32
-	responseCode int // wire:uint32
+	transactionId int // wire:uint32
+	responseCode  int // wire:uint32
 }
 
 // opcode: 0x0007
 type CharacterSummary struct {
-	reqNumber int    // wire:uint32
-	charUUID  []byte // len:16
-	unk1      int    // wire:uint32
-	charName  string
-	summary   VarByte
+	transactionId int    // wire:uint32
+	charUUID      []byte // len:16
+	unk1          int    // wire:uint32
+	charName      string
+	summary       VarByte
 }
 
 // opcode: 0x0014
 type AccountExtraInfoStart struct {
-	reqNumber int // wire:uint32
-	unk1      int // wire:uint32
+	transactionId int // wire:uint32
+	unk1          int // wire:uint32
 }
 
 // opcode: 0x0011
 type AccountExtraInfo struct {
-	reqNumber      int    // wire:uint32
+	transactionId  int    // wire:uint32
 	territoryCode  int    // wire:uint32
 	languageCode   int    // wire:uint32
 	unk1           []byte // len:8
@@ -136,8 +136,8 @@ type AccountExtraInfo struct {
 
 // opcode: 0x0016
 type AccountBinaryInfo struct {
-	reqNumber  int // wire:uint32
-	binaryData VarByte
+	transactionId int // wire:uint32
+	binaryData    VarByte
 }
 
 // opcode: 0x1601
@@ -153,11 +153,11 @@ type SessionSaltInfo struct {
 
 // opcode: 0x0009
 type InstanceServerInfo struct {
-	reqNumber  int    // wire:uint32
-	worldHash  int    // wire:uint32
-	mapId      int    // wire:uint32
-	socketData []byte // len:24
-	playerHash int    // wire:uint32
+	transactionId int    // wire:uint32
+	worldHash     int    // wire:uint32
+	mapId         int    // wire:uint32
+	socketData    []byte // len:24
+	playerHash    int    // wire:uint32
 }
 
 // opcode: 0x0000

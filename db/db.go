@@ -11,6 +11,7 @@ import (
 )
 
 var ErrCharacterNameTaken = errors.New("character name already taken")
+var ErrCharacterNotFound = errors.New("character not found")
 
 var log zerolog.Logger
 var database *gorm.DB
@@ -47,21 +48,29 @@ func Close() {
 	}
 }
 
+func SetupTestDB() error {
+	log = zerolog.New(zerolog.NewConsoleWriter()).Level(zerolog.Disabled)
+	var err error
+	database, err = gorm.Open(sqlite.Dialector{
+		DSN:        "file::memory:?cache=shared",
+		DriverName: "sqlite",
+	}, &gorm.Config{})
+	if err != nil {
+		return err
+	}
+	return autoMigrate()
+}
+
 func CharacterNameExists(name string) bool {
-	var id uint64
+	var count int64
 	err := database.Model(&Character{}).
-		Select("id").
 		Where("name = ?", name).
-		Take(&id).Error
-	switch {
-	case errors.Is(err, gorm.ErrRecordNotFound):
-		return false
-	case err != nil:
+		Count(&count).Error
+	if err != nil {
 		log.Error().Str("name", name).Err(err).Msg("unable to query whether character name exists")
 		return true
-	default:
-		return true
 	}
+	return count > 0
 }
 
 func DeleteDbChar(name string, requestedByAccId uint64) error {
@@ -139,13 +148,13 @@ func AddDbChar(forAccountId uint64, name string, primaryProfession int, appearan
 
 func CreateCharacter(accountID uint64, name string, primaryProfession int, appearanceBits uint32, bags []Bag) (char Character, err error) {
 	err = database.Transaction(func(tx *gorm.DB) error {
-		var id uint64
-		err := tx.Model(&Character{}).Select("id").Where("name = ?", name).Take(&id).Error
-		if err == nil {
-			return ErrCharacterNameTaken
-		}
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
+		var count int64
+		err := tx.Model(&Character{}).Where("name = ?", name).Count(&count).Error
+		if err != nil {
 			return err
+		}
+		if count > 0 {
+			return ErrCharacterNameTaken
 		}
 		char.AccountID = accountID
 		char.UUID = randUuid()
@@ -216,4 +225,34 @@ func SetLastOutpostForChar(charId uint64, outpostId uint16) error {
 	}
 
 	return nil
+}
+
+func RenameCharacter(oldName, newName string, accountID uint64) error {
+	return database.Transaction(func(tx *gorm.DB) error {
+		var char Character
+		err := tx.Where("name = ? AND account_id = ?", oldName, accountID).First(&char).Error
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ErrCharacterNotFound
+		}
+		if err != nil {
+			return err
+		}
+
+		if oldName != newName {
+			var count int64
+			err = tx.Model(&Character{}).Where("name = ?", newName).Count(&count).Error
+			if err != nil {
+				return err
+			}
+			if count > 0 {
+				return ErrCharacterNameTaken
+			}
+		}
+
+		return tx.Model(&char).Update("name", newName).Error
+	})
+}
+
+func CreateAccountForTest(acc *Account) error {
+	return database.Create(acc).Error
 }

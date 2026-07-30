@@ -14,9 +14,9 @@ func UnmarshalSetActiveCharacter(in *GwPacket.In) (resp SetActiveCharacter, err 
 		err = errors.New("bad opcode")
 		return
 	}
-	resp.reqNumber, err = in.Uint32()
+	resp.transactionId, err = in.Uint32()
 	if err != nil {
-		err = fmt.Errorf("read reqNumber: %w", err)
+		err = fmt.Errorf("read transactionId: %w", err)
 		return
 	}
 	resp.charName, err = in.UTF16WithLengthPrefix()
@@ -31,9 +31,9 @@ func UnmarshalLoginCharacter(in *GwPacket.In) (resp LoginCharacter, err error) {
 		err = errors.New("bad opcode")
 		return
 	}
-	resp.reqNumber, err = in.Uint32()
+	resp.transactionId, err = in.Uint32()
 	if err != nil {
-		err = fmt.Errorf("read reqNumber: %w", err)
+		err = fmt.Errorf("read transactionId: %w", err)
 		return
 	}
 	resp.unk1, err = in.Uint32()
@@ -68,9 +68,9 @@ func UnmarshalAddAccessKey(in *GwPacket.In) (resp AddAccessKey, err error) {
 		err = errors.New("bad opcode")
 		return
 	}
-	resp.reqNumber, err = in.Uint32()
+	resp.transactionId, err = in.Uint32()
 	if err != nil {
-		err = fmt.Errorf("read reqNumber: %w", err)
+		err = fmt.Errorf("read transactionId: %w", err)
 		return
 	}
 	resp.key, err = in.UTF16WithLengthPrefix()
@@ -170,9 +170,9 @@ func UnmarshalGetAccountInfo(in *GwPacket.In) (resp GetAccountInfo, err error) {
 		err = errors.New("bad opcode")
 		return
 	}
-	resp.reqNumber, err = in.Uint32()
+	resp.transactionId, err = in.Uint32()
 	if err != nil {
-		err = fmt.Errorf("read reqNumber: %w", err)
+		err = fmt.Errorf("read transactionId: %w", err)
 		return
 	}
 	resp.uuid1, err = in.Bytes(16)
@@ -197,9 +197,9 @@ func UnmarshalAskServerResponse(in *GwPacket.In) (resp AskServerResponse, err er
 		err = errors.New("bad opcode")
 		return
 	}
-	resp.reqNumber, err = in.Uint32()
+	resp.transactionId, err = in.Uint32()
 	if err != nil {
-		err = fmt.Errorf("read reqNumber: %w", err)
+		err = fmt.Errorf("read transactionId: %w", err)
 		return
 	}
 	return
@@ -257,9 +257,9 @@ func UnmarshalUpdateSettingsLength(in *GwPacket.In) (resp UpdateSettingsLength, 
 		err = errors.New("bad opcode")
 		return
 	}
-	resp.reqNumber, err = in.Uint32()
+	resp.transactionId, err = in.Uint32()
 	if err != nil {
-		err = fmt.Errorf("read reqNumber: %w", err)
+		err = fmt.Errorf("read transactionId: %w", err)
 		return
 	}
 	resp.unk2, err = in.Uint32()
@@ -296,9 +296,9 @@ func UnmarshalDeleteCharacter(in *GwPacket.In) (resp DeleteCharacter, err error)
 		err = errors.New("bad opcode")
 		return
 	}
-	resp.reqNumber, err = in.Uint32()
+	resp.transactionId, err = in.Uint32()
 	if err != nil {
-		err = fmt.Errorf("read reqNumber: %w", err)
+		err = fmt.Errorf("read transactionId: %w", err)
 		return
 	}
 	resp.name, err = in.UTF16WithLengthPrefix()
@@ -313,9 +313,9 @@ func UnmarshalSetCharacterName(in *GwPacket.In) (resp SetCharacterName, err erro
 		err = errors.New("bad opcode")
 		return
 	}
-	resp.reqNumber, err = in.Uint32()
+	resp.transactionId, err = in.Uint32()
 	if err != nil {
-		err = fmt.Errorf("read reqNumber: %w", err)
+		err = fmt.Errorf("read transactionId: %w", err)
 		return
 	}
 	resp.charName, err = in.UTF16WithLengthPrefix()
@@ -331,6 +331,28 @@ func UnmarshalSetCharacterName(in *GwPacket.In) (resp SetCharacterName, err erro
 	resp.unk3, err = in.Bytes(unk3Len)
 	if err != nil {
 		err = fmt.Errorf("read unk3: %w", err)
+		return
+	}
+	return
+}
+func UnmarshalRenameCharacter(in *GwPacket.In) (resp RenameCharacter, err error) {
+	if in.Opcode() != 0x8037 {
+		err = errors.New("bad opcode")
+		return
+	}
+	resp.transactionId, err = in.Uint32()
+	if err != nil {
+		err = fmt.Errorf("read transactionId: %w", err)
+		return
+	}
+	resp.oldName, err = in.UTF16WithLengthPrefix()
+	if err != nil {
+		err = fmt.Errorf("read oldName: %w", err)
+		return
+	}
+	resp.newName, err = in.UTF16WithLengthPrefix()
+	if err != nil {
+		err = fmt.Errorf("read newName: %w", err)
 		return
 	}
 	return

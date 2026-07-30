@@ -8,16 +8,16 @@ import (
 	GwPacket "gw1/server/gwpacket"
 )
 
-func MarshalRequestResponse(reqNumber int, responseCode int) (resp GwPacket.Out) {
+func MarshalRequestResponse(transactionId int, responseCode int) (resp GwPacket.Out) {
 	resp = GwPacket.NewOut(0x3)
-	resp.Uint32(reqNumber)
+	resp.Uint32(transactionId)
 	resp.Uint32(responseCode)
 	return
 }
 
-func MarshalCharacterSummary(reqNumber int, charUUID []byte, unk1 int, charName string, summary VarByte) (resp GwPacket.Out) {
+func MarshalCharacterSummary(transactionId int, charUUID []byte, unk1 int, charName string, summary VarByte) (resp GwPacket.Out) {
 	resp = GwPacket.NewOut(0x7)
-	resp.Uint32(reqNumber)
+	resp.Uint32(transactionId)
 	if len(charUUID) != 16 {
 		panic(fmt.Errorf("length check failed for field 'charUUID' of struct 'CharacterSummary': %d vs %d", len(charUUID), 16))
 	}
@@ -29,16 +29,16 @@ func MarshalCharacterSummary(reqNumber int, charUUID []byte, unk1 int, charName 
 	return
 }
 
-func MarshalAccountExtraInfoStart(reqNumber int, unk1 int) (resp GwPacket.Out) {
+func MarshalAccountExtraInfoStart(transactionId int, unk1 int) (resp GwPacket.Out) {
 	resp = GwPacket.NewOut(0x14)
-	resp.Uint32(reqNumber)
+	resp.Uint32(transactionId)
 	resp.Uint32(unk1)
 	return
 }
 
-func MarshalAccountExtraInfo(reqNumber int, territoryCode int, languageCode int, unk1 []byte, unk2 []byte, accountUUID []byte, activeCharUUID []byte, unk3 int, entitlements VarByte, eulaByte int, unk4 int) (resp GwPacket.Out) {
+func MarshalAccountExtraInfo(transactionId int, territoryCode int, languageCode int, unk1 []byte, unk2 []byte, accountUUID []byte, activeCharUUID []byte, unk3 int, entitlements VarByte, eulaByte int, unk4 int) (resp GwPacket.Out) {
 	resp = GwPacket.NewOut(0x11)
-	resp.Uint32(reqNumber)
+	resp.Uint32(transactionId)
 	resp.Uint32(territoryCode)
 	resp.Uint32(languageCode)
 	if len(unk1) != 8 {
@@ -65,9 +65,9 @@ func MarshalAccountExtraInfo(reqNumber int, territoryCode int, languageCode int,
 	return
 }
 
-func MarshalAccountBinaryInfo(reqNumber int, binaryData VarByte) (resp GwPacket.Out) {
+func MarshalAccountBinaryInfo(transactionId int, binaryData VarByte) (resp GwPacket.Out) {
 	resp = GwPacket.NewOut(0x16)
-	resp.Uint32(reqNumber)
+	resp.Uint32(transactionId)
 	resp.Uint16(len(binaryData))
 	resp.Bytes(binaryData)
 	return
@@ -89,9 +89,9 @@ func MarshalSessionSaltInfo(salt int, unk1 int) (resp GwPacket.Out) {
 	return
 }
 
-func MarshalInstanceServerInfo(reqNumber int, worldHash int, mapId int, socketData []byte, playerHash int) (resp GwPacket.Out) {
+func MarshalInstanceServerInfo(transactionId int, worldHash int, mapId int, socketData []byte, playerHash int) (resp GwPacket.Out) {
 	resp = GwPacket.NewOut(0x9)
-	resp.Uint32(reqNumber)
+	resp.Uint32(transactionId)
 	resp.Uint32(worldHash)
 	resp.Uint32(mapId)
 	if len(socketData) != 24 {

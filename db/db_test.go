@@ -4,24 +4,12 @@ import (
 	"os"
 	"testing"
 
-	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
 )
 
 func TestMain(m *testing.M) {
-	log = zerolog.New(zerolog.NewConsoleWriter()).Level(zerolog.Disabled)
-	var err error
-	database, err = gorm.Open(sqlite.Dialector{
-		DSN:        "file::memory:?cache=shared",
-		DriverName: "sqlite",
-	}, &gorm.Config{})
-	if err != nil {
-		os.Exit(1)
-	}
-	if err := autoMigrate(); err != nil {
+	if err := SetupTestDB(); err != nil {
 		os.Exit(1)
 	}
 	os.Exit(m.Run())
@@ -215,4 +203,72 @@ func TestCharacterNameExists(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.True(t, CharacterNameExists("ExistsChar"))
+}
+
+func TestRenameCharacter_Success(t *testing.T) {
+	acc := Account{Email: "rename_success@localhost", Password: "p", PasswordSalt: randSalt(), UUID: randUuid()}
+	require.NoError(t, database.Create(&acc).Error)
+
+	bags := CreateDefaultBagsAndItems(0, 1, [7]int{})
+	_, err := CreateCharacter(acc.ID, "OldNameRS", 1, 0, bags)
+	require.NoError(t, err)
+
+	err = RenameCharacter("OldNameRS", "NewNameRS", acc.ID)
+	assert.NoError(t, err)
+
+	var loaded Character
+	require.NoError(t, database.Where("account_id = ?", acc.ID).First(&loaded).Error)
+	assert.Equal(t, "NewNameRS", loaded.Name)
+}
+
+func TestRenameCharacter_CharNotFound(t *testing.T) {
+	acc := Account{Email: "rename_notfound@localhost", Password: "p", PasswordSalt: randSalt(), UUID: randUuid()}
+	require.NoError(t, database.Create(&acc).Error)
+
+	err := RenameCharacter("NonExistent", "NewNameNF", acc.ID)
+	assert.ErrorIs(t, err, ErrCharacterNotFound)
+}
+
+func TestRenameCharacter_WrongAccount(t *testing.T) {
+	acc1 := Account{Email: "rename_wrong1@localhost", Password: "p", PasswordSalt: randSalt(), UUID: randUuid()}
+	require.NoError(t, database.Create(&acc1).Error)
+	acc2 := Account{Email: "rename_wrong2@localhost", Password: "p", PasswordSalt: randSalt(), UUID: randUuid()}
+	require.NoError(t, database.Create(&acc2).Error)
+
+	bags := CreateDefaultBagsAndItems(0, 1, [7]int{})
+	_, err := CreateCharacter(acc1.ID, "NotYoursWA", 1, 0, bags)
+	require.NoError(t, err)
+
+	err = RenameCharacter("NotYoursWA", "NewNameWR", acc2.ID)
+	assert.ErrorIs(t, err, ErrCharacterNotFound)
+}
+
+func TestRenameCharacter_NewNameTaken(t *testing.T) {
+	acc := Account{Email: "rename_taken@localhost", Password: "p", PasswordSalt: randSalt(), UUID: randUuid()}
+	require.NoError(t, database.Create(&acc).Error)
+
+	bags := CreateDefaultBagsAndItems(0, 1, [7]int{})
+	_, err := CreateCharacter(acc.ID, "OldNameNT", 1, 0, bags)
+	require.NoError(t, err)
+	_, err = CreateCharacter(acc.ID, "TakenName", 1, 0, bags)
+	require.NoError(t, err)
+
+	err = RenameCharacter("OldNameNT", "TakenName", acc.ID)
+	assert.ErrorIs(t, err, ErrCharacterNameTaken)
+}
+
+func TestRenameCharacter_SameName(t *testing.T) {
+	acc := Account{Email: "rename_same@localhost", Password: "p", PasswordSalt: randSalt(), UUID: randUuid()}
+	require.NoError(t, database.Create(&acc).Error)
+
+	bags := CreateDefaultBagsAndItems(0, 1, [7]int{})
+	_, err := CreateCharacter(acc.ID, "SameName", 1, 0, bags)
+	require.NoError(t, err)
+
+	err = RenameCharacter("SameName", "SameName", acc.ID)
+	assert.NoError(t, err)
+
+	var loaded Character
+	require.NoError(t, database.Where("account_id = ?", acc.ID).First(&loaded).Error)
+	assert.Equal(t, "SameName", loaded.Name)
 }

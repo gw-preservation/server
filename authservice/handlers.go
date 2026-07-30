@@ -3,6 +3,7 @@ package authservice
 import (
 	"bytes"
 	"crypto/rc4"
+	"errors"
 	"fmt"
 	"gw1/server/crypt"
 	"gw1/server/db"
@@ -58,6 +59,7 @@ var verifiedHandlers = map[int]packetHandler{
 	0x8021: wrap(UnmarshalUpdateSettingsLength, (*ASConn).onUpdateSettingsLength),
 	0x8029: wrap(UnmarshalLoginCharacter, (*ASConn).onLoginCharacter),
 	0x8035: wrap(UnmarshalAskServerResponse, (*ASConn).onAskServerResponse),
+	0x8037: wrap(UnmarshalRenameCharacter, (*ASConn).onRenameCharacter),
 	0x8007: wrap(UnmarshalDeleteCharacter, (*ASConn).onDeleteCharacter),
 }
 
@@ -111,6 +113,9 @@ func (conn *ASConn) on8023(payload *Unknown8023) error {
 
 func (conn *ASConn) onGetAccountInfo(payload *GetAccountInfo) error {
 	conn.log.Info().Hex("uuid1", payload.uuid1[:]).Hex("authToken", payload.authTokenFromPortalService[:]).Str("unkString", payload.unk1).Msg("GetAccountInfo")
+	if conn.enc == nil || conn.dec == nil {
+		return fmt.Errorf("rejecting attempt to GetAccountInfo without encryption")
+	}
 	if conn.verified {
 		return fmt.Errorf("connection already verified")
 	}
@@ -141,7 +146,7 @@ func (conn *ASConn) onGetAccountInfo(payload *GetAccountInfo) error {
 
 	// Prevent concurrent logins
 	if !TrackAccount(conn.acc.ID) {
-		conn.EnqueuePacket(MarshalRequestResponse(payload.reqNumber, 35))
+		conn.EnqueuePacket(MarshalRequestResponse(payload.transactionId, 35))
 		return fmt.Errorf("account %d already logged in", conn.acc.ID)
 	}
 	conn.accountID = conn.acc.ID
@@ -206,7 +211,7 @@ func (conn *ASConn) onGetAccountInfo(payload *GetAccountInfo) error {
 		subBlockBytes := subBlock.GetBytes()
 
 		conn.EnqueuePacket(MarshalCharacterSummary(
-			payload.reqNumber,
+			payload.transactionId,
 			char.UUID,
 			0,
 			char.Name,
@@ -214,10 +219,10 @@ func (conn *ASConn) onGetAccountInfo(payload *GetAccountInfo) error {
 		))
 		lastCharUUID = char.UUID
 	}
-	conn.EnqueuePacket(MarshalAccountBinaryInfo(payload.reqNumber, []byte{}))
-	conn.EnqueuePacket(MarshalAccountExtraInfoStart(payload.reqNumber, 0))
+	conn.EnqueuePacket(MarshalAccountBinaryInfo(payload.transactionId, []byte{}))
+	conn.EnqueuePacket(MarshalAccountExtraInfoStart(payload.transactionId, 0))
 	conn.EnqueuePacket(MarshalAccountExtraInfo(
-		payload.reqNumber,
+		payload.transactionId,
 		// Territory
 		// 0- America
 		// 1- Korea
@@ -239,14 +244,15 @@ func (conn *ASConn) onGetAccountInfo(payload *GetAccountInfo) error {
 		conn.activeCharacterName = conn.acc.Characters[0].Name
 	}
 
-	conn.EnqueuePacket(MarshalRequestResponse(payload.reqNumber, 0))
+	conn.EnqueuePacket(MarshalRequestResponse(payload.transactionId, 0))
 	conn.verified = true
 
 	return nil
 }
 
 func (conn *ASConn) onAskServerResponse(payload *AskServerResponse) error {
-	conn.EnqueuePacket(MarshalRequestResponse(payload.reqNumber, 0xb5))
+	// TODO: reverse this more - what does it mean and why do we respond 0xb5?
+	conn.EnqueuePacket(MarshalRequestResponse(payload.transactionId, 0xb5))
 	return nil
 }
 
@@ -294,7 +300,7 @@ func (conn *ASConn) onLoginCharacter(payload *LoginCharacter) error {
 		instanceTag = inst.GetTag()
 	}
 	securityTag := gameservice.GenerateConnectionTokenForInstance(instanceTag, conn.hasLoggedInThisSession, charUUID, conn.acc.UUID, conn.clientIP())
-	conn.EnqueuePacket(MarshalInstanceServerInfo(payload.reqNumber, int(instanceTag), outpostId, []byte{
+	conn.EnqueuePacket(MarshalInstanceServerInfo(payload.transactionId, int(instanceTag), outpostId, []byte{
 		0x02, 0x00, // AF_INET
 		0x17, 0xe0, // Port 6112
 		ServerIP[0], ServerIP[1], ServerIP[2], ServerIP[3], // server IP
@@ -315,14 +321,14 @@ func (conn *ASConn) onAddAccessKey(payload *AddAccessKey) error {
 	// 105 = AccessKeyNotNeeded
 	// 119 = AccessKeyAlreadyAppliedByYourAccount
 	// 122 = AccessKeyDisabled
-	conn.EnqueuePacket(MarshalRequestResponse(payload.reqNumber, 0))
+	conn.EnqueuePacket(MarshalRequestResponse(payload.transactionId, 0))
 	return nil
 }
 
 func (conn *ASConn) onSetCharacterName(payload *SetCharacterName) error {
 	conn.log.Debug().Str("charName", payload.charName).Msg("SetCharacterName")
 	// Client sends this with empty charName if the active char was already selected upon a login char request
-	conn.EnqueuePacket(MarshalRequestResponse(payload.reqNumber, 0))
+	conn.EnqueuePacket(MarshalRequestResponse(payload.transactionId, 0))
 	return nil
 }
 
@@ -338,7 +344,7 @@ func (conn *ASConn) onSetActiveCharacter(payload *SetActiveCharacter) error {
 		conn.activeCharacterName = payload.charName
 	}
 	// Client sends this with empty charName if the active char was already selected upon a login char request
-	conn.EnqueuePacket(MarshalRequestResponse(payload.reqNumber, 0))
+	conn.EnqueuePacket(MarshalRequestResponse(payload.transactionId, 0))
 	return nil
 }
 
@@ -348,7 +354,7 @@ func (conn *ASConn) onSetPlayerOnlineVisibilityStatus(payload *SetPlayerOnlineVi
 }
 
 func (conn *ASConn) onUpdateSettingsLength(payload *UpdateSettingsLength) error {
-	conn.EnqueuePacket(MarshalRequestResponse(payload.reqNumber, 0))
+	conn.EnqueuePacket(MarshalRequestResponse(payload.transactionId, 0))
 	return nil
 }
 
@@ -356,13 +362,42 @@ func (conn *ASConn) onUpdateSettings(payload *UpdateSettings) error {
 	return nil
 }
 
+func (conn *ASConn) onRenameCharacter(payload *RenameCharacter) error {
+	conn.log.Info().Str("oldName", payload.oldName).Str("newName", payload.newName).Int("transactionId", payload.transactionId).Msg("Rename Character")
+
+	if !conn.charBelongsToAccount(payload.oldName) {
+		conn.EnqueuePacket(MarshalRequestResponse(payload.transactionId, 49))
+		return nil
+	}
+
+	err := db.RenameCharacter(payload.oldName, payload.newName, conn.acc.ID)
+	if err != nil {
+		if errors.Is(err, db.ErrCharacterNameTaken) {
+			conn.EnqueuePacket(MarshalRequestResponse(payload.transactionId, 29))
+		} else {
+			conn.EnqueuePacket(MarshalRequestResponse(payload.transactionId, 49))
+		}
+		return nil
+	}
+
+	if acc, ok := db.GetFullAccountByID(conn.accountID); ok {
+		conn.acc = acc
+	}
+	if conn.activeCharacterName == payload.oldName {
+		conn.activeCharacterName = payload.newName
+	}
+
+	conn.EnqueuePacket(MarshalRequestResponse(payload.transactionId, 0))
+	return nil
+}
+
 func (conn *ASConn) onDeleteCharacter(payload *DeleteCharacter) error {
 	conn.log.Info().Str("name", payload.name).Msg("Delete Character")
 	if err := db.DeleteDbChar(payload.name, conn.acc.ID); err != nil {
 		conn.log.Error().Err(err).Msg("error during DeleteCharacter")
-		conn.EnqueuePacket(MarshalRequestResponse(payload.reqNumber, 1))
+		conn.EnqueuePacket(MarshalRequestResponse(payload.transactionId, 1))
 	} else {
-		conn.EnqueuePacket(MarshalRequestResponse(payload.reqNumber, 0))
+		conn.EnqueuePacket(MarshalRequestResponse(payload.transactionId, 0))
 	}
 	return nil
 }
