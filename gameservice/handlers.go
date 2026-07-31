@@ -33,8 +33,20 @@ func wrap[T any](
 	}
 }
 
-var packetHandlers = map[int]packetHandler{
+// handlers which can be accessed only by unverified connections.
+// A connection must be able to complete the handshake (VerifyClientConnection
+// and ClientSeed) before it is marked verified, so both are accepted here.
+var unverifiedHandlers = map[int]packetHandler{
 	0x0500: wrap(UnmarshalVerifyClientConnection, (*GSConn).onVerifyClientConnection),
+	0x4200: wrap(UnmarshalClientSeed, (*GSConn).onClientSeed),
+	0x8008: wrap(UnmarshalClientDisconnect, (*GSConn).onClientDisconnect),
+}
+
+// handlers which can be accessed only by verified connections.
+// ClientSeed and ClientDisconnect are duplicated here: the real client sends
+// the seed after the verify packet (so it arrives post-verification), and a
+// disconnect can arrive at any time.
+var verifiedHandlers = map[int]packetHandler{
 	0x4200: wrap(UnmarshalClientSeed, (*GSConn).onClientSeed),
 	0x8008: wrap(UnmarshalClientDisconnect, (*GSConn).onClientDisconnect),
 	0x8009: wrap(UnmarshalPingReply, (*GSConn).onPingReply),
@@ -88,11 +100,17 @@ func (conn *GSConn) on8090(payload *Unknown8090) error {
 }
 
 func (conn *GSConn) onInstanceLoadRequestSpawnPoint(payload *InstanceLoadRequestSpawnPoint) error {
+	if conn.player.connectedInstance == nil {
+		return nil
+	}
 	conn.player.sendInstanceLoadSpawnPoint()
 	return nil
 }
 
 func (conn *GSConn) onInstanceLoadRequestPlayers(payload *InstanceLoadRequestPlayers) error {
+	if conn.player.connectedInstance == nil {
+		return nil
+	}
 	conn.player.sendInstanceLoadRequestPlayers(*payload)
 	return nil
 }
@@ -315,6 +333,7 @@ func (conn *GSConn) onVerifyClientConnection(payload *VerifyClientConnection) er
 	// TODO: Here we should verify the map is adjacent to the LastOutpostID if its explorable!
 
 	p.log.Debug().Str("instanceTag", fmt.Sprintf("%08x", payload.instanceTag)).Str("securityTag", fmt.Sprintf("%08x", payload.securityTag)).Int("mapId", payload.mapId).Int("unk3", payload.unk3).Int("unk4", payload.unk4).Int("unk5", payload.unk5).Int("unk6", payload.unk6).Msg("VerifyClientConnection")
+	conn.verified = true
 	return nil
 }
 func (conn *GSConn) onClientSeed(payload *ClientSeed) error {
@@ -329,9 +348,17 @@ func (conn *GSConn) onClientSeed(payload *ClientSeed) error {
 	resp.Uint8(01)
 	resp.Uint8(len(publicBytes) + 2)
 	resp.Bytes(publicBytes[:])
-	conn.WritePacket(&resp)
 
+	// The seed response must go out unencrypted, before conn.enc is enabled.
+	// Hold the out mutex so the write can't interleave with the flush loop,
+	// and so the cipher enable happens in the same critical section.
+	conn.outMu.Lock()
+	if err = conn.writeLocked(&resp); err != nil {
+		conn.outMu.Unlock()
+		return err
+	}
 	conn.enc, err = rc4.NewCipher(rc4Key[:])
+	conn.outMu.Unlock()
 	if err != nil {
 		return fmt.Errorf("error creating rc4 encrypter: %s", err)
 	}
@@ -339,7 +366,7 @@ func (conn *GSConn) onClientSeed(payload *ClientSeed) error {
 	if conn.player.charCreationInProgress {
 		conn.player.EnqueuePacket(MarshalInstanceLoadHead())
 		conn.player.EnqueuePacket(MarshalCharCreationStart())
-	} else {
+	} else if conn.player.connectedInstance != nil {
 		conn.player.connectedInstance.AddPlayer(conn.player)
 	}
 

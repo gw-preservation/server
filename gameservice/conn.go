@@ -18,12 +18,14 @@ type GSConn struct {
 	enc       *rc4.Cipher
 	dec       *rc4.Cipher
 	out       GwPacket.Out
+	outMu     sync.Mutex
 	closed    atomic.Bool
 	log       zerolog.Logger
 	player    *Player
 	done      chan struct{}
 	closeOnce sync.Once
 	accountID uint64
+	verified  bool
 }
 
 func NewGSConn(socket *net.TCPConn, logCtx zerolog.Logger) *GSConn {
@@ -35,19 +37,24 @@ func NewGSConn(socket *net.TCPConn, logCtx zerolog.Logger) *GSConn {
 	}
 	conn.player = NewPlayer(&conn, logCtx)
 	go func() {
+		ticker := time.NewTicker(50 * time.Millisecond)
+		defer ticker.Stop()
 		for {
 			select {
 			case <-conn.done:
 				return
-			case <-time.After(50 * time.Millisecond):
+			case <-ticker.C:
+				conn.outMu.Lock()
 				if len(conn.out.GetBytes()) > 0 {
-					if err := conn.WritePacket(&conn.out); err != nil {
+					if err := conn.writeLocked(&conn.out); err != nil {
 						conn.log.Error().Err(err).Msg("flush write failed, closing")
+						conn.outMu.Unlock()
 						conn.Close()
 						return
 					}
 					conn.out.Reset()
 				}
+				conn.outMu.Unlock()
 			}
 		}
 	}()
@@ -73,7 +80,14 @@ func (conn *GSConn) HandleBytes(data []byte) (consumed int, err error) {
 	op, _ := in.Uint16()
 	//conn.log.Debug().Str("opcode", fmt.Sprintf("%04x", op)).Msg("recv")
 
-	if handler, ok := packetHandlers[op]; ok {
+	var handler packetHandler
+	var ok bool
+	if conn.verified {
+		handler, ok = verifiedHandlers[op]
+	} else {
+		handler, ok = unverifiedHandlers[op]
+	}
+	if ok {
 		consumed, err = handler(conn, &in)
 	} else {
 		consumed = len(data)
@@ -96,13 +110,20 @@ func (conn *GSConn) Read(buf []byte) (int, error) {
 	return conn.socket.Read(buf)
 }
 
-func (conn *GSConn) WritePacket(packet *GwPacket.Out) error {
+// writeLocked encrypts and writes a packet. The caller must hold conn.outMu.
+func (conn *GSConn) writeLocked(packet *GwPacket.Out) error {
 	bts := packet.GetBytes()
 	if conn.enc != nil {
 		conn.enc.XORKeyStream(bts, bts)
 	}
 	_, err := conn.socket.Write(bts)
 	return err
+}
+
+func (conn *GSConn) WritePacket(packet *GwPacket.Out) error {
+	conn.outMu.Lock()
+	defer conn.outMu.Unlock()
+	return conn.writeLocked(packet)
 }
 
 func prettyBytesString(in []byte) string {
@@ -123,6 +144,8 @@ func (conn *GSConn) EnqueuePacket(packet GwPacket.Out) {
 	//bts := packet.GetBytes()
 	//x := prettyBytesString(bts)
 	//fmt.Printf("%s\n", x)
+	conn.outMu.Lock()
+	defer conn.outMu.Unlock()
 	conn.out.Merge(packet)
 }
 

@@ -110,35 +110,31 @@ func (p *In) Uint64() (out uint64, err error) {
 	return out, err
 }
 
-func (p *In) UTF16(length int) (out string, err error) {
-	var utf16Units []uint16
-	var val int
-	for range length {
-		val, err = p.Uint16()
-		if err != nil {
-			err = fmt.Errorf("Uint16(): %w", err)
-			return
-		}
-		utf16Units = append(utf16Units, uint16(val))
+func (p *In) UTF16(length int, maxRunes int) (out string, err error) {
+	if maxRunes < 0 {
+		maxRunes = 0
 	}
-	// String has `len` UTF-16 codepoints
-	out = string(utf16.Decode(utf16Units))
-	return
+	runes := make([]rune, 0, maxRunes)
+	for i := 0; i < length; i++ {
+		u, err := p.Uint16()
+		if err != nil {
+			return "", fmt.Errorf("Uint16(): %w", err)
+		}
+		if len(runes) < maxRunes {
+			runes = append(runes, rune(u))
+		}
+	}
+	return string(runes), nil
 }
 
-func (p *In) UTF16WithLengthPrefix() (out string, err error) {
-	var len int
-	len, err = p.Uint16()
+func (p *In) UTF16WithLengthPrefix(maxNumRunes int) (out string, err error) {
+	var advertised int
+	advertised, err = p.Uint16()
 	if err != nil {
 		err = fmt.Errorf("Uint16(): %w", err)
 		return
 	}
-	// Safety check
-	if len > 512 {
-		err = fmt.Errorf("length > 512: %d", len)
-		return
-	}
-	out, err = p.UTF16(len)
+	out, err = p.UTF16(advertised, maxNumRunes)
 	return
 }
 
@@ -207,15 +203,18 @@ func (p *Out) Uint32(val int) {
 }
 
 func (p *Out) UTF16(str string) {
-	utf16Units := utf16.Encode([]rune(str))
-	for _, unit := range utf16Units {
+	units := utf16.Encode([]rune(str))
+	for _, unit := range units {
 		p.Uint16(int(unit))
 	}
 }
 
 func (p *Out) UTF16WithLengthPrefix(str string) {
-	p.Uint16(len(utf16.Encode([]rune(str))))
-	p.UTF16(str)
+	units := utf16.Encode([]rune(str))
+	p.Uint16(len(units))
+	for _, unit := range units {
+		p.Uint16(int(unit))
+	}
 }
 
 func (p *Out) Float32(val float32) {

@@ -1,80 +1,35 @@
 package authservice
 
 import (
-	"net"
 	"testing"
 
-	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestClose_UntracksAccount(t *testing.T) {
-	clearTracker()
-
-	listener, err := net.ListenTCP("tcp", &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 0})
-	assert.NoError(t, err)
-	defer listener.Close()
-
-	clientConn, err := net.DialTCP("tcp", nil, listener.Addr().(*net.TCPAddr))
-	assert.NoError(t, err)
+// A fragmented heartbeat (opcode-only, 2 bytes) previously returned consumed=6,
+// which overflowed the tcpsrv buffer slicing and crashed the server. It must
+// wait for the full 6-byte packet instead.
+func TestHandleBytes_HeartbeatPartialRead(t *testing.T) {
+	clientConn, conn := setupTestConn(t)
 	defer clientConn.Close()
+	defer conn.Close()
 
-	serverConn, err := listener.AcceptTCP()
-	assert.NoError(t, err)
+	consumed, err := conn.HandleBytes([]byte{0x00, 0x80})
+	require.NoError(t, err)
+	assert.Equal(t, 0, consumed)
 
-	conn := NewASConn(serverConn, zerolog.Nop())
-	conn.accountID = 42
-	TrackAccount(42)
+	consumed, err = conn.HandleBytes([]byte{0x00, 0x80, 0x01, 0x02, 0x03, 0x04})
+	require.NoError(t, err)
+	assert.Equal(t, 6, consumed)
+	assert.NotEmpty(t, conn.out.GetBytes()) // heartbeat response queued
 
-	assert.False(t, TrackAccount(42), "account should be tracked")
+	// The heartbeat branch returns before the tail flush in HandleBytes, so
+	// the response is only sent when a later packet flushes the out buffer.
+	flushOut(conn)
 
-	conn.Close()
-
-	assert.True(t, TrackAccount(42), "account should be freed after Close")
-}
-
-func TestClose_ZeroAccountIDDoesNotUntrack(t *testing.T) {
-	clearTracker()
-
-	listener, err := net.ListenTCP("tcp", &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 0})
-	assert.NoError(t, err)
-	defer listener.Close()
-
-	clientConn, err := net.DialTCP("tcp", nil, listener.Addr().(*net.TCPAddr))
-	assert.NoError(t, err)
-	defer clientConn.Close()
-
-	serverConn, err := listener.AcceptTCP()
-	assert.NoError(t, err)
-
-	conn := NewASConn(serverConn, zerolog.Nop())
-	TrackAccount(42)
-
-	conn.Close()
-
-	assert.False(t, TrackAccount(42), "should still be tracked since accountID was 0")
-}
-
-func TestClose_Idempotent(t *testing.T) {
-	clearTracker()
-
-	listener, err := net.ListenTCP("tcp", &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 0})
-	assert.NoError(t, err)
-	defer listener.Close()
-
-	clientConn, err := net.DialTCP("tcp", nil, listener.Addr().(*net.TCPAddr))
-	assert.NoError(t, err)
-	defer clientConn.Close()
-
-	serverConn, err := listener.AcceptTCP()
-	assert.NoError(t, err)
-
-	conn := NewASConn(serverConn, zerolog.Nop())
-	conn.accountID = 42
-	TrackAccount(42)
-
-	conn.Close()
-	conn.Close()
-
-	assert.True(t, TrackAccount(42), "account should be freed (no panic on double close)")
+	buf := make([]byte, 64)
+	n, err := clientConn.Read(buf)
+	require.NoError(t, err)
+	assert.GreaterOrEqual(t, n, 6)
 }

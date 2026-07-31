@@ -7,7 +7,6 @@ import (
 	"fmt"
 
 	GwPacket "gw1/server/gwpacket"
-	"unicode/utf8"
 )
 
 func UnmarshalSetActiveCharacter(in *GwPacket.In) (resp SetActiveCharacter, err error) {
@@ -20,10 +19,7 @@ func UnmarshalSetActiveCharacter(in *GwPacket.In) (resp SetActiveCharacter, err 
 		err = fmt.Errorf("read transactionId: %w", err)
 		return
 	}
-	resp.charName, err = in.UTF16WithLengthPrefix()
-	if err == nil && utf8.RuneCountInString(resp.charName) > 20 {
-		resp.charName = resp.charName[:20]
-	}
+	resp.charName, err = in.UTF16WithLengthPrefix(20)
 	if err != nil {
 		err = fmt.Errorf("read charName: %w", err)
 		return
@@ -77,10 +73,7 @@ func UnmarshalAddAccessKey(in *GwPacket.In) (resp AddAccessKey, err error) {
 		err = fmt.Errorf("read transactionId: %w", err)
 		return
 	}
-	resp.key, err = in.UTF16WithLengthPrefix()
-	if err == nil && utf8.RuneCountInString(resp.key) > 26 {
-		resp.key = resp.key[:26]
-	}
+	resp.key, err = in.UTF16WithLengthPrefix(26)
 	if err != nil {
 		err = fmt.Errorf("read key: %w", err)
 		return
@@ -148,18 +141,12 @@ func UnmarshalComputerInfo(in *GwPacket.In) (resp ComputerInfo, err error) {
 		err = errors.New("bad opcode")
 		return
 	}
-	resp.userName, err = in.UTF16WithLengthPrefix()
-	if err == nil && utf8.RuneCountInString(resp.userName) > 32 {
-		resp.userName = resp.userName[:32]
-	}
+	resp.userName, err = in.UTF16WithLengthPrefix(32)
 	if err != nil {
 		err = fmt.Errorf("read userName: %w", err)
 		return
 	}
-	resp.computerName, err = in.UTF16WithLengthPrefix()
-	if err == nil && utf8.RuneCountInString(resp.computerName) > 32 {
-		resp.computerName = resp.computerName[:32]
-	}
+	resp.computerName, err = in.UTF16WithLengthPrefix(32)
 	if err != nil {
 		err = fmt.Errorf("read computerName: %w", err)
 		return
@@ -198,10 +185,7 @@ func UnmarshalGetAccountInfo(in *GwPacket.In) (resp GetAccountInfo, err error) {
 		err = fmt.Errorf("read authTokenFromPortalService: %w", err)
 		return
 	}
-	resp.unk1, err = in.UTF16WithLengthPrefix()
-	if err == nil && utf8.RuneCountInString(resp.unk1) > 20 {
-		resp.unk1 = resp.unk1[:20]
-	}
+	resp.unk1, err = in.UTF16WithLengthPrefix(20)
 	if err != nil {
 		err = fmt.Errorf("read unk1: %w", err)
 		return
@@ -317,10 +301,7 @@ func UnmarshalDeleteCharacter(in *GwPacket.In) (resp DeleteCharacter, err error)
 		err = fmt.Errorf("read transactionId: %w", err)
 		return
 	}
-	resp.name, err = in.UTF16WithLengthPrefix()
-	if err == nil && utf8.RuneCountInString(resp.name) > 20 {
-		resp.name = resp.name[:20]
-	}
+	resp.name, err = in.UTF16WithLengthPrefix(20)
 	if err != nil {
 		err = fmt.Errorf("read name: %w", err)
 		return
@@ -337,10 +318,7 @@ func UnmarshalSetCharacterName(in *GwPacket.In) (resp SetCharacterName, err erro
 		err = fmt.Errorf("read transactionId: %w", err)
 		return
 	}
-	resp.charName, err = in.UTF16WithLengthPrefix()
-	if err == nil && utf8.RuneCountInString(resp.charName) > 20 {
-		resp.charName = resp.charName[:20]
-	}
+	resp.charName, err = in.UTF16WithLengthPrefix(20)
 	if err != nil {
 		err = fmt.Errorf("read charName: %w", err)
 		return
@@ -367,18 +345,12 @@ func UnmarshalRenameCharacter(in *GwPacket.In) (resp RenameCharacter, err error)
 		err = fmt.Errorf("read transactionId: %w", err)
 		return
 	}
-	resp.oldName, err = in.UTF16WithLengthPrefix()
-	if err == nil && utf8.RuneCountInString(resp.oldName) > 20 {
-		resp.oldName = resp.oldName[:20]
-	}
+	resp.oldName, err = in.UTF16WithLengthPrefix(20)
 	if err != nil {
 		err = fmt.Errorf("read oldName: %w", err)
 		return
 	}
-	resp.newName, err = in.UTF16WithLengthPrefix()
-	if err == nil && utf8.RuneCountInString(resp.newName) > 20 {
-		resp.newName = resp.newName[:20]
-	}
+	resp.newName, err = in.UTF16WithLengthPrefix(20)
 	if err != nil {
 		err = fmt.Errorf("read newName: %w", err)
 		return

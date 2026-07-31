@@ -102,31 +102,82 @@ func TestInUint64(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func utf16leUnits(units ...uint16) []byte {
+	out := make([]byte, 0, len(units)*2)
+	for _, u := range units {
+		out = append(out, byte(u), byte(u>>8))
+	}
+	return out
+}
+
 func TestInUTF16(t *testing.T) {
-	p := NewIn([]byte{
-		0x05, 0x00, 0x48, 0x00, 0x65, 0x00, 0x6C, 0x00, 0x6C, 0x00, 0x6F, 0x00,
-	})
-	val, err := p.UTF16WithLengthPrefix()
+	// Basic read
+	p := NewIn(append([]byte{0x05, 0x00}, utf16leUnits(0x48, 0x65, 0x6C, 0x6C, 0x6F)...))
+	val, err := p.UTF16WithLengthPrefix(20)
 	assert.NoError(t, err)
 	assert.Equal(t, "Hello", val)
+	assert.Equal(t, 12, p.Position())
+
+	// Truncated to maxRunes; remaining units drained, next field reads fine
+	data := append([]byte{0x04, 0x00}, utf16leUnits(0x54, 0x65, 0x73, 0x74)...)
+	data = append(data, 0xCD, 0xAB)
+	p = NewIn(data)
+	val, err = p.UTF16WithLengthPrefix(2)
+	assert.NoError(t, err)
+	assert.Equal(t, "Te", val)
+	next, err := p.Uint16()
+	assert.NoError(t, err)
+	assert.Equal(t, 0xABCD, next)
+
+	// maxRunes larger than the string
+	p = NewIn(append([]byte{0x02, 0x00}, utf16leUnits(0x48, 0x69)...))
+	val, err = p.UTF16WithLengthPrefix(5)
+	assert.NoError(t, err)
+	assert.Equal(t, "Hi", val)
+
+	// Each UTF-16 unit maps to one rune (BMP-only clients)
+	p = NewIn(append([]byte{0x03, 0x00}, utf16leUnits(0x0041, 0xD83D, 0xDE00)...))
+	val, err = p.UTF16WithLengthPrefix(10)
+	assert.NoError(t, err)
+	assert.Equal(t, "A\uFFFD\uFFFD", val)
+
+	// Surrogate code points are replaced with U+FFFD
+	p = NewIn(append([]byte{0x01, 0x00}, utf16leUnits(0xD83D)...))
+	val, err = p.UTF16WithLengthPrefix(10)
+	assert.NoError(t, err)
+	assert.Equal(t, "\uFFFD", val)
+
+	// Cap counts units, so a surrogate pair spanning the cap is split
+	p = NewIn(append([]byte{0x02, 0x00}, utf16leUnits(0xD83D, 0xDE00)...))
+	val, err = p.UTF16WithLengthPrefix(1)
+	assert.NoError(t, err)
+	assert.Equal(t, "\uFFFD", val)
+	assert.Equal(t, 6, p.Position())
+
+	// maxRunes of 0 yields an empty string but still drains the field
+	p = NewIn(append([]byte{0x02, 0x00}, utf16leUnits(0x41, 0x42)...))
+	val, err = p.UTF16WithLengthPrefix(0)
+	assert.NoError(t, err)
+	assert.Equal(t, "", val)
+	assert.Equal(t, 6, p.Position())
+
+	// Negative maxRunes behaves like 0
+	p = NewIn(append([]byte{0x01, 0x00}, utf16leUnits(0x41)...))
+	val, err = p.UTF16WithLengthPrefix(-1)
+	assert.NoError(t, err)
+	assert.Equal(t, "", val)
 
 	// Partial out of bounds
-	p = NewIn(([]byte{
-		0x02, 0x00, 0x10,
-	}))
-	val, err = p.UTF16WithLengthPrefix()
+	p = NewIn([]byte{0x02, 0x00, 0x10})
+	val, err = p.UTF16WithLengthPrefix(20)
 	assert.ErrorIs(t, err, io.ErrUnexpectedEOF)
 	assert.Equal(t, "", val)
 
-	// Full out of bounds
-	val, err = p.UTF16WithLengthPrefix()
+	// Prefix out of bounds
+	p = NewIn([]byte{0x02})
+	val, err = p.UTF16WithLengthPrefix(20)
 	assert.ErrorIs(t, err, io.ErrUnexpectedEOF)
 	assert.Equal(t, "", val)
-
-	// UTF16 string too large
-	p = NewIn([]byte{0xff, 0xff})
-	val, err = p.UTF16WithLengthPrefix()
-	assert.Error(t, err)
 }
 
 func TestInBytes(t *testing.T) {

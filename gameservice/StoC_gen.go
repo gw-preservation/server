@@ -53,7 +53,7 @@ func MarshalCharCreationFinish(charUuid []byte, name string, mapId int, unk3 Var
 	}
 	resp.Bytes(charUuid)
 	if utf8.RuneCountInString(name) > 20 {
-		name = name[:20]
+		name = string([]rune(name)[:20])
 	}
 	resp.UTF16WithLengthPrefix(name)
 	resp.Uint16(mapId)
@@ -242,7 +242,7 @@ func MarshalInstanceLoadInfo(playerId int, mapId int, isExplorable bool, distric
 func MarshalInstanceLoadPlayerName(name string) (resp GwPacket.Out) {
 	resp = GwPacket.NewOut(0x17c)
 	if utf8.RuneCountInString(name) > 20 {
-		name = name[:20]
+		name = string([]rune(name)[:20])
 	}
 	resp.UTF16WithLengthPrefix(name)
 	return
@@ -355,7 +355,7 @@ func MarshalAgentCreatePlayer(playerId int, agentId int, appearanceBits int, nam
 	resp.Uint32(0)
 	resp.Uint32(3435973836)
 	if utf8.RuneCountInString(name) > 32 {
-		name = name[:32]
+		name = string([]rune(name)[:32])
 	}
 	resp.UTF16WithLengthPrefix(name)
 	return
@@ -519,7 +519,7 @@ func MarshalItemUpdateName(itemId int, name string) (resp GwPacket.Out) {
 	resp = GwPacket.NewOut(0x139)
 	resp.Uint32(itemId)
 	if utf8.RuneCountInString(name) > 32 {
-		name = name[:32]
+		name = string([]rune(name)[:32])
 	}
 	resp.UTF16WithLengthPrefix(name)
 	return
@@ -631,7 +631,7 @@ func MarshalChatMessageLocal(agentId int, channel int) (resp GwPacket.Out) {
 func MarshalChatMessageCore(messsage string) (resp GwPacket.Out) {
 	resp = GwPacket.NewOut(0x5c)
 	if utf8.RuneCountInString(messsage) > 122 {
-		messsage = messsage[:122]
+		messsage = string([]rune(messsage)[:122])
 	}
 	resp.UTF16WithLengthPrefix(messsage)
 	return
@@ -656,7 +656,7 @@ func MarshalSetUnlockedHeroes(unk []uint16) (resp GwPacket.Out) {
 func MarshalMessageOfTheDay(motd string) (resp GwPacket.Out) {
 	resp = GwPacket.NewOut(0x33)
 	if utf8.RuneCountInString(motd) > 64 {
-		motd = motd[:64]
+		motd = string([]rune(motd)[:64])
 	}
 	resp.UTF16WithLengthPrefix(motd)
 	return
@@ -684,7 +684,7 @@ func MarshalUnknown01ac(unk1 int, unk2 int, unk3 int, unk4 int, unk5 int, unk6 s
 	resp.Uint8(unk4)
 	resp.Uint8(unk5)
 	if utf8.RuneCountInString(unk6) > 20 {
-		unk6 = unk6[:20]
+		unk6 = string([]rune(unk6)[:20])
 	}
 	resp.UTF16WithLengthPrefix(unk6)
 	return

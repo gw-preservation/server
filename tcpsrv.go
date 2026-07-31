@@ -164,6 +164,10 @@ func (srv tcpsrv) handleTCPConnection(conn *net.TCPConn) {
 				}
 				break
 			}
+			if numConsumedThisTime > len(buffer) {
+				logger.Warn().Str("servicer", servicerName).Msgf("servicer consumed more bytes than available (%d > %d), clamping", numConsumedThisTime, len(buffer))
+				numConsumedThisTime = len(buffer)
+			}
 			buffer = buffer[numConsumedThisTime:]
 		}
 	}

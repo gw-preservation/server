@@ -61,7 +61,11 @@ func (conn *ASConn) HandleBytes(data []byte) (consumed int, err error) {
 	}
 
 	if op == 0x8000 {
-		fmt.Printf("Heartbeat\n")
+		if in.Remaining() < 4 {
+			return 0, nil
+		}
+		in.Skip(4)
+		conn.log.Debug().Msg("Heartbeat")
 		conn.EnqueuePacket(MarshalServerHeartbeat(0x8002e647, 0x17))
 		return 6, nil
 	}
