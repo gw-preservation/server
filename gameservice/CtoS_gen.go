@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	GwPacket "gw1/server/gwpacket"
+	"unicode/utf8"
 )
 
 func UnmarshalCreateCharacterFinish(in *GwPacket.In) (resp CreateCharacterFinish, err error) {
@@ -15,6 +16,9 @@ func UnmarshalCreateCharacterFinish(in *GwPacket.In) (resp CreateCharacterFinish
 		return
 	}
 	resp.name, err = in.UTF16WithLengthPrefix()
+	if err == nil && utf8.RuneCountInString(resp.name) > 20 {
+		resp.name = resp.name[:20]
+	}
 	if err != nil {
 		err = fmt.Errorf("read name: %w", err)
 		return
@@ -229,11 +233,17 @@ func UnmarshalGpuInformation(in *GwPacket.In) (resp GpuInformation, err error) {
 		return
 	}
 	resp.driverName, err = in.UTF16WithLengthPrefix()
+	if err == nil && utf8.RuneCountInString(resp.driverName) > 64 {
+		resp.driverName = resp.driverName[:64]
+	}
 	if err != nil {
 		err = fmt.Errorf("read driverName: %w", err)
 		return
 	}
 	resp.driverVersion, err = in.UTF16WithLengthPrefix()
+	if err == nil && utf8.RuneCountInString(resp.driverVersion) > 20 {
+		resp.driverVersion = resp.driverVersion[:20]
+	}
 	if err != nil {
 		err = fmt.Errorf("read driverVersion: %w", err)
 		return
@@ -263,6 +273,9 @@ func UnmarshalChatMessage(in *GwPacket.In) (resp ChatMessage, err error) {
 		return
 	}
 	resp.message, err = in.UTF16WithLengthPrefix()
+	if err == nil && utf8.RuneCountInString(resp.message) > 138 {
+		resp.message = resp.message[:138]
+	}
 	if err != nil {
 		err = fmt.Errorf("read message: %w", err)
 		return
@@ -512,6 +525,21 @@ func UnmarshalDestroyItem(in *GwPacket.In) (resp DestroyItem, err error) {
 	resp.itemLocalId, err = in.Uint32()
 	if err != nil {
 		err = fmt.Errorf("read itemLocalId: %w", err)
+		return
+	}
+	return
+}
+func UnmarshalPartyInvite(in *GwPacket.In) (resp PartyInvite, err error) {
+	if in.Opcode() != 0x80a0 {
+		err = errors.New("bad opcode")
+		return
+	}
+	resp.name, err = in.UTF16WithLengthPrefix()
+	if err == nil && utf8.RuneCountInString(resp.name) > 20 {
+		resp.name = resp.name[:20]
+	}
+	if err != nil {
+		err = fmt.Errorf("read name: %w", err)
 		return
 	}
 	return

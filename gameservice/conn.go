@@ -5,6 +5,7 @@ import (
 	"fmt"
 	GwPacket "gw1/server/gwpacket"
 	"net"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -59,6 +60,10 @@ func (conn *GSConn) DecryptBytes(data []byte) {
 	}
 }
 
+func (conn *GSConn) IsClosed() bool {
+	return conn.closed.Load()
+}
+
 func (conn *GSConn) HandleBytes(data []byte) (consumed int, err error) {
 	if len(data) < 2 {
 		return 0, nil
@@ -100,7 +105,24 @@ func (conn *GSConn) WritePacket(packet *GwPacket.Out) error {
 	return err
 }
 
+func prettyBytesString(in []byte) string {
+	var sb strings.Builder
+
+	for i, b := range in {
+		// If we are starting a new line (and it's not the very first byte)
+		if i > 0 && i%16 == 0 {
+			sb.WriteString("\n")
+		}
+		// Append the hex representation followed by a space
+		sb.WriteString(fmt.Sprintf("%02x ", b))
+	}
+	return sb.String()
+}
+
 func (conn *GSConn) EnqueuePacket(packet GwPacket.Out) {
+	//bts := packet.GetBytes()
+	//x := prettyBytesString(bts)
+	//fmt.Printf("%s\n", x)
 	conn.out.Merge(packet)
 }
 

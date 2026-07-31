@@ -6,8 +6,8 @@ package authservice
 
 // opcode: 0x800a
 type SetActiveCharacter struct {
-	transactionId int // wire:uint32
-	charName      string
+	transactionId int    // wire:uint32
+	charName      string //maxlen:20
 }
 
 // opcode: 0x8029
@@ -22,8 +22,8 @@ type LoginCharacter struct {
 
 // opcode: 0x801c
 type AddAccessKey struct {
-	transactionId int // wire:uint32
-	key           string
+	transactionId int    // wire:uint32
+	key           string //maxlen:26
 }
 
 // opcode: 0x8002
@@ -47,8 +47,8 @@ type ClientHeartbeat struct {
 
 // opcode: 0x8001
 type ComputerInfo struct {
-	userName     string
-	computerName string
+	userName     string //maxlen:32
+	computerName string //maxlen:32
 }
 
 // opcode: 0x8023
@@ -61,7 +61,7 @@ type GetAccountInfo struct {
 	transactionId              int    // wire:uint32
 	uuid1                      []byte // len:16
 	authTokenFromPortalService []byte // len:16
-	unk1                       string
+	unk1                       string //maxlen:20
 }
 
 // opcode: 0x8035
@@ -103,20 +103,20 @@ type UpdateSettings struct {
 
 // opcode: 0x8007
 type DeleteCharacter struct {
-	transactionId int // wire:uint32
-	name          string
+	transactionId int    // wire:uint32
+	name          string //maxlen:20
 }
 
 // opcode: 0x8009
 type SetCharacterName struct {
-	transactionId int // wire:uint32
-	charName      string
+	transactionId int    // wire:uint32
+	charName      string //maxlen:20
 	unk3          VarByte
 }
 
 // opcode: 0x8037
 type RenameCharacter struct {
-	transactionId int // wire:uint32
-	oldName       string
-	newName       string
+	transactionId int    // wire:uint32
+	oldName       string //maxlen:20
+	newName       string //maxlen:20
 }

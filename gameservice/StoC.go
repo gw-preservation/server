@@ -4,7 +4,10 @@
 
 package gameservice
 
-import GwPacket "gw1/server/gwpacket"
+import (
+	"fmt"
+	GwPacket "gw1/server/gwpacket"
+)
 
 type NestedUint32 []uint32
 type VarUint32 []uint32
@@ -51,7 +54,7 @@ type PvPItemsEnd struct {
 // opcode: 0x187
 type CharCreationFinish struct {
 	charUuid []byte //len:16
-	name     string
+	name     string //maxlen:20
 	mapId    int    //wire:uint16
 	unk3     []byte //wire:VarByte
 }
@@ -213,7 +216,7 @@ type InstanceLoadInfo struct {
 
 // opcode: 0x017c
 type InstanceLoadPlayerName struct {
-	name string
+	name string //maxlen:20
 }
 
 // opcode: 0x0159
@@ -285,13 +288,13 @@ type VanquishProgress struct {
 
 // opcode: 0x0058
 type AgentCreatePlayer struct {
-	playerId       int //wire:uint32
-	agentId        int //wire:uint32
-	appearanceBits int //wire:uint32
-	unk3           int //wire:uint8,val:0
-	unk4           int //wire:uint32,val:0
-	unk5           int //wire:uint32:val:3435973836
-	name           string
+	playerId       int    //wire:uint32
+	agentId        int    //wire:uint32
+	appearanceBits int    //wire:uint32
+	unk3           int    //wire:uint8,val:0
+	unk4           int    //wire:uint32,val:0
+	unk5           int    //wire:uint32:val:3435973836
+	name           string //maxlen:32
 }
 
 // opcode: 0x00ef
@@ -427,8 +430,8 @@ type ItemGeneralInfo struct {
 
 // opcode: 0x0139
 type ItemUpdateName struct {
-	itemId int //wire:uint32
-	name   string
+	itemId int    //wire:uint32
+	name   string //maxlen:32
 }
 
 // opcode: 0x00b5
@@ -512,18 +515,13 @@ type ChatMessageLocal struct {
 	channel int // wire:uint8
 }
 
-func MarshalChatMessageCore(message string) GwPacket.Out {
-	resp := GwPacket.NewOut(0x5c)
-	resp.Uint16(len(message) + 3)
-	resp.Uint16(0x0108)
-	resp.Uint16(0x0107)
-	resp.UTF16(message)
-	resp.Uint16(0x0001)
-	return resp
+// opcode: 0x005c
+type ChatMessageCore struct {
+	messsage string //maxlen:122
 }
 
 func MarshalChatMessageFromServer(message string, channel int) GwPacket.Out {
-	resp := MarshalChatMessageCore(message)
+	resp := MarshalChatMessageCore(fmt.Sprintf("\u0108\u0107%s\u0001", message))
 	resp.Merge(MarshalChatMessageServer(channel))
 	return resp
 }
@@ -541,10 +539,7 @@ type SetUnlockedHeroes struct {
 
 // opcode: 0x0033
 type MessageOfTheDay struct {
-	// note this isn't a regular message. send a regular message 'test123' and you get:
-	// Assertion: (codedString[0] & ~WORD_BIT_MORE) >= WORD_VALUE_BASE
-	// P:\Code\Engine\Text\TextApi.cpp(585)
-	motd string
+	motd string //maxlen:64
 }
 
 // opcode: 0x01a4
@@ -567,12 +562,12 @@ type Unknown01ac struct {
 		0x0104,
 		0x1417,
 	*/
-	unk1 int // wire:uint16
-	unk2 int //wire:uint32
-	unk3 int //wire:uint8
-	unk4 int //wire:uint8
-	unk5 int //wire:uint8
-	unk6 string
+	unk1 int    // wire:uint16
+	unk2 int    //wire:uint32
+	unk3 int    //wire:uint8
+	unk4 int    //wire:uint8
+	unk5 int    //wire:uint8
+	unk6 string //maxlen:20
 }
 
 // opcode: 0x018f

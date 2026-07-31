@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	GwPacket "gw1/server/gwpacket"
+	"unicode/utf8"
 )
 
 func MarshalRequestResponse(transactionId int, responseCode int) (resp GwPacket.Out) {
@@ -23,6 +24,9 @@ func MarshalCharacterSummary(transactionId int, charUUID []byte, unk1 int, charN
 	}
 	resp.Bytes(charUUID)
 	resp.Uint32(unk1)
+	if utf8.RuneCountInString(charName) > 20 {
+		charName = charName[:20]
+	}
 	resp.UTF16WithLengthPrefix(charName)
 	resp.Uint16(len(summary))
 	resp.Bytes(summary)

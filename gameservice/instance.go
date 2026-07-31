@@ -300,10 +300,10 @@ func (i *Instance) MainLoop() {
 			time.Sleep(time.Second * 5)
 			i.mu.RLock()
 			for _, player := range i.players {
-				if player.conn.closed.Load() {
+				if player.conn.IsClosed() {
 					continue
 				}
-				player.EnqueuePacket(MarshalServerPingRequest(30, 491)) // dont know what these values mean
+				player.EnqueuePacket(MarshalServerPingRequest(30, 100)) // dont know what these values mean
 			}
 			i.mu.RUnlock()
 		}
@@ -318,13 +318,13 @@ func (i *Instance) isAlive() bool {
 
 func (i *Instance) MovementTickLoop() {
 	for i.isAlive() {
-		time.Sleep(time.Millisecond * 500)
+		time.Sleep(time.Millisecond * 50)
 		i.mu.RLock()
 		for _, player := range i.players {
-			if player.conn.closed.Load() {
+			if player.conn.IsClosed() {
 				continue
 			}
-			player.EnqueuePacket(MarshalAgentMovementTick(500))
+			player.EnqueuePacket(MarshalAgentMovementTick(50))
 		}
 		i.mu.RUnlock()
 	}
@@ -408,6 +408,7 @@ func (i *Instance) AddPlayer(player *Player) {
 	i.mu.Lock()
 	player.agentId = i.NextFreeAgentId()
 	player.playerId = i.NextFreePlayerId()
+	player.connectedInstance = i
 	i.players = append(i.players, player)
 	i.agents = append(i.agents, player.Agent)
 	i.mu.Unlock()
@@ -548,7 +549,7 @@ func (i *Instance) BroadcastGeneric(packet GwPacket.Out) {
 }
 
 func (i *Instance) BroadcastLocalChat(from *Player, message string) {
-	packet := MarshalChatMessageCore(message)
+	packet := MarshalChatMessageCore(fmt.Sprintf("\u0108\u0107%s\u0001", message))
 	packet.Merge(MarshalChatMessageLocal(from.playerId, 3))
 	i.BroadcastGeneric(packet)
 }
@@ -600,7 +601,7 @@ func (i *Instance) TransferPlayerToNewMap(player *Player, newMapId int) error {
 	}
 
 	// Send transfer packets to client (no lock needed — these go to the client socket)
-	region := 1
+	region := -2
 	player.conn.EnqueuePacket(MarshalTransferGameServerInfo([]byte{
 		0x02, 0x00, // AF_INET
 		0x17, 0xe0, // Port 6112

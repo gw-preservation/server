@@ -109,7 +109,7 @@ type CharacterSummary struct {
 	transactionId int    // wire:uint32
 	charUUID      []byte // len:16
 	unk1          int    // wire:uint32
-	charName      string
+	charName      string //maxlen:20
 	summary       VarByte
 }
 

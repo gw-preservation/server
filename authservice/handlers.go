@@ -315,6 +315,7 @@ func (conn *ASConn) onLoginCharacter(payload *LoginCharacter) error {
 
 func (conn *ASConn) onAddAccessKey(payload *AddAccessKey) error {
 	conn.log.Info().Str("key", payload.key).Msg("AddAccessKey")
+
 	// 0 = OK
 	// 102 = InvalidAccessKey
 	// 103 = AccessKeyInUse

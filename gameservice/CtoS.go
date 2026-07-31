@@ -9,9 +9,9 @@ type VarUTF16 []byte
 
 // opcode: 0x808a
 type CreateCharacterFinish struct {
-	name       string
-	appearance int // wire:uint32
-	ignore     int // wire:uint32
+	name       string //maxlen:20
+	appearance int    // wire:uint32
+	ignore     int    // wire:uint32
 }
 
 // opcode: 0x808f
@@ -69,8 +69,8 @@ type GpuInformation struct {
 	unk10         int    //wire:uint32
 	unk11         int    //wire:uint32
 	unk12         int    //wire:uint32
-	driverName    string
-	driverVersion string
+	driverName    string //maxlen:64
+	driverVersion string //maxlen:20
 }
 
 // opcode: 0x4200
@@ -80,8 +80,8 @@ type ClientSeed struct {
 
 // opcode: 0x8063
 type ChatMessage struct {
-	agentId int //wire:uint32
-	message string
+	agentId int    //wire:uint32
+	message string //maxlen:138
 }
 
 // opcode: 0x803d
@@ -176,4 +176,9 @@ type EquipItem struct {
 // opcode: 0x8068
 type DestroyItem struct {
 	itemLocalId int // wire:uint32
+}
+
+// opcode: 0x80a0
+type PartyInvite struct {
+	name string //maxlen:20
 }

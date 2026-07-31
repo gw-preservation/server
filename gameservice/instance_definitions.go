@@ -561,8 +561,19 @@ var instanceDefinitions = struct {
 			Expansion: "prophecies",
 			MapFileId: 0xd908,
 		},
+		125: {
+			Name:      "Titan's Tears",
+			Expansion: "prophecies",
+			MapFileId: 0xd908,
+		},
 		126: {
 			Name:      "Golden Gates",
+			Expansion: "core",
+			IsPvp:     true,
+			MapFileId: 0xd941,
+		},
+		127: {
+			Name:      "Scarred Earth",
 			Expansion: "core",
 			IsPvp:     true,
 			MapFileId: 0xd941,

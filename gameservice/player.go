@@ -12,10 +12,17 @@ import (
 
 const equipmentBagIndex = 1
 
+type playerConn interface {
+	EnqueuePacket(out GwPacket.Out)
+	IsClosed() bool
+	Close()
+	clientIP() string
+}
+
 type Player struct {
 	Agent
 	playerId           int
-	conn               *GSConn
+	conn               playerConn
 	questBytes         []byte
 	connectedInstance  *Instance
 	log                zerolog.Logger
@@ -32,6 +39,10 @@ type Player struct {
 }
 
 func NewPlayer(conn *GSConn, logCtx zerolog.Logger) *Player {
+	return newPlayer(conn, logCtx)
+}
+
+func newPlayer(conn playerConn, logCtx zerolog.Logger) *Player {
 	p := &Player{
 		conn:               conn,
 		questBytes:         make([]byte, 0),
@@ -56,6 +67,9 @@ func (p *Player) syncFromDB(char db.Character) {
 }
 
 func (p *Player) TransmitItems() {
+	if p.dbChar.ID == 0 {
+		return
+	}
 	dbBags, ok := db.GetBagsForCharacterByID(p.dbChar.ID)
 	if !ok {
 		p.log.Error().Uint64("id", p.dbChar.ID).Msg("failed to get bags for character")
@@ -222,7 +236,7 @@ func (p *Player) sendWorldSyncData() {
 	switch p.connectedInstance.definition.Expansion {
 	case "factions":
 		p.sendCartographyDataFactions()
-	case "prophecies":
+	case "prophecies", "eotn":
 		p.sendCartographyDataProphecies()
 	case "nightfall":
 		p.sendCartographyDataNightfall()

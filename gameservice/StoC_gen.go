@@ -7,6 +7,7 @@ import (
 	"math"
 
 	GwPacket "gw1/server/gwpacket"
+	"unicode/utf8"
 )
 
 func MarshalAgentUpdateNPCName(agentId int, encName VarUTF16) (resp GwPacket.Out) {
@@ -51,6 +52,9 @@ func MarshalCharCreationFinish(charUuid []byte, name string, mapId int, unk3 Var
 		panic(fmt.Errorf("length check failed for field 'charUuid' of struct 'CharCreationFinish': %d vs %d", len(charUuid), 16))
 	}
 	resp.Bytes(charUuid)
+	if utf8.RuneCountInString(name) > 20 {
+		name = name[:20]
+	}
 	resp.UTF16WithLengthPrefix(name)
 	resp.Uint16(mapId)
 	resp.Uint16(len(unk3))
@@ -237,6 +241,9 @@ func MarshalInstanceLoadInfo(playerId int, mapId int, isExplorable bool, distric
 
 func MarshalInstanceLoadPlayerName(name string) (resp GwPacket.Out) {
 	resp = GwPacket.NewOut(0x17c)
+	if utf8.RuneCountInString(name) > 20 {
+		name = name[:20]
+	}
 	resp.UTF16WithLengthPrefix(name)
 	return
 }
@@ -347,6 +354,9 @@ func MarshalAgentCreatePlayer(playerId int, agentId int, appearanceBits int, nam
 	resp.Uint8(0)
 	resp.Uint32(0)
 	resp.Uint32(3435973836)
+	if utf8.RuneCountInString(name) > 32 {
+		name = name[:32]
+	}
 	resp.UTF16WithLengthPrefix(name)
 	return
 }
@@ -508,6 +518,9 @@ func MarshalItemGeneralInfo(itemLocalId int, fileId int, itemType int, unk1 int,
 func MarshalItemUpdateName(itemId int, name string) (resp GwPacket.Out) {
 	resp = GwPacket.NewOut(0x139)
 	resp.Uint32(itemId)
+	if utf8.RuneCountInString(name) > 32 {
+		name = name[:32]
+	}
 	resp.UTF16WithLengthPrefix(name)
 	return
 }
@@ -615,6 +628,15 @@ func MarshalChatMessageLocal(agentId int, channel int) (resp GwPacket.Out) {
 	return
 }
 
+func MarshalChatMessageCore(messsage string) (resp GwPacket.Out) {
+	resp = GwPacket.NewOut(0x5c)
+	if utf8.RuneCountInString(messsage) > 122 {
+		messsage = messsage[:122]
+	}
+	resp.UTF16WithLengthPrefix(messsage)
+	return
+}
+
 func MarshalUpdateDeathPenalty(agentId int, deathPenaltyBasis int) (resp GwPacket.Out) {
 	resp = GwPacket.NewOut(0x9b)
 	resp.Uint32(agentId)
@@ -633,6 +655,9 @@ func MarshalSetUnlockedHeroes(unk []uint16) (resp GwPacket.Out) {
 
 func MarshalMessageOfTheDay(motd string) (resp GwPacket.Out) {
 	resp = GwPacket.NewOut(0x33)
+	if utf8.RuneCountInString(motd) > 64 {
+		motd = motd[:64]
+	}
 	resp.UTF16WithLengthPrefix(motd)
 	return
 }
@@ -658,6 +683,9 @@ func MarshalUnknown01ac(unk1 int, unk2 int, unk3 int, unk4 int, unk5 int, unk6 s
 	resp.Uint8(unk3)
 	resp.Uint8(unk4)
 	resp.Uint8(unk5)
+	if utf8.RuneCountInString(unk6) > 20 {
+		unk6 = unk6[:20]
+	}
 	resp.UTF16WithLengthPrefix(unk6)
 	return
 }

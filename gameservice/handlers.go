@@ -60,6 +60,12 @@ var packetHandlers = map[int]packetHandler{
 	0x80b0: wrap(UnmarshalMapTravelToOutpost, (*GSConn).onMapTravelToOutpost),
 	0x802f: wrap(UnmarshalEquipItem, (*GSConn).onEquipItem),
 	0x8068: wrap(UnmarshalDestroyItem, (*GSConn).onDestroyItem),
+	0x80a0: wrap(UnmarshalPartyInvite, (*GSConn).onPartyInvite),
+}
+
+func (conn *GSConn) onPartyInvite(payload *PartyInvite) error {
+	conn.log.Info().Str("name", payload.name).Msg("PartyInvite")
+	return nil
 }
 
 func (conn *GSConn) onEquipItem(payload *EquipItem) error {

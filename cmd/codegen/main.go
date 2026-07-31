@@ -14,6 +14,7 @@ import (
 var opcodeRe = regexp.MustCompile(`0x([0-9a-fA-F]+)`)
 var wireIdentityRe = regexp.MustCompile(`wire:([0-9a-zA-Z]+)`)
 var wireLengthRe = regexp.MustCompile(`len:([0-9]+)`)
+var wireMaxLengthRe = regexp.MustCompile(`len:([0-9]+)`)
 var fixedValRe = regexp.MustCompile(`val:([a-zA-Z0-9\"\.\(\)\[\]\{\}]+)`)
 var writeMarshal = false
 var writeUnmarshal = false
@@ -43,6 +44,7 @@ package %s
 
 import (
 	%s
+	"unicode/utf8"
 	GwPacket "gw1/server/gwpacket"
 )
 
@@ -107,6 +109,9 @@ func GetWireLength(structType *ast.StructType, fieldName string) (length int, ok
 		}
 		for _, comment := range field.Comment.List {
 			match := wireLengthRe.FindStringSubmatch(comment.Text)
+			if len(match) == 0 {
+				match = wireMaxLengthRe.FindStringSubmatch(comment.Text)
+			}
 			if len(match) > 1 {
 				len64, err := strconv.ParseInt(match[1], 10, 0)
 				if err != nil {
@@ -176,6 +181,12 @@ func WriteUnmarshalFunction(name string, structType *ast.StructType, docs []*ast
 			out += fmt.Sprintf("resp.%s, err = in.Float32()\n", fd.name)
 		case "string":
 			out += fmt.Sprintf("resp.%s, err = in.UTF16WithLengthPrefix()\n", fd.name)
+			length, ok := GetWireLength(structType, fd.name)
+			if ok {
+				out += fmt.Sprintf("if err == nil && utf8.RuneCountInString(resp.%s) > %d {\n", fd.name, length)
+				out += fmt.Sprintf("resp.%s = resp.%s[:%d]", fd.name, fd.name, length)
+				out += "}\n"
+			}
 		case "VarByte":
 			out += fmt.Sprintf("%sLen, err := in.Uint16()\n", fd.name)
 			out += "if err != nil {\n"
@@ -290,6 +301,12 @@ func WriteMarshalFunction(name string, structType *ast.StructType, docs []*ast.C
 		case "float32":
 			out += fmt.Sprintf("resp.Float32(%s)\n", valToWrite)
 		case "string":
+			length, ok := GetWireLength(structType, fd.name)
+			if ok {
+				out += fmt.Sprintf("if utf8.RuneCountInString(%s) > %d {\n", valToWrite, length)
+				out += fmt.Sprintf("%s = %s[:%d]\n", valToWrite, valToWrite, length)
+				out += "}\n"
+			}
 			out += fmt.Sprintf("resp.UTF16WithLengthPrefix(%s)\n", valToWrite)
 		case "VarByte":
 			if isFixedVal {
