@@ -8,6 +8,7 @@ import (
 	"gw1/server/portalservice"
 	"io"
 	"net"
+	"sync"
 	"time"
 
 	"github.com/charmbracelet/log"
@@ -173,6 +174,58 @@ func (srv tcpsrv) handleTCPConnection(conn *net.TCPConn) {
 	}
 }
 
+const (
+	expectedConnsPerClient = 4 // each real client uses 4 at once - File, Portal, Auth, Game
+	maxConnsPerIP          = expectedConnsPerClient * 10
+	maxGlobalConns         = expectedConnsPerClient * 100
+)
+
+type connLimiter struct {
+	mu    sync.Mutex
+	byIP  map[string]int
+	total int
+}
+
+var activeConns = connLimiter{byIP: make(map[string]int)}
+
+func connKey(addr net.Addr) string {
+	host, _, err := net.SplitHostPort(addr.String())
+	if err != nil {
+		return addr.String()
+	}
+	return host
+}
+
+func (l *connLimiter) tryAcquire(addr net.Addr) bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.total >= maxGlobalConns {
+		return false
+	}
+	ip := connKey(addr)
+	if l.byIP[ip] >= maxConnsPerIP {
+		return false
+	}
+	l.byIP[ip]++
+	l.total++
+	return true
+}
+
+func (l *connLimiter) release(addr net.Addr) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	ip := connKey(addr)
+	if l.byIP[ip] > 0 {
+		l.byIP[ip]--
+	}
+	if l.byIP[ip] == 0 {
+		delete(l.byIP, ip)
+	}
+	if l.total > 0 {
+		l.total--
+	}
+}
+
 func (srv tcpsrv) Serve() {
 	logger.Info().Int("port", srv.laddr.Port).Msg("waiting for connections")
 	for {
@@ -180,6 +233,15 @@ func (srv tcpsrv) Serve() {
 		if err != nil {
 			log.Fatalf("error accepting tcp connection: %s", err.Error())
 		}
-		go srv.handleTCPConnection(conn)
+		if !activeConns.tryAcquire(conn.RemoteAddr()) {
+			logger.Warn().Str("remoteAddr", conn.RemoteAddr().String()).Msg("connection limit exceeded, rejecting")
+			conn.Close()
+			continue
+		}
+		remoteAddr := conn.RemoteAddr()
+		go func() {
+			defer activeConns.release(remoteAddr)
+			srv.handleTCPConnection(conn)
+		}()
 	}
 }

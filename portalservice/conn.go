@@ -36,6 +36,26 @@ const (
 	pathPing         = "/Sts/Ping"
 )
 
+// maxConcurrentHandshakes bounds how many SRP handshakes can be in flight at
+// once. The SRP handshake is expensive and shouldn't exhaust all resources if
+// it gets hammered.
+const maxConcurrentHandshakes = 128
+
+var handshakeSlots = make(chan struct{}, maxConcurrentHandshakes)
+
+func acquireHandshakeSlot() bool {
+	select {
+	case handshakeSlots <- struct{}{}:
+		return true
+	default:
+		return false
+	}
+}
+
+func releaseHandshakeSlot() {
+	<-handshakeSlots
+}
+
 type PSConn struct {
 	socket  *net.TCPConn
 	tlsConn *srp.Conn
@@ -106,6 +126,22 @@ func lookup(username string) (*srp.SRPUser, error) {
 }
 
 func (conn *PSConn) handleStartTls(msg sts.ReqMsg) error {
+	if !acquireHandshakeSlot() {
+		defer conn.Close()
+		conn.log.Warn().Msg("connection rejected: too many concurrent handshakes")
+		// inform client. this is primitive but shows a message to retry in a few mins.
+		m, err := sts.NewErrorRespMsg(0, msg.Header.Seq, "0", "0", "0")
+		if err != nil {
+			return err
+		}
+		err = conn.Write([]byte(m))
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	defer releaseHandshakeSlot()
+
 	// headerCode < 400 shows error on client
 	m, err := sts.NewErrorRespMsg(400, msg.Header.Seq, "1001", "2", "1146")
 	if err != nil {
