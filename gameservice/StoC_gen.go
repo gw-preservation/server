@@ -272,11 +272,11 @@ func MarshalSkillsUnlocked() (resp GwPacket.Out) {
 	return
 }
 
-func MarshalCartographyDataStart() (resp GwPacket.Out) {
+func MarshalCartographyDataStart(width int, height int, accumMapInitOffset int) (resp GwPacket.Out) {
 	resp = GwPacket.NewOut(0x8a)
-	resp.Uint32(64)
-	resp.Uint32(1280)
-	resp.Uint32(73)
+	resp.Uint32(width)
+	resp.Uint32(height)
+	resp.Uint32(accumMapInitOffset)
 	return
 }
 

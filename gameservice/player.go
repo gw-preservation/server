@@ -219,7 +219,19 @@ func (p *Player) sendWorldSyncData() {
 	p.sendUnlockedPvpHeroes()
 	p.sendQuestInfoSync()
 	p.sendMapsUnlockedSync()
-	p.sendCartographyData()
+	switch p.connectedInstance.definition.Expansion {
+	case "factions":
+		p.sendCartographyDataFactions()
+	case "prophecies":
+		p.sendCartographyDataProphecies()
+	case "nightfall":
+		p.sendCartographyDataNightfall()
+	case "presearing":
+		p.sendCartographyDataPresearing()
+	default:
+		p.log.Error().Str("expansion", p.connectedInstance.definition.Expansion).Msg("missing cartography data packets")
+		return
+	}
 	p.EnqueuePacket(MarshalInstanceLoaded())
 }
 
@@ -556,31 +568,36 @@ func (p *Player) sendAttributeUpdateFloat(attributeId int) {
 	p.EnqueuePacket(MarshalAgentAttrUpdateFloat(attributeId, p.agentId, 0.039600))
 }
 
-func (p *Player) sendCartographyData() {
-	p.EnqueuePacket(MarshalCartographyDataStart())
-	cartographyData := []uint32{
-		0x001e0000,
-		0x3a0221ff,
-		0x39043a04,
-		0x34093505,
-		0x3707340a,
-		0x36073806,
-		0x320b340a,
-
-		0x05070005,
-		0x001b1102,
-		0x07040514,
-		0x05250203,
-		0x02010805,
-		0x0b080425,
-		0x090b0325,
-		0x033a0737,
-		0x0094ffff,
-		0x00000000,
-		0x00000000,
-		0x00cccccc,
+func (p *Player) sendCartographyData(data []uint32) {
+	const maxChunkSize = 64
+	for i := 0; i < len(data); i += maxChunkSize {
+		end := min(i+maxChunkSize, len(data))
+		p.EnqueuePacket(MarshalCartographyData(data[i:end]))
 	}
-	p.EnqueuePacket(MarshalCartographyData(cartographyData))
+}
+
+func (p *Player) sendCartographyDataFactions() {
+	accumMapInitOffset := len(fogClearDataFactions) * 4
+	p.EnqueuePacket(MarshalCartographyDataStart(256, 192, accumMapInitOffset))
+	p.sendCartographyData(fogClearDataFactions)
+}
+
+func (p *Player) sendCartographyDataProphecies() {
+	accumMapInitOffset := len(fogClearDataProphecies) * 4
+	p.EnqueuePacket(MarshalCartographyDataStart(256, 512, accumMapInitOffset))
+	p.sendCartographyData(fogClearDataProphecies)
+}
+
+func (p *Player) sendCartographyDataNightfall() {
+	accumMapInitOffset := len(fogClearDataNightfall) * 4
+	p.EnqueuePacket(MarshalCartographyDataStart(256, 192, accumMapInitOffset))
+	p.sendCartographyData(fogClearDataNightfall)
+}
+
+func (p *Player) sendCartographyDataPresearing() {
+	accumMapInitOffset := len(fogClearDataPresearing) * 4
+	p.EnqueuePacket(MarshalCartographyDataStart(64, 128, accumMapInitOffset))
+	p.sendCartographyData(fogClearDataPresearing)
 }
 
 func (p *Player) sendAgentDespawned(agent *Agent) {

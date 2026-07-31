@@ -244,9 +244,9 @@ type SkillsUnlocked struct {
 
 // opcode: 0x008a
 type CartographyDataStart struct {
-	unk1 int //wire:uint32,val:64
-	unk2 int //wire:uint32,val:1280
-	unk3 int //wire:uint32,val:73
+	width              int //wire:uint32
+	height             int //wire:uint32
+	accumMapInitOffset int //wire:uint32
 }
 
 // opcode: 0x0089
