@@ -108,9 +108,6 @@ func (conn *ASConn) HandleBytes(data []byte) (consumed int, err error) {
 	return
 }
 
-// allowedOp reports whether the client may send op in the connection's current
-// state. The handshake is a strict sequence; each pre-verification state
-// accepts exactly the one packet that advances the handshake.
 func (conn *ASConn) allowedOp(op int) bool {
 	if op == 0x8023 || op == 0x8000 {
 		return true

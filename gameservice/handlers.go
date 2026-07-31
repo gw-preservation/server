@@ -33,21 +33,18 @@ func wrap[T any](
 	}
 }
 
-// handlers which can be accessed only by unverified connections.
-// A connection must be able to complete the handshake (VerifyClientConnection
-// and ClientSeed) before it is marked verified, so both are accepted here.
-var unverifiedHandlers = map[int]packetHandler{
+// handlers for the login handshake packets. Which of these is allowed at any
+// given time is enforced by the connection state machine in conn.go.
+var handshakeHandlers = map[int]packetHandler{
 	0x0500: wrap(UnmarshalVerifyClientConnection, (*GSConn).onVerifyClientConnection),
 	0x4200: wrap(UnmarshalClientSeed, (*GSConn).onClientSeed),
 	0x8008: wrap(UnmarshalClientDisconnect, (*GSConn).onClientDisconnect),
 }
 
-// handlers which can be accessed only by verified connections.
-// ClientSeed and ClientDisconnect are duplicated here: the real client sends
-// the seed after the verify packet (so it arrives post-verification), and a
-// disconnect can arrive at any time.
+// handlers which can be accessed only by verified connections. ClientSeed is
+// handshake-only, so it is deliberately absent here; ClientDisconnect is kept
+// because a disconnect can arrive at any time.
 var verifiedHandlers = map[int]packetHandler{
-	0x4200: wrap(UnmarshalClientSeed, (*GSConn).onClientSeed),
 	0x8008: wrap(UnmarshalClientDisconnect, (*GSConn).onClientDisconnect),
 	0x8009: wrap(UnmarshalPingReply, (*GSConn).onPingReply),
 	0x800a: wrap(UnmarshalGpuInformation, (*GSConn).onGPUInformation),
@@ -333,7 +330,7 @@ func (conn *GSConn) onVerifyClientConnection(payload *VerifyClientConnection) er
 	// TODO: Here we should verify the map is adjacent to the LastOutpostID if its explorable!
 
 	p.log.Debug().Str("instanceTag", fmt.Sprintf("%08x", payload.instanceTag)).Str("securityTag", fmt.Sprintf("%08x", payload.securityTag)).Int("mapId", payload.mapId).Int("unk3", payload.unk3).Int("unk4", payload.unk4).Int("unk5", payload.unk5).Int("unk6", payload.unk6).Msg("VerifyClientConnection")
-	conn.verified = true
+	conn.state = StateAwaitClientSeed
 	return nil
 }
 func (conn *GSConn) onClientSeed(payload *ClientSeed) error {
@@ -369,6 +366,8 @@ func (conn *GSConn) onClientSeed(payload *ClientSeed) error {
 	} else if conn.player.connectedInstance != nil {
 		conn.player.connectedInstance.AddPlayer(conn.player)
 	}
+
+	conn.state = StateVerified
 
 	return nil
 }

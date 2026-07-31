@@ -13,8 +13,29 @@ import (
 	"github.com/rs/zerolog"
 )
 
+type State int
+
+const (
+	StateAwaitVerifyClientConnection State = iota
+	StateAwaitClientSeed
+	StateVerified
+)
+
+func (s State) String() string {
+	switch s {
+	case StateAwaitVerifyClientConnection:
+		return "AwaitVerifyClientConnection"
+	case StateAwaitClientSeed:
+		return "AwaitClientSeed"
+	case StateVerified:
+		return "Verified"
+	}
+	return fmt.Sprintf("State(%d)", int(s))
+}
+
 type GSConn struct {
 	socket    *net.TCPConn
+	state     State
 	enc       *rc4.Cipher
 	dec       *rc4.Cipher
 	out       GwPacket.Out
@@ -25,12 +46,12 @@ type GSConn struct {
 	done      chan struct{}
 	closeOnce sync.Once
 	accountID uint64
-	verified  bool
 }
 
 func NewGSConn(socket *net.TCPConn, logCtx zerolog.Logger) *GSConn {
 	conn := GSConn{
 		socket: socket,
+		state:  StateAwaitVerifyClientConnection,
 		out:    GwPacket.NewOutRaw(),
 		log:    logCtx.With().Str("srv", "game").Logger(),
 		done:   make(chan struct{}),
@@ -78,32 +99,48 @@ func (conn *GSConn) HandleBytes(data []byte) (consumed int, err error) {
 
 	in := GwPacket.NewIn(data)
 	op, _ := in.Uint16()
-	//conn.log.Debug().Str("opcode", fmt.Sprintf("%04x", op)).Msg("recv")
+
+	if !conn.allowedOp(op) {
+		return 0, fmt.Errorf("[%04x] unexpected for %v connection; len=%d", op, conn.state, in.Remaining())
+	}
 
 	var handler packetHandler
 	var ok bool
-	if conn.verified {
+	if conn.state == StateVerified {
 		handler, ok = verifiedHandlers[op]
+		if !ok {
+			consumed = len(data)
+			conn.log.Warn().Str("op", fmt.Sprintf("%04x", op)).Hex("data", data).Msg("unhandled packet")
+			return consumed, nil
+		}
 	} else {
-		handler, ok = unverifiedHandlers[op]
+		handler, ok = handshakeHandlers[op]
+		if !ok {
+			return 0, fmt.Errorf("[%04x] no handler for %v connection; len=%d", op, conn.state, in.Remaining())
+		}
 	}
-	if ok {
-		consumed, err = handler(conn, &in)
-	} else {
-		consumed = len(data)
-		conn.log.Warn().Str("op", fmt.Sprintf("%04x", op)).Hex("data", data).Msg("unhandled packet")
-	}
-
-	/*if len(conn.out.GetBytes()) > 0 {
-		conn.WritePacket(&conn.out)
-		conn.out.Reset()
-	}*/
+	consumed, err = handler(conn, &in)
 
 	if err != nil {
 		err = fmt.Errorf("HandleBytes(op=%04x): %w", op, err)
 	}
 
 	return consumed, err
+}
+
+func (conn *GSConn) allowedOp(op int) bool {
+	if op == 0x8008 {
+		return true
+	}
+	switch conn.state {
+	case StateAwaitVerifyClientConnection:
+		return op == 0x0500
+	case StateAwaitClientSeed:
+		return op == 0x4200
+	case StateVerified:
+		return op != 0x0500 && op != 0x4200
+	}
+	return false
 }
 
 func (conn *GSConn) Read(buf []byte) (int, error) {
