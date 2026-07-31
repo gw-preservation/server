@@ -37,18 +37,20 @@ func wrap[T any](
 	}
 }
 
-// handlers which can be accessed only by unverified connections
-var unverifiedHandlers = map[int]packetHandler{
+// handlers for the login handshake packets. Which of these is allowed at any
+// given time is enforced by the connection state machine in conn.go.
+var handshakeHandlers = map[int]packetHandler{
 	0x0400: wrap(UnmarshalClientVersionInfo, (*ASConn).onClientVersion),
 	0x4200: wrap(UnmarshalClientSeed, (*ASConn).onClientSeed),
 	0x8001: wrap(UnmarshalComputerInfo, (*ASConn).onComputerInfo),
 	0x8002: wrap(UnmarshalClientHashInfo, (*ASConn).onClientHashInfo),
 	0x8038: wrap(UnmarshalGetAccountInfo, (*ASConn).onGetAccountInfo),
 	0x8023: wrap(UnmarshalUnknown8023, (*ASConn).on8023),
+	0x8000: wrap(UnmarshalClientHeartbeat, (*ASConn).onClientHeartbeat),
 }
 
-// handlers which can be accessed only by verified connections
-var verifiedHandlers = map[int]packetHandler{
+// handlers available once the handshake has completed (state = StateVerified)
+var accountHandlers = map[int]packetHandler{
 	0x8009: wrap(UnmarshalSetCharacterName, (*ASConn).onSetCharacterName),
 	0x800a: wrap(UnmarshalSetActiveCharacter, (*ASConn).onSetActiveCharacter),
 	0x800d: wrap(UnmarshalDisconnect, (*ASConn).onDisconnect),
@@ -61,12 +63,26 @@ var verifiedHandlers = map[int]packetHandler{
 	0x8035: wrap(UnmarshalAskServerResponse, (*ASConn).onAskServerResponse),
 	0x8037: wrap(UnmarshalRenameCharacter, (*ASConn).onRenameCharacter),
 	0x8007: wrap(UnmarshalDeleteCharacter, (*ASConn).onDeleteCharacter),
+	0x8023: wrap(UnmarshalUnknown8023, (*ASConn).on8023),
+	0x8000: wrap(UnmarshalClientHeartbeat, (*ASConn).onClientHeartbeat),
+}
+
+func (conn *ASConn) onClientHeartbeat(payload *ClientHeartbeat) error {
+
+	conn.log.Debug().Msg("Heartbeat")
+	conn.EnqueuePacket(MarshalServerHeartbeat(0x8002e647, 0x17))
+	return nil
+}
+
+func (conn *ASConn) on8023(payload *Unknown8023) error {
+	return nil
 }
 
 func (conn *ASConn) onClientVersion(payload *ClientVersionInfo) error {
 	conn.log.Info().
 		Int("version", payload.clientVersion).
 		Msg("ClientVersion")
+	conn.state = StateAwaitClientSeed
 	return nil
 }
 
@@ -88,11 +104,13 @@ func (conn *ASConn) onClientSeed(payload *ClientSeed) error {
 		return fmt.Errorf("error creating rc4 decrypter: %s", err)
 	}
 
+	conn.state = StateAwaitComputerInfo
 	return nil
 }
 
 func (conn *ASConn) onComputerInfo(payload *ComputerInfo) error {
 	conn.log.Info().Str("user", payload.userName).Str("name", payload.computerName).Msg("ComputerUserInfo")
+	conn.state = StateAwaitClientHashInfo
 	return nil
 }
 
@@ -104,10 +122,7 @@ func (conn *ASConn) onClientHashInfo(payload *ClientHashInfo) error {
 	conn.log.Debug().Hex("unk", payload.unkHash).Int("clientVersion", payload.clientVersion).Msg("ClientHashInfo")
 
 	conn.EnqueuePacket(MarshalSessionSaltInfo(rand.Int(), 0xffffffff)) // Salt unknown
-	return nil
-}
-
-func (conn *ASConn) on8023(payload *Unknown8023) error {
+	conn.state = StateAwaitGetAccountInfo
 	return nil
 }
 
@@ -115,9 +130,6 @@ func (conn *ASConn) onGetAccountInfo(payload *GetAccountInfo) error {
 	conn.log.Info().Hex("uuid1", payload.uuid1[:]).Hex("authToken", payload.authTokenFromPortalService[:]).Str("unkString", payload.unk1).Msg("GetAccountInfo")
 	if conn.enc == nil || conn.dec == nil {
 		return fmt.Errorf("rejecting attempt to GetAccountInfo without encryption")
-	}
-	if conn.verified {
-		return fmt.Errorf("connection already verified")
 	}
 	// Validate connection token
 	tokenStr := db.UUIDStr(payload.authTokenFromPortalService[:])
@@ -245,7 +257,7 @@ func (conn *ASConn) onGetAccountInfo(payload *GetAccountInfo) error {
 	}
 
 	conn.EnqueuePacket(MarshalRequestResponse(payload.transactionId, 0))
-	conn.verified = true
+	conn.state = StateVerified
 
 	return nil
 }

@@ -13,6 +13,33 @@ import (
 
 type State int
 
+const (
+	StateAwaitClientVersionInfo State = iota
+	StateAwaitClientSeed
+	StateAwaitComputerInfo
+	StateAwaitClientHashInfo
+	StateAwaitGetAccountInfo
+	StateVerified
+)
+
+func (s State) String() string {
+	switch s {
+	case StateAwaitClientVersionInfo:
+		return "AwaitClientVersionInfo"
+	case StateAwaitClientSeed:
+		return "AwaitClientSeed"
+	case StateAwaitComputerInfo:
+		return "AwaitComputerInfo"
+	case StateAwaitClientHashInfo:
+		return "AwaitClientHashInfo"
+	case StateAwaitGetAccountInfo:
+		return "AwaitGetAccountInfo"
+	case StateVerified:
+		return "Verified"
+	}
+	return fmt.Sprintf("State(%d)", int(s))
+}
+
 type ASConn struct {
 	socket                 *net.TCPConn
 	state                  State
@@ -21,7 +48,6 @@ type ASConn struct {
 	out                    GwPacket.Out
 	log                    zerolog.Logger
 	acc                    db.Account
-	verified               bool
 	hasLoggedInThisSession bool
 	activeCharacterName    string
 	closeOnce              sync.Once
@@ -31,10 +57,10 @@ type ASConn struct {
 func NewASConn(socket *net.TCPConn, logCtx zerolog.Logger) *ASConn {
 	conn := ASConn{
 		socket:                 socket,
+		state:                  StateAwaitClientVersionInfo,
 		log:                    logCtx.With().Str("srv", "auth").Logger(),
 		out:                    GwPacket.NewOutRaw(),
 		hasLoggedInThisSession: false,
-		verified:               false,
 	}
 	return &conn
 }
@@ -59,38 +85,52 @@ func (conn *ASConn) HandleBytes(data []byte) (consumed int, err error) {
 	if err != nil {
 		return 0, err
 	}
-
-	if op == 0x8000 {
-		if in.Remaining() < 4 {
-			return 0, nil
-		}
-		in.Skip(4)
-		conn.log.Debug().Msg("Heartbeat")
-		conn.EnqueuePacket(MarshalServerHeartbeat(0x8002e647, 0x17))
-		return 6, nil
+	if !conn.allowedOp(op) {
+		return 0, fmt.Errorf("[%04x] unexpected for %v connection; len=%d", op, conn.state, in.Remaining())
 	}
 
-	if conn.verified {
-		// verified can access regular handlers
-		handler, ok := verifiedHandlers[op]
-		if !ok {
-			return 0, fmt.Errorf("[%04x] unexpected for verified client; len=%d", op, in.Remaining())
-		}
-		consumed, err = handler(conn, &in)
+	var handler packetHandler
+	var ok bool
+	if conn.state == StateVerified {
+		handler, ok = accountHandlers[op]
 	} else {
-		// unverified only access unverified handlers, as we have not yet confirmed identity
-		handler, ok := unverifiedHandlers[op]
-		if !ok {
-			return 0, fmt.Errorf("[%04x] unexpected for unverified client; len=%d", op, in.Remaining())
-		}
-		consumed, err = handler(conn, &in)
+		handler, ok = handshakeHandlers[op]
 	}
+	if !ok {
+		return 0, fmt.Errorf("[%04x] no handler for %v connection; len=%d", op, conn.state, in.Remaining())
+	}
+	consumed, err = handler(conn, &in)
 
 	if len(conn.out.GetBytes()) > 0 {
 		conn.WritePacket(&conn.out)
 		conn.out.Reset()
 	}
 	return
+}
+
+// allowedOp reports whether the client may send op in the connection's current
+// state. The handshake is a strict sequence; each pre-verification state
+// accepts exactly the one packet that advances the handshake.
+func (conn *ASConn) allowedOp(op int) bool {
+	if op == 0x8023 || op == 0x8000 {
+		return true
+	}
+	switch conn.state {
+	case StateAwaitClientVersionInfo:
+		return op == 0x0400
+	case StateAwaitClientSeed:
+		return op == 0x4200
+	case StateAwaitComputerInfo:
+		return op == 0x8001
+	case StateAwaitClientHashInfo:
+		return op == 0x8002
+	case StateAwaitGetAccountInfo:
+		return op == 0x8038
+	case StateVerified:
+		_, ok := accountHandlers[op]
+		return ok
+	}
+	return false
 }
 
 func (conn *ASConn) Read(buf []byte) (int, error) {

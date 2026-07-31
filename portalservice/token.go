@@ -42,6 +42,13 @@ func generateConnectionToken(accountId uint64, clientIP string, accountUUID []by
 	return generateConnectionTokenWithRandomBytes(accountId, tokenBytes, clientIP, accountUUID)
 }
 
+// GenerateConnectionTokenForTest mints a connection token from caller-supplied
+// token bytes, so a test can reproduce the same bytes in a GetAccountInfo
+// packet. Used by authservice tests to drive the full login handshake.
+func GenerateConnectionTokenForTest(accountId uint64, tokenBytes []byte, clientIP string, accountUUID []byte) string {
+	return generateConnectionTokenWithRandomBytes(accountId, tokenBytes, clientIP, accountUUID)
+}
+
 func ValidateConnectionToken(token string) (info ConnectionInfo, ok bool) {
 	activeTokensMu.Lock()
 	entry, ok := activeTokens[token]
