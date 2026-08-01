@@ -8,11 +8,13 @@ const (
 )
 
 const (
-	alertCloseNotify       uint8 = 0
-	alertUnexpectedMessage uint8 = 10
-	alertBadRecordMAC      uint8 = 20
-	alertHandshakeFailure  uint8 = 40
-	alertInternalError     uint8 = 80
+	alertCloseNotify        uint8 = 0
+	alertUnexpectedMessage  uint8 = 10
+	alertBadRecordMAC       uint8 = 20
+	alertHandshakeFailure   uint8 = 40
+	alertIllegalParameter   uint8 = 47
+	alertInternalError      uint8 = 80
+	alertUnknownPSKIdentity uint8 = 115
 )
 
 type Alert struct {

@@ -231,11 +231,43 @@ func TestServerHello_Encode(t *testing.T) {
 }
 
 func TestNewServerHello(t *testing.T) {
-	sh := NewServerHello()
+	sh := NewServerHello("testuser")
 	assert.Equal(t, tls12, sh.Version)
 	assert.Equal(t, uint16(TLS_SRP_SHA_WITH_AES_256_CBC_SHA), sh.CipherSuite)
 	assert.Equal(t, uint8(compressionNull), sh.CompressionMethod)
 	assert.Equal(t, 32, len(sh.Random))
+	assert.NotEmpty(t, sh.Extensions)
+}
+
+func TestServerHello_EncodesSRPExtension(t *testing.T) {
+	sh := NewServerHello("alice")
+
+	hs := sh.Encode()
+	p := newParser(hs.Body)
+	p.Uint16()  // version
+	p.Bytes(32) // random
+	p.Vector8() // session ID
+	p.Uint16()  // cipher suite
+	p.Uint8()   // compression
+
+	extBytes, err := p.Vector16()
+	require.NoError(t, err)
+	assert.True(t, p.Empty())
+
+	ep := newParser(extBytes)
+	extType, err := ep.Uint16()
+	require.NoError(t, err)
+	assert.Equal(t, extensionSRP, extType)
+
+	extData, err := ep.Vector16()
+	require.NoError(t, err)
+	assert.True(t, ep.Empty())
+
+	inner := newParser(extData)
+	username, err := inner.Vector8()
+	require.NoError(t, err)
+	assert.Equal(t, []byte("alice"), username)
+	assert.True(t, inner.Empty())
 }
 
 func TestServerHello_WithExtensions(t *testing.T) {
@@ -1223,6 +1255,146 @@ func TestHandshakeIt_ExpectedFinished(t *testing.T) {
 	err := sc.HandshakeIt()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "expected Finished")
+}
+
+func TestHandshakeIt_IllegalParameterSendsAlert(t *testing.T) {
+	g := SRP1024()
+	user, _ := CreateSRPUser(g, "testuser", "testpass", randSalt())
+	lookup := func(username string) (*SRPUser, error) {
+		return user, nil
+	}
+
+	h := &ServerHandshake{
+		Lookup: lookup,
+		ClientHello: &ClientHello{
+			Version:            tls12,
+			Random:             make([]byte, 32),
+			CipherSuites:       []uint16{TLS_SRP_SHA_WITH_AES_256_CBC_SHA},
+			CompressionMethods: []uint8{compressionNull},
+			SRPUsername:        "testuser",
+			SessionID:          []byte{},
+		},
+	}
+	_, _ = h.BuildServerFlight()
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	defer listener.Close()
+
+	serverDone := make(chan error, 1)
+	go func() {
+		conn, err := listener.Accept()
+		if err != nil {
+			serverDone <- err
+			return
+		}
+		defer conn.Close()
+		sc := &ServerConnection{
+			Reader:           conn,
+			Writer:           conn,
+			Lookup:           lookup,
+			Handshake:        *h,
+			handshakeTimeout: 2 * time.Second,
+		}
+		serverDone <- sc.HandshakeIt()
+	}()
+
+	clientConn, err := net.Dial("tcp", listener.Addr().String())
+	require.NoError(t, err)
+	defer clientConn.Close()
+
+	// Send A = N, which is 0 mod N.
+	cke := &Handshake{
+		Type: handshakeClientKeyExchange,
+		Body: func() []byte {
+			var e encoder
+			e.Vector16(g.N.Bytes())
+			return e.BytesSlice()
+		}(),
+	}
+	ckeRec, err := WriteHandshake(cke)
+	require.NoError(t, err)
+	require.NoError(t, WriteRecord(clientConn, ckeRec))
+
+	alertRec, err := ReadRecord(clientConn)
+	require.NoError(t, err)
+	alert, err := ParseAlert(alertRec)
+	require.NoError(t, err)
+	assert.Equal(t, alertFatal, alert.Level)
+	assert.Equal(t, alertIllegalParameter, alert.Description)
+
+	select {
+	case err := <-serverDone:
+		require.ErrorIs(t, err, ErrIllegalParameter)
+	case <-time.After(5 * time.Second):
+		t.Fatal("timed out")
+	}
+}
+
+func TestHandshakeIt_MissingSRPUsernameSendsAlert(t *testing.T) {
+	g := SRP1024()
+	user, _ := CreateSRPUser(g, "testuser", "testpass", randSalt())
+	lookup := func(username string) (*SRPUser, error) {
+		return user, nil
+	}
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	defer listener.Close()
+
+	serverDone := make(chan error, 1)
+	go func() {
+		conn, err := listener.Accept()
+		if err != nil {
+			serverDone <- err
+			return
+		}
+		defer conn.Close()
+		sc := &ServerConnection{
+			Reader:           conn,
+			Writer:           conn,
+			Lookup:           lookup,
+			Handshake:        ServerHandshake{State: stateInitial},
+			handshakeTimeout: 2 * time.Second,
+		}
+		serverDone <- sc.HandshakeIt()
+	}()
+
+	clientConn, err := net.Dial("tcp", listener.Addr().String())
+	require.NoError(t, err)
+	defer clientConn.Close()
+
+	// ClientHello with no SRP extension.
+	chBody := func() []byte {
+		var e encoder
+		e.Uint16(tls12)
+		e.Bytes(make([]byte, 32))
+		e.Vector8([]byte{})
+		e.Vector16([]byte{0xc0, 0x20})
+		e.Vector8([]byte{compressionNull})
+		e.Vector16([]byte{}) // empty extensions
+		return e.BytesSlice()
+	}()
+	chRec, err := WriteHandshake(&Handshake{
+		Type: handshakeClientHello,
+		Body: chBody,
+	})
+	require.NoError(t, err)
+	require.NoError(t, WriteRecord(clientConn, chRec))
+
+	alertRec, err := ReadRecord(clientConn)
+	require.NoError(t, err)
+	alert, err := ParseAlert(alertRec)
+	require.NoError(t, err)
+	assert.Equal(t, alertFatal, alert.Level)
+	assert.Equal(t, alertUnknownPSKIdentity, alert.Description)
+
+	select {
+	case err := <-serverDone:
+		require.ErrorIs(t, err, ErrMissingSRPUsername)
+	case <-time.After(5 * time.Second):
+		t.Fatal("timed out")
+	}
 }
 
 func TestParseChangeCipherSpec_EmptyData(t *testing.T) {

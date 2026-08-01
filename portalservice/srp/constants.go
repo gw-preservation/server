@@ -24,3 +24,8 @@ const (
 var (
 	ErrBadRecordMAC = errors.New("bad record MAC")
 )
+
+var (
+	ErrIllegalParameter   = errors.New("illegal parameter")
+	ErrMissingSRPUsername = errors.New("missing SRP username")
+)

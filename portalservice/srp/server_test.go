@@ -154,6 +154,94 @@ func TestHandleClientKeyExchange_WrongState(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestHandleClientKeyExchange_AMultipleOfN(t *testing.T) {
+	g := SRP1024()
+	user, _ := CreateSRPUser(g, "testuser", "testpass", randSalt())
+
+	lookup := func(username string) (*SRPUser, error) {
+		return user, nil
+	}
+
+	h := &ServerHandshake{
+		Lookup: lookup,
+		ClientHello: &ClientHello{
+			Version:            tls12,
+			Random:             make([]byte, 32),
+			CipherSuites:       []uint16{TLS_SRP_SHA_WITH_AES_256_CBC_SHA},
+			CompressionMethods: []uint8{compressionNull},
+			SRPUsername:        "testuser",
+			SessionID:          []byte{},
+		},
+	}
+
+	_, _ = h.BuildServerFlight()
+
+	for _, A := range []*big.Int{
+		new(big.Int).Set(g.N),
+		new(big.Int).Mul(g.N, big.NewInt(2)),
+	} {
+		var ckeEncoder encoder
+		ckeEncoder.Vector16(A.Bytes())
+		cke := &Handshake{
+			Type: handshakeClientKeyExchange,
+			Body: ckeEncoder.BytesSlice(),
+		}
+
+		err := h.HandleClientKeyExchange(cke)
+		require.ErrorIs(t, err, ErrIllegalParameter)
+	}
+}
+
+func TestHandleClientKeyExchange_ServerHelloEchoesUsername(t *testing.T) {
+	g := SRP1024()
+	user, _ := CreateSRPUser(g, "testuser", "testpass", randSalt())
+
+	lookup := func(username string) (*SRPUser, error) {
+		return user, nil
+	}
+
+	h := &ServerHandshake{
+		Lookup: lookup,
+		ClientHello: &ClientHello{
+			Version:            tls12,
+			Random:             make([]byte, 32),
+			CipherSuites:       []uint16{TLS_SRP_SHA_WITH_AES_256_CBC_SHA},
+			CompressionMethods: []uint8{compressionNull},
+			SRPUsername:        "echo-me",
+			SessionID:          []byte{},
+		},
+	}
+
+	flight, err := h.BuildServerFlight()
+	require.NoError(t, err)
+
+	hs := flight[0]
+	assert.Equal(t, handshakeServerHello, hs.Type)
+
+	p := newParser(hs.Body)
+	p.Uint16()  // version
+	p.Bytes(32) // random
+	p.Vector8() // session ID
+	p.Uint16()  // cipher suite
+	p.Uint8()   // compression
+
+	extBytes, err := p.Vector16()
+	require.NoError(t, err)
+
+	ep := newParser(extBytes)
+	extType, err := ep.Uint16()
+	require.NoError(t, err)
+	assert.Equal(t, extensionSRP, extType)
+
+	extData, err := ep.Vector16()
+	require.NoError(t, err)
+
+	inner := newParser(extData)
+	username, err := inner.Vector8()
+	require.NoError(t, err)
+	assert.Equal(t, []byte("echo-me"), username)
+}
+
 // --- ActivateReadCipher ---
 
 func TestActivateReadCipher_Valid(t *testing.T) {

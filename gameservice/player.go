@@ -187,7 +187,7 @@ func (p *Player) applyDyeToItem(lid int, item Item.Item, color int) {
 		lid,
 		int(item.ModelFileId()),
 		int(item.Type()),
-		7, // dye update metadata type
+		7,
 		color,
 		0, // materials
 		0, // unk2

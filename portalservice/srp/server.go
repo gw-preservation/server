@@ -122,7 +122,7 @@ func (h *ServerHandshake) BuildServerFlight() ([]*Handshake, error) {
 
 	h.SRP = srp
 
-	serverHello := NewServerHello()
+	serverHello := NewServerHello(h.ClientHello.SRPUsername)
 
 	h.ServerHello = serverHello
 
@@ -151,6 +151,10 @@ func (h *ServerHandshake) HandleClientKeyExchange(
 	cke, err := ParseClientKeyExchange(hs)
 	if err != nil {
 		return err
+	}
+
+	if new(big.Int).Mod(cke.A, h.SRP.Group.N).Sign() == 0 {
+		return ErrIllegalParameter
 	}
 
 	premaster, err := h.SRP.PremasterSecret(cke.A)

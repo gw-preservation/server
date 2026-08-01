@@ -229,7 +229,7 @@ func ValidateClientHello(ch *ClientHello) error {
 	}
 
 	if len(ch.SRPUsername) == 0 {
-		return fmt.Errorf("missing SRP username")
+		return ErrMissingSRPUsername
 	}
 
 	if len(ch.SessionID) != 0 {
@@ -269,7 +269,7 @@ func (sh *ServerHello) Encode() *Handshake {
 
 }
 
-func NewServerHello() *ServerHello {
+func NewServerHello(username string) *ServerHello {
 	sh := &ServerHello{
 		Version:           tls12,
 		Random:            make([]byte, 32),
@@ -279,6 +279,15 @@ func NewServerHello() *ServerHello {
 
 	rand.Read(sh.Random)
 	binary.BigEndian.PutUint32(sh.Random[:4], uint32(time.Now().Unix()))
+
+	inner := encoder{}
+	inner.Vector8([]byte(username))
+
+	ext := encoder{}
+	ext.Uint16(extensionSRP)
+	ext.Vector16(inner.BytesSlice())
+
+	sh.Extensions = ext.BytesSlice()
 
 	return sh
 
@@ -432,6 +441,13 @@ func (c *ServerConnection) HandshakeIt() error {
 
 			flight, err := c.Handshake.BuildServerFlight()
 			if err != nil {
+				if errors.Is(err, ErrMissingSRPUsername) {
+					_ = WriteRecord(
+						c.Writer,
+						NewAlert(alertFatal, alertUnknownPSKIdentity),
+					)
+				}
+
 				return err
 			}
 
@@ -457,6 +473,13 @@ func (c *ServerConnection) HandshakeIt() error {
 			}
 
 			if err := c.Handshake.HandleClientKeyExchange(hs); err != nil {
+				if errors.Is(err, ErrIllegalParameter) {
+					_ = WriteRecord(
+						c.Writer,
+						NewAlert(alertFatal, alertIllegalParameter),
+					)
+				}
+
 				return err
 			}
 
