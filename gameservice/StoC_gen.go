@@ -25,7 +25,7 @@ func MarshalServerPingRequest(unk1 int, unk2 int) (resp GwPacket.Out) {
 	return
 }
 
-func MarshalAgentMovementTick(delta int) (resp GwPacket.Out) {
+func MarshalInstanceMovementTick(delta int) (resp GwPacket.Out) {
 	resp = GwPacket.NewOut(0x1e)
 	resp.Uint32(delta)
 	return

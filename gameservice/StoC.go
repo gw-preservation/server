@@ -25,7 +25,7 @@ type ServerPingRequest struct {
 }
 
 // opcode: 0x001e
-type AgentMovementTick struct {
+type InstanceMovementTick struct {
 	delta int //wire:uint32
 }
 

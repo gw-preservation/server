@@ -79,15 +79,6 @@ func InitializeInstances() error {
 		instanceDefinitions.Agents[name] = def
 		index++
 	}
-
-	for mapId, definition := range instanceDefinitions.Instances {
-		if definition.Explorable {
-			continue
-		}
-		inst := NewInstance(mapId, definition)
-		InstanceManager.AddInstance(inst)
-	}
-	log.Info().Int("count", len(InstanceManager.instances)).Msg("persistent instances created")
 	return nil
 }
 
@@ -130,12 +121,8 @@ func (im *instanceManager) GetOrCreateInstanceByMapId(mapId int) (*Instance, err
 	if !ok {
 		return nil, fmt.Errorf("missing instance definition for map id %d", mapId)
 	}
-	if !definition.Explorable {
-		existingInst, hasExistingInst := im.GetInstanceByMapId(mapId)
-		if !hasExistingInst {
-			log.Error().Int("mapId", mapId).Msg("missing persistent instance")
-			return nil, fmt.Errorf("missing persistent instance for non-explorable map id %d", mapId)
-		}
+	existingInst, hasExistingInst := im.GetInstanceByMapId(mapId)
+	if hasExistingInst {
 		return existingInst, nil
 	}
 	inst := NewInstance(mapId, definition)
@@ -192,11 +179,14 @@ type Instance struct {
 	forceShutdownSignal    chan bool
 	log                    zerolog.Logger
 
-	pendingJoins chan *Player
-	done         chan struct{}
-	closeOnce    sync.Once
-	inActor      atomic.Bool
-	playerCount  atomic.Int64
+	pendingJoins       chan *Player
+	done               chan struct{}
+	closeOnce          sync.Once
+	inActor            atomic.Bool
+	playerCount        atomic.Int64
+	lastTickAt         time.Time
+	lastMovementTickAt time.Time
+	tickCount          int64
 }
 
 func (i *Instance) assertActor() {
@@ -236,8 +226,8 @@ func (inst *Instance) RemovePlayer(player *Player) {
 	if removed {
 		inst.TransmitAgentDespawned(&player.Agent)
 		inst.log.Debug().Uint64("playerUuid", player.uuid).Msg("player removed from instance")
-		if inst.definition.Explorable && len(inst.players) == 0 {
-			inst.log.Debug().Msg("explorable instance shutting down due to inactivity")
+		if len(inst.players) == 0 {
+			inst.log.Debug().Msg("instance shutting down due to inactivity")
 			inst.gracefulShutdownSignal <- true
 		}
 	}
@@ -298,13 +288,13 @@ func newInstance(mapId int, definition instanceDefinition) *Instance {
 	return i
 }
 
-const gameTick = 50 * time.Millisecond
+const targetGameTick = 50 * time.Millisecond
 
 func (i *Instance) actorLoop() {
 	ping := time.NewTicker(5 * time.Second)
-	game := time.NewTicker(gameTick)
+	tickTimer := time.NewTimer(targetGameTick)
 	defer ping.Stop()
-	defer game.Stop()
+	defer tickTimer.Stop()
 	defer func() {
 		i.alive = false
 		i.finish()
@@ -316,8 +306,18 @@ func (i *Instance) actorLoop() {
 			i.pingPlayers()
 			i.flushPlayers()
 			i.inActor.Store(false)
-		case <-game.C:
+		case <-tickTimer.C:
+			tickStart := time.Now()
 			i.gameTick()
+			elapsed := time.Since(tickStart)
+			if elapsed > 50*time.Millisecond {
+				i.log.Warn().Dur("elapsed", elapsed).Msg("slow game tick")
+			}
+			delay := targetGameTick - elapsed
+			if delay < 0 {
+				delay = 0
+			}
+			tickTimer.Reset(delay)
 		case <-i.gracefulShutdownSignal:
 			i.log.Debug().Msg("graceful shutdown")
 			return
@@ -345,7 +345,7 @@ drainJoins:
 		}
 	}
 
-	// Phase 1: drain each player's buffered input (handlers record intent).
+	// Phase 1: drain each player's buffered input (handlers will record intent).
 	for _, p := range i.players {
 		if !p.conn.HandedOver() {
 			continue
@@ -356,40 +356,49 @@ drainJoins:
 		}
 	}
 
-	// Phase 2: apply requests, collect disconnects.
+	// Phase 2: world logic based on player intent (movement, interaction, etc).
 	var disconnect []*Player
 	for _, p := range i.players {
 		if p.conn.IsClosed() {
 			disconnect = append(disconnect, p)
 			continue
 		}
-		if i.processPlayer(p) {
+		if !i.processPlayer(p) {
 			disconnect = append(disconnect, p)
 		}
 	}
 
-	// Phase 3: movement tick broadcast.
-	for _, p := range i.players {
-		if p.conn.IsClosed() {
-			continue
+	// if this is a movement tick, send movement updates to all players.
+	isMovementTick := (i.tickCount%10 == 0)
+	if isMovementTick {
+		tookHowLong := int(time.Since(i.lastMovementTickAt).Milliseconds())
+		for _, p := range i.players {
+			if p.conn.IsClosed() {
+				continue
+			}
+			// no world simulation yet
+			p.EnqueuePacket(MarshalInstanceMovementTick(tookHowLong))
 		}
-		p.EnqueuePacket(MarshalAgentMovementTick(50))
+		i.lastMovementTickAt = time.Now()
 	}
 
-	// Flush outbound, then disconnect.
+	// Phase 3: flush outbound, then disconnect any players that were marked for disconnect.
 	i.flushPlayers()
 	for _, p := range disconnect {
 		i.RemovePlayer(p)
 		p.OnUserDisconnected()
 		p.conn.Close()
 	}
+
+	i.lastTickAt = time.Now()
+	i.tickCount++
 }
 
 func (i *Instance) processPlayer(p *Player) bool {
 	i.assertActor()
 	if p.pendingDisconnect {
 		p.pendingDisconnect = false
-		return true
+		return false
 	}
 
 	if m := p.moveTo; m != nil {
@@ -450,7 +459,7 @@ func (i *Instance) processPlayer(p *Player) bool {
 		i.applyChat(p, c)
 	}
 
-	return false
+	return true
 }
 
 func (i *Instance) applyChat(p *Player, c *ChatMessage) {
