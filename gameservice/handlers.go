@@ -10,7 +10,6 @@ import (
 	GwPacket "gw1/server/gwpacket"
 	Item "gw1/server/item"
 	"net"
-	"strings"
 )
 
 type packetHandler func(*GSConn, *GwPacket.In) (int, error)
@@ -33,58 +32,80 @@ func wrap[T any](
 	}
 }
 
+// wrapP is like wrap but dispatches to a phase-1 intent setter on the Player.
+// It is used by the in-instance handler table, which runs on the instance
+// actor during the game tick and must not touch world state.
+func wrapP[T any](
+	unmarshal func(*GwPacket.In) (T, error),
+	handler func(*Player, *T) error,
+) packetHandler {
+	return func(conn *GSConn, in *GwPacket.In) (int, error) {
+		payload, err := unmarshal(in)
+		if err != nil {
+			return 0, err
+		}
+		if err := handler(conn.player, &payload); err != nil {
+			return 0, err
+		}
+		return in.Position(), nil
+	}
+}
+
 // handlers for the login handshake packets. Which of these is allowed at any
-// given time is enforced by the connection state machine in conn.go.
+// given time is enforced by the connection state machine in conn.go. They run
+// immediately on the connection goroutine via DrainHandshake.
 var handshakeHandlers = map[int]packetHandler{
 	0x0500: wrap(UnmarshalVerifyClientConnection, (*GSConn).onVerifyClientConnection),
 	0x4200: wrap(UnmarshalClientSeed, (*GSConn).onClientSeed),
 	0x8008: wrap(UnmarshalClientDisconnect, (*GSConn).onClientDisconnect),
 }
 
-// handlers which can be accessed only by verified connections. ClientSeed is
-// handshake-only, so it is deliberately absent here; ClientDisconnect is kept
-// because a disconnect can arrive at any time.
-var verifiedHandlers = map[int]packetHandler{
+// charCreationHandlers run immediately on the connection goroutine for a
+// verified connection that has not yet joined an instance. They mutate only
+// player-owned data (item manager, appearance), never instance state, so they
+// are safe to process outside the instance actor.
+var charCreationHandlers = map[int]packetHandler{
 	0x8008: wrap(UnmarshalClientDisconnect, (*GSConn).onClientDisconnect),
 	0x8009: wrap(UnmarshalPingReply, (*GSConn).onPingReply),
 	0x800a: wrap(UnmarshalGpuInformation, (*GSConn).onGPUInformation),
 	0x800c: wrap(UnmarshalClientPingRequest, (*GSConn).onClientPingRequest),
-	0x8027: wrap(UnmarshalCancelInteraction, (*GSConn).onCancelInteraction),
-	0x8038: wrap(UnmarshalInteractAgent, (*GSConn).onInteractAgent),
-	0x803c: wrap(UnmarshalMovementUpdate, (*GSConn).onMovementUpdate),
-	0x803d: wrap(UnmarshalMoveToPoint, (*GSConn).onMoveToPoint),
-	0x803f: wrap(UnmarshalRotateAgent, (*GSConn).onRotateAgent),
-	0x8046: wrap(UnmarshalLastPosBeforeMoveCancelled, (*GSConn).onLastPosBeforeMoveCancelled),
 	0x805f: wrap(UnmarshalUpdateProfessionChoice, (*GSConn).onUpdateProfessionChoice),
-	0x8063: wrap(UnmarshalChatMessage, (*GSConn).onChatMessage),
 	0x8083: wrap(UnmarshalDyeEquipment, (*GSConn).onDyeEquipment),
-	0x8087: wrap(UnmarshalInstanceLoadRequestSpawnPoint, (*GSConn).onInstanceLoadRequestSpawnPoint),
 	0x8088: wrap(UnmarshalCreateCharRequestPlayer, (*GSConn).onCreateCharRequestPlayer),
 	0x8089: wrap(UnmarshalCreateCharRequestArmors, (*GSConn).onCreateCharRequestArmors),
 	0x808a: wrap(UnmarshalCreateCharacterFinish, (*GSConn).onCreateCharacterFinish),
-	0x808f: wrap(UnmarshalInstanceLoadRequestPlayers, (*GSConn).onInstanceLoadRequestPlayers),
 	0x8090: wrap(UnmarshalUnknown8090, (*GSConn).on8090),
 	0x8091: wrap(UnmarshalUnknown8091, (*GSConn).on8091),
-	0x80c0: wrap(UnmarshalUpdateTarget, (*GSConn).onUpdateTarget),
-	0x80b0: wrap(UnmarshalMapTravelToOutpost, (*GSConn).onMapTravelToOutpost),
-	0x802f: wrap(UnmarshalEquipItem, (*GSConn).onEquipItem),
-	0x8068: wrap(UnmarshalDestroyItem, (*GSConn).onDestroyItem),
+}
+
+// inInstanceHandlers run on the instance actor's game tick. Phase 1 setters
+// only record intent on the player; the actor applies the intent in phase 2 of
+// the same tick, so incoming packets never affect world state immediately.
+// Stateless replies (ping, gpu) write responses directly during phase 1.
+var inInstanceHandlers = map[int]packetHandler{
+	0x8008: wrapP(UnmarshalClientDisconnect, (*Player).setDisconnectIntent),
+	0x8009: wrap(UnmarshalPingReply, (*GSConn).onPingReply),
+	0x800a: wrap(UnmarshalGpuInformation, (*GSConn).onGPUInformation),
+	0x800c: wrap(UnmarshalClientPingRequest, (*GSConn).onClientPingRequest),
+	0x8027: wrapP(UnmarshalCancelInteraction, (*Player).setCancelInteractionIntent),
+	0x802f: wrapP(UnmarshalEquipItem, (*Player).setEquipIntent),
+	0x8038: wrapP(UnmarshalInteractAgent, (*Player).setInteractIntent),
+	0x803c: wrapP(UnmarshalMovementUpdate, (*Player).setMovementIntent),
+	0x803d: wrapP(UnmarshalMoveToPoint, (*Player).setMoveIntent),
+	0x803f: wrapP(UnmarshalRotateAgent, (*Player).setRotateIntent),
+	0x8046: wrapP(UnmarshalLastPosBeforeMoveCancelled, (*Player).setLastPosCancelIntent),
+	0x8063: wrapP(UnmarshalChatMessage, (*Player).setChatIntent),
+	0x8068: wrapP(UnmarshalDestroyItem, (*Player).setDestroyIntent),
+	0x8087: wrapP(UnmarshalInstanceLoadRequestSpawnPoint, (*Player).setLoadSpawnIntent),
+	0x808f: wrapP(UnmarshalInstanceLoadRequestPlayers, (*Player).setLoadPlayersIntent),
 	0x80a0: wrap(UnmarshalPartyInvite, (*GSConn).onPartyInvite),
+	0x80b0: wrapP(UnmarshalMapTravelToOutpost, (*Player).setMapTravelIntent),
+	0x80c0: wrapP(UnmarshalUpdateTarget, (*Player).setTargetIntent),
 }
 
 func (conn *GSConn) onPartyInvite(payload *PartyInvite) error {
 	conn.log.Info().Str("name", payload.name).Msg("PartyInvite")
 	return nil
-}
-
-func (conn *GSConn) onEquipItem(payload *EquipItem) error {
-	conn.log.Info().Int("itemLocalId", payload.itemLocalId).Msg("EquipItem")
-	conn.player.TryEquipItem(payload.itemLocalId)
-	return nil
-}
-func (conn *GSConn) onDestroyItem(payload *DestroyItem) error {
-	conn.log.Info().Int("itemLocalId", payload.itemLocalId).Msg("DestroyItem")
-	return conn.player.itemMgr.RemoveItemByLocalId(payload.itemLocalId)
 }
 
 func (conn *GSConn) onCreateCharRequestPlayer(payload *CreateCharRequestPlayer) error {
@@ -96,22 +117,6 @@ func (conn *GSConn) on8090(payload *Unknown8090) error {
 	return nil
 }
 
-func (conn *GSConn) onInstanceLoadRequestSpawnPoint(payload *InstanceLoadRequestSpawnPoint) error {
-	if conn.player.connectedInstance == nil {
-		return nil
-	}
-	conn.player.sendInstanceLoadSpawnPoint()
-	return nil
-}
-
-func (conn *GSConn) onInstanceLoadRequestPlayers(payload *InstanceLoadRequestPlayers) error {
-	if conn.player.connectedInstance == nil {
-		return nil
-	}
-	conn.player.sendInstanceLoadRequestPlayers(*payload)
-	return nil
-}
-
 func (conn *GSConn) on8091(payload *Unknown8091) error {
 	return nil
 }
@@ -120,44 +125,6 @@ func (conn *GSConn) onPingReply(payload *PingReply) error {
 	resp := GwPacket.NewOut(0xd)
 	resp.Uint32(1)
 	conn.EnqueuePacket(resp)
-	return nil
-}
-
-func (conn *GSConn) onChatMessage(payload *ChatMessage) error {
-	p := conn.player
-	if len(payload.message) <= 1 {
-		return nil
-	}
-	p.log.Info().Int("ag", payload.agentId).Str("msg", payload.message).Msg("ChatMessage")
-
-	// find channel by prefix char
-	var channel = payload.message[0]
-	var remainder = payload.message[1:]
-	switch channel {
-	case '!':
-		if p.connectedInstance != nil {
-			p.connectedInstance.BroadcastLocalChat(p, remainder)
-		}
-	case '/':
-		// emote / command
-		// extract next command word
-		words := strings.Fields(remainder)
-		if len(words) == 0 {
-			p.SendChatWarning("Invalid command syntax")
-			return nil
-		}
-		command := words[0]
-		args := words[1:]
-		// check whether it is an emote command
-		if emote, exists := GetEmoteByCommand(command); exists {
-			if p.connectedInstance != nil {
-				p.connectedInstance.BroadcastGeneric(MarshalEmote(p.playerId, p.agentId, emote))
-			}
-			return nil
-		}
-		// not an emote, check for other commands
-		HandleCommand(p, command, remainder, args)
-	}
 	return nil
 }
 
@@ -182,53 +149,6 @@ func (conn *GSConn) onCreateCharacterFinish(payload *CreateCharacterFinish) erro
 	conn.EnqueuePacket(MarshalCharCreationFinish(char.UUID, payload.name, 148, varbs))
 
 	return nil
-}
-
-func (conn *GSConn) onMoveToPoint(payload *MoveToPoint) error {
-	conn.player.UpdatePosition(payload.x, payload.y)
-	conn.EnqueuePacket(MarshalMoveToPointS2C(conn.player.agentId, payload.x, payload.y, 0))
-	return nil
-}
-
-func (conn *GSConn) onRotateAgent(payload *RotateAgent) error {
-	return nil
-}
-
-func (conn *GSConn) onMovementUpdate(payload *MovementUpdate) error {
-	return nil
-}
-
-func (conn *GSConn) onLastPosBeforeMoveCancelled(payload *LastPosBeforeMoveCancelled) error {
-	return nil
-}
-
-func (conn *GSConn) onUpdateTarget(payload *UpdateTarget) error {
-	conn.log.Debug().Int("target", payload.targetAgentId).Str("playerName", conn.player.name).Msg("UpdateTarget")
-	return nil
-}
-
-func (conn *GSConn) onInteractAgent(payload *InteractAgent) error {
-	conn.player.SendChatWarning(fmt.Sprintf("missing interaction definition for agent=%d,action=%d", payload.agentId, payload.action))
-	conn.log.Debug().Int("target", payload.agentId).Int("action", payload.action).Msg("InteractAgent")
-	return nil
-}
-
-func (conn *GSConn) onCancelInteraction(payload *CancelInteraction) error {
-	return nil
-}
-
-func (conn *GSConn) Close() {
-	conn.closeOnce.Do(func() {
-		conn.closed.Store(true)
-		close(conn.done)
-		if conn.player.connectedInstance != nil {
-			conn.player.connectedInstance.RemovePlayer(conn.player)
-		}
-		if conn.accountID != 0 {
-			UntrackAccount(conn.accountID)
-		}
-		conn.socket.Close()
-	})
 }
 
 func (conn *GSConn) onClientPingRequest(payload *ClientPingRequest) error {
@@ -292,7 +212,7 @@ func (conn *GSConn) onVerifyClientConnection(payload *VerifyClientConnection) er
 			return nil
 		}
 
-		p.connectedInstance = inst
+		p.connectedInstance.Store(inst)
 	}
 	p.isTransfer = info.IsTransfer
 	verified := false
@@ -347,7 +267,7 @@ func (conn *GSConn) onClientSeed(payload *ClientSeed) error {
 	resp.Bytes(publicBytes[:])
 
 	// The seed response must go out unencrypted, before conn.enc is enabled.
-	// Hold the out mutex so the write can't interleave with the flush loop,
+	// Hold the out mutex so the write can't interleave with a flush,
 	// and so the cipher enable happens in the same critical section.
 	conn.outMu.Lock()
 	if err = conn.writeLocked(&resp); err != nil {
@@ -363,11 +283,21 @@ func (conn *GSConn) onClientSeed(payload *ClientSeed) error {
 	if conn.player.charCreationInProgress {
 		conn.player.EnqueuePacket(MarshalInstanceLoadHead())
 		conn.player.EnqueuePacket(MarshalCharCreationStart())
-	} else if conn.player.connectedInstance != nil {
-		conn.player.connectedInstance.AddPlayer(conn.player)
+	} else if inst := conn.player.connectedInstance.Load(); inst != nil {
+		if err := inst.AddPlayer(conn.player); err != nil {
+			conn.log.Error().Err(err).Msg("failed to add player to instance")
+		}
 	}
 
 	conn.state = StateVerified
+
+	// Hand the input buffer over to the instance actor. The player is already
+	// in the instance (AddPlayer above is synchronous), so the actor's next
+	// game tick will drain buffered packets; character-creation connections
+	// stay owned by the connection goroutine.
+	if !conn.player.charCreationInProgress {
+		conn.handedOver.Store(true)
+	}
 
 	return nil
 }
@@ -499,12 +429,4 @@ func (conn *GSConn) onDyeEquipment(payload *DyeEquipment) error {
 	p.charCreationDyes[payload.slot] = payload.color
 	p.itemMgr.UpdateSlotDye(equipmentBagIndex, payload.slot, uint8(payload.color))
 	return nil
-}
-
-func (conn *GSConn) onMapTravelToOutpost(payload *MapTravelToOutpost) error {
-	if conn.player.connectedInstance == nil {
-		return nil
-	}
-	conn.log.Info().Int("mapId", payload.mapId).Msg("MapTravel")
-	return conn.player.connectedInstance.TransferPlayerToNewMap(conn.player, payload.mapId)
 }

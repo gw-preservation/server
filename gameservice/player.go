@@ -6,17 +6,67 @@ import (
 	GwPacket "gw1/server/gwpacket"
 	Item "gw1/server/item"
 	"math/rand"
+	"sync/atomic"
 
 	"github.com/rs/zerolog"
 )
 
 const equipmentBagIndex = 1
 
+// intent structs are written by phase-1 handlers on the instance actor during
+// the game tick and consumed by phase 2 of the same tick. They are
+// single-slot ("latest wins") so intent never queues across ticks.
+type moveIntent struct {
+	x, y  float32
+	plane int
+}
+
+type movementIntent struct {
+	posX, posY float32
+	unk1       int
+	facingX    float32
+	facingY    float32
+	unk2       int
+}
+
+type rotateIntent struct {
+	unk1, unk2 int
+}
+
+type lastPosCancelIntent struct {
+	x, y float32
+	unk2 int
+}
+
+type chatIntent struct {
+	agentId int
+	message string
+}
+
+type interactIntent struct {
+	agentId int
+	action  int
+}
+
+type targetIntent struct {
+	targetAgentId int
+	agentId2      int
+}
+
 type playerConn interface {
 	EnqueuePacket(out GwPacket.Out)
 	IsClosed() bool
 	Close()
 	clientIP() string
+	// HandedOver reports whether the connection is owned by an instance actor
+	// (i.e. the player has joined an instance and the actor drains it).
+	HandedOver() bool
+	// DrainInInstance parses and processes buffered packets (phase 1). It is
+	// called by the instance actor during the game tick.
+	DrainInInstance() error
+	// Flush writes any buffered output. Called by the instance actor at the
+	// end of each tick and by the connection goroutine during the handshake.
+	Flush() error
 }
 
 type Player struct {
@@ -24,7 +74,7 @@ type Player struct {
 	playerId           int
 	conn               playerConn
 	questBytes         []byte
-	connectedInstance  *Instance
+	connectedInstance  atomic.Pointer[Instance]
 	log                zerolog.Logger
 	readyForAgentTicks bool // TODO: refactor into LoadingState / ReadyState
 	xp                 int
@@ -36,6 +86,24 @@ type Player struct {
 	isTransfer bool
 	dbAcc      db.Account
 	dbChar     db.Character
+
+	// pending * intents are the phase-1 output of the game tick; phase 2
+	// consumes and clears them in the same tick. Only the instance actor
+	// touches these.
+	pendingDisconnect     bool
+	pendingMove           *moveIntent
+	pendingMovement       *movementIntent
+	pendingRotate         *rotateIntent
+	pendingMoveCancelled  *lastPosCancelIntent
+	pendingChat           *chatIntent
+	pendingInteract       *interactIntent
+	pendingCancelInteract bool
+	pendingTarget         *targetIntent
+	pendingEquip          *int
+	pendingDestroy        *int
+	pendingLoadSpawn      bool
+	pendingLoadPlayers    *InstanceLoadRequestPlayers
+	pendingMapTravel      *int
 }
 
 func NewPlayer(conn *GSConn, logCtx zerolog.Logger) *Player {
@@ -111,10 +179,91 @@ func (p *Player) Disconnect() {
 }
 
 func (p *Player) UpdatePosition(x, y float32) {
-	if p.connectedInstance == nil {
+	if p.connectedInstance.Load() == nil {
 		return
 	}
-	p.connectedInstance.UpdateRequestedPlayerPos(p, x, y)
+	p.connectedInstance.Load().UpdateRequestedPlayerPos(p, x, y)
+}
+
+// Phase-1 intent setters. These run on the instance actor during the game
+// tick's collect pass; they only record what the client requested and never
+// touch world state. Phase 2 (applyPlayerIntents) consumes them in the same
+// tick.
+
+func (p *Player) setDisconnectIntent(payload *ClientDisconnect) error {
+	p.pendingDisconnect = true
+	return nil
+}
+
+func (p *Player) setMoveIntent(payload *MoveToPoint) error {
+	p.pendingMove = &moveIntent{x: payload.x, y: payload.y, plane: payload.plane}
+	return nil
+}
+
+func (p *Player) setMovementIntent(payload *MovementUpdate) error {
+	p.pendingMovement = &movementIntent{
+		posX: payload.posX, posY: payload.posY,
+		unk1: payload.unk1, facingX: payload.facingX, facingY: payload.facingY, unk2: payload.unk2,
+	}
+	return nil
+}
+
+func (p *Player) setRotateIntent(payload *RotateAgent) error {
+	p.pendingRotate = &rotateIntent{unk1: payload.unk1, unk2: payload.unk2}
+	return nil
+}
+
+func (p *Player) setLastPosCancelIntent(payload *LastPosBeforeMoveCancelled) error {
+	p.pendingMoveCancelled = &lastPosCancelIntent{x: payload.x, y: payload.y, unk2: payload.unk2}
+	return nil
+}
+
+func (p *Player) setChatIntent(payload *ChatMessage) error {
+	p.pendingChat = &chatIntent{agentId: payload.agentId, message: payload.message}
+	return nil
+}
+
+func (p *Player) setInteractIntent(payload *InteractAgent) error {
+	p.pendingInteract = &interactIntent{agentId: payload.agentId, action: payload.action}
+	return nil
+}
+
+func (p *Player) setCancelInteractionIntent(payload *CancelInteraction) error {
+	p.pendingCancelInteract = true
+	return nil
+}
+
+func (p *Player) setTargetIntent(payload *UpdateTarget) error {
+	p.pendingTarget = &targetIntent{targetAgentId: payload.targetAgentId, agentId2: payload.agentId2}
+	return nil
+}
+
+func (p *Player) setEquipIntent(payload *EquipItem) error {
+	lid := payload.itemLocalId
+	p.pendingEquip = &lid
+	return nil
+}
+
+func (p *Player) setDestroyIntent(payload *DestroyItem) error {
+	lid := payload.itemLocalId
+	p.pendingDestroy = &lid
+	return nil
+}
+
+func (p *Player) setLoadSpawnIntent(payload *InstanceLoadRequestSpawnPoint) error {
+	p.pendingLoadSpawn = true
+	return nil
+}
+
+func (p *Player) setLoadPlayersIntent(payload *InstanceLoadRequestPlayers) error {
+	p.pendingLoadPlayers = payload
+	return nil
+}
+
+func (p *Player) setMapTravelIntent(payload *MapTravelToOutpost) error {
+	mapId := payload.mapId
+	p.pendingMapTravel = &mapId
+	return nil
 }
 
 func (p *Player) SendChat(msg string, color int) {
@@ -204,7 +353,7 @@ func (p *Player) applyDyeToItem(lid int, item Item.Item, color int) {
 
 func (p *Player) sendInstanceLoadSpawnPoint() {
 	p.log.Debug().Msg("InstanceLoadRequestSpawnPoint")
-	inst := *p.connectedInstance
+	inst := p.connectedInstance.Load()
 	p.EnqueuePacket(MarshalInstanceLoadSpawnPoint(int(inst.definition.MapFileId), p.posX, p.posY, p.plane, false, []byte{0xcd, 0x49, 0x03, 0xcc, 0x17, 0xa7, 0xdb, 0x01}))
 }
 
@@ -233,7 +382,7 @@ func (p *Player) sendWorldSyncData() {
 	p.sendUnlockedPvpHeroes()
 	p.sendQuestInfoSync()
 	p.sendMapsUnlockedSync()
-	switch p.connectedInstance.definition.Expansion {
+	switch p.connectedInstance.Load().definition.Expansion {
 	case "factions":
 		p.sendCartographyDataFactions()
 	case "prophecies", "eotn":
@@ -243,7 +392,7 @@ func (p *Player) sendWorldSyncData() {
 	case "presearing":
 		p.sendCartographyDataPresearing()
 	default:
-		p.log.Error().Str("expansion", p.connectedInstance.definition.Expansion).Msg("missing cartography data packets")
+		p.log.Error().Str("expansion", p.connectedInstance.Load().definition.Expansion).Msg("missing cartography data packets")
 		return
 	}
 	p.EnqueuePacket(MarshalInstanceLoaded())
@@ -273,7 +422,7 @@ func (p *Player) sendPlayerAttributes() {
 
 func (p *Player) spawnPlayerAgent() {
 	p.EnqueuePacket(MarshalAgentCreatePlayer(p.playerId, p.agentId, int(p.dbChar.AppearanceBits), p.name))
-	p.connectedInstance.SendActiveAgents(p)
+	p.connectedInstance.Load().sendActiveAgents(p)
 
 	// REVERSE THIS MORE:
 	p.EnqueuePacket(MarshalUnknown00b0(p.playerId, p.playerId))
@@ -383,7 +532,7 @@ func (p *Player) sendCreateCharacterInstanceInfo() {
 func (p *Player) sendWorldInstanceHead() {
 	p.EnqueuePacket(MarshalInstancePlayerDataStart())
 	p.EnqueuePacket(MarshalInstanceLoadPlayerName(p.name))
-	p.EnqueuePacket(MarshalInstanceLoadInfo(p.playerId, p.connectedInstance.mapId, p.connectedInstance.IsExplorable(), 1, 0, false))
+	p.EnqueuePacket(MarshalInstanceLoadInfo(p.playerId, p.connectedInstance.Load().mapId, p.connectedInstance.Load().IsExplorable(), 1, 0, false))
 }
 
 func (p *Player) sendWorldInstanceBody() {

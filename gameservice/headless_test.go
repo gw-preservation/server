@@ -2,6 +2,7 @@ package gameservice
 
 import (
 	GwPacket "gw1/server/gwpacket"
+	"math/rand"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -37,6 +38,18 @@ func (s *headlessSink) clientIP() string {
 	return "127.0.0.1"
 }
 
+func (s *headlessSink) HandedOver() bool {
+	return true
+}
+
+func (s *headlessSink) DrainInInstance() error {
+	return nil
+}
+
+func (s *headlessSink) Flush() error {
+	return nil
+}
+
 func (s *headlessSink) packetsSent() [][]byte {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -48,8 +61,9 @@ func (s *headlessSink) packetsSent() [][]byte {
 }
 
 func (s *headlessSink) opcodes() []int {
-	opcodes := make([]int, 0, len(s.packets))
-	for _, p := range s.packetsSent() {
+	sent := s.packetsSent()
+	opcodes := make([]int, 0, len(sent))
+	for _, p := range sent {
 		if len(p) < 2 {
 			continue
 		}
@@ -82,17 +96,19 @@ func newTestPlayer(name string) (*Player, *headlessSink) {
 	return p, sink
 }
 
-func newTestInstance(t *testing.T) Instance {
+func newTestInstance(t *testing.T) *Instance {
 	return newTestInstanceForMap(t, 3)
 }
 
-func newTestInstanceForMap(t *testing.T, mapId int) Instance {
+func newTestInstanceForMap(t *testing.T, mapId int) *Instance {
 	t.Helper()
 	definition, ok := instanceDefinitions.Instances[mapId]
 	if !ok {
 		t.Fatalf("missing test instance definition for map id %d", mapId)
 	}
-	return NewInstance(mapId, definition)
+	inst := NewInstance(mapId, definition)
+	t.Cleanup(inst.Shutdown)
+	return inst
 }
 
 func TestAddPlayerAssignsIdsAndSetsConnectedInstance(t *testing.T) {
@@ -103,7 +119,7 @@ func TestAddPlayerAssignsIdsAndSetsConnectedInstance(t *testing.T) {
 
 	assert.Equal(t, 1, player.agentId)
 	assert.Equal(t, 1, player.playerId)
-	assert.Equal(t, &inst, player.connectedInstance)
+	assert.Same(t, inst, player.connectedInstance.Load())
 	assert.Equal(t, 1, len(inst.players))
 
 	// The load sequence is enqueued to the player's own sink.
@@ -252,7 +268,7 @@ func TestInstanceLoadRequestPlayersSendsSpawnSequence(t *testing.T) {
 	player.itemMgr.AddBag(9, 2)
 	sink.reset()
 
-	player.sendInstanceLoadRequestPlayers(InstanceLoadRequestPlayers{})
+	inst.LoadRequestPlayers(player, InstanceLoadRequestPlayers{})
 
 	for _, op := range []int{0x58, 0x20, 0xaf, 0x1d1, 0x18d, 0x9a} {
 		assert.Contains(t, sink.opcodes(), op, "expected spawn sequence opcode %04x", op)
@@ -282,4 +298,34 @@ func TestDisconnectClosesSink(t *testing.T) {
 	player.Disconnect()
 
 	assert.True(t, sink.IsClosed())
+}
+
+// TestConcurrentWorldOpsSerialize exercises the single-writer actor: many
+// connection goroutines submit world operations for the same instance at once.
+// Every operation is a blocking deliver, so the actor serializes them and there
+// must be no data races on shared player/instance state. Run with -race.
+func TestConcurrentWorldOpsSerialize(t *testing.T) {
+	inst := newTestInstance(t)
+	first, firstSink := newTestPlayer("First")
+	second, secondSink := newTestPlayer("Second")
+
+	inst.AddPlayer(first)
+	inst.AddPlayer(second)
+
+	var wg sync.WaitGroup
+	for range 50 {
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			inst.UpdateRequestedPlayerPos(first, rand.Float32()*100, rand.Float32()*100)
+		}()
+		go func() {
+			defer wg.Done()
+			inst.UpdateRequestedPlayerPos(second, rand.Float32()*100, rand.Float32()*100)
+		}()
+	}
+	wg.Wait()
+
+	assert.True(t, firstSink.hasOpcode(0x2c), "expected MarshalAgentUpdatePosition in first sink")
+	assert.True(t, secondSink.hasOpcode(0x2c), "expected MarshalAgentUpdatePosition in second sink")
 }

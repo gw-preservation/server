@@ -213,14 +213,16 @@ func TestHandleBytes_AcceptsClientSeed(t *testing.T) {
 }
 
 // A verified connection in character creation has connectedInstance == nil;
-// the instance-load handlers must guard instead of panicking.
+// instance-load packets are dispatched to the char-creation table there and
+// must not panic. The packet is unhandled in that context, so the whole thing
+// is consumed with a warning.
 func TestHandleBytes_VerifiedNilInstanceDoesNotPanic(t *testing.T) {
 	conn := &GSConn{log: zerolog.Nop(), state: StateVerified}
 	conn.player = newPlayer(conn, zerolog.Nop())
 	packet := []byte{0x87, 0x80, 0x01, 0x02, 0x03, 0x04}
 	consumed, err := conn.HandleBytes(packet)
 	require.NoError(t, err)
-	assert.Equal(t, 2, consumed) // opcode consumed by the guarded handler
+	assert.Equal(t, len(packet), consumed) // unhandled packet consumed, no panic
 }
 
 // ClientSeed before verification previously called AddPlayer on a nil

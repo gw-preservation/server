@@ -8,15 +8,17 @@ import (
 type commandHandler func(p *Player, args []string) bool
 
 var commandHandlers = map[string]commandHandler{
-	"speed":  handleSpeedCommand,
-	"e":      handleEquipCommand,
-	"motd":   handleMotdCommand,
-	"gv":     handleGvCommand,
-	"color":  handleColorCommand,
-	"travel": handleTravelCommand,
+	"speed": handleSpeedCommand,
+	"e":     handleEquipCommand,
+	"motd":  handleMotdCommand,
+	"gv":    handleGvCommand,
+	"color": handleColorCommand,
 }
 
-func HandleCommand(p *Player, command string, fullInput string, args []string) bool {
+func HandleCommand(i *Instance, p *Player, command string, fullInput string, args []string) bool {
+	if command == "travel" {
+		return handleTravelCommand(i, p, args)
+	}
 	if handler, exists := commandHandlers[command]; exists {
 		return handler(p, args)
 	}
@@ -87,11 +89,10 @@ func handleColorCommand(p *Player, args []string) bool {
 	return true
 }
 
-func handleTravelCommand(p *Player, args []string) bool {
-	if p.connectedInstance == nil {
-		p.SendChatWarning("You are not in a game instance")
-		return false
-	}
+// handleTravelCommand runs on the instance actor (chat is applied in phase 2),
+// so it calls the transferPlayerToNewMap impl directly rather than the
+// blocking deliver wrapper, which would deadlock on its own actor.
+func handleTravelCommand(i *Instance, p *Player, args []string) bool {
 	if len(args) < 1 {
 		p.SendChatWarning("Usage: /travel <mapId> or /travel \"<map_name>\"")
 		return false
@@ -116,7 +117,7 @@ func handleTravelCommand(p *Player, args []string) bool {
 		return false
 	}
 	// Transfer player to new map
-	err = p.connectedInstance.TransferPlayerToNewMap(p, newMapId)
+	err = i.transferPlayerToNewMap(p, newMapId)
 	if err != nil {
 		p.log.Error().Err(err).Int("newMapId", newMapId).Msg("failed to transfer player to new map")
 		return false

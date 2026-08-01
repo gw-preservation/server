@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 	"unicode/utf16"
 
@@ -97,7 +98,7 @@ func InitializeInstances() error {
 		}
 
 		inst := NewInstance(mapId, definition)
-		InstanceManager.AddInstance(&inst)
+		InstanceManager.AddInstance(inst)
 	}
 	log.Info().Int("count", len(InstanceManager.instances)).Msg("persistent instances created")
 	return nil
@@ -143,7 +144,7 @@ func (im *instanceManager) GetOrCreateInstanceByMapId(mapId int) (*Instance, err
 	if !ok {
 		return nil, fmt.Errorf("missing instance definition for map id %d", mapId)
 	}
-	var inst Instance
+	var inst *Instance
 	if !definition.Explorable {
 		// Public, persistent instance
 		existingInst, hasExistingInst := im.GetInstanceByMapId(mapId)
@@ -155,24 +156,28 @@ func (im *instanceManager) GetOrCreateInstanceByMapId(mapId int) (*Instance, err
 	}
 	// Private instance -- create one now:
 	inst = NewInstance(mapId, definition)
-	im.AddInstance(&inst)
-	return &inst, nil
+	im.AddInstance(inst)
+	return inst, nil
 }
 
 func (im *instanceManager) BroadcastPacketToAllPlayers(packet GwPacket.Out) {
-	im.mu.Lock()
-	defer im.mu.Unlock()
+	im.mu.RLock()
+	insts := make([]*Instance, 0, len(im.instances))
 	for _, inst := range im.instances {
+		insts = append(insts, inst)
+	}
+	im.mu.RUnlock()
+	for _, inst := range insts {
 		inst.BroadcastGeneric(packet)
 	}
 }
 
 func (im *instanceManager) NumPlayersOnline() int {
-	im.mu.Lock()
-	defer im.mu.Unlock()
+	im.mu.RLock()
+	defer im.mu.RUnlock()
 	x := 0
 	for _, inst := range im.instances {
-		x += len(inst.players)
+		x += int(inst.playerCount.Load())
 	}
 	return x
 }
@@ -192,10 +197,12 @@ func (im *instanceManager) AddInstance(instance *Instance) {
 	im.mu.Lock()
 	im.instances[instance.uuid] = instance
 	im.mu.Unlock()
-	go instance.MainLoop()
-	go instance.MovementTickLoop()
 }
 
+// Instance is the single-writer owner of all its state. Exactly one goroutine
+// (the actor started in NewInstance) may read or mutate the instance's shared
+// state; everything else submits work through the message protocol in
+// instance_msg.go.
 type Instance struct {
 	uuid                   uint64
 	tag                    uint32
@@ -207,43 +214,49 @@ type Instance struct {
 	gracefulShutdownSignal chan bool
 	forceShutdownSignal    chan bool
 	log                    zerolog.Logger
-	mu                     *sync.RWMutex
+	cmdCh                  chan instanceMsg
+	done                   chan struct{}
+	closeOnce              sync.Once
+	inActor                atomic.Bool
+	playerCount            atomic.Int64
 }
 
-func (inst *Instance) TransmitAgentDespawned(agent *Agent) {
-	inst.mu.RLock()
-	defer inst.mu.RUnlock()
-	for _, other := range inst.players {
+func (i *Instance) transmitAgentDespawned(agent *Agent) error {
+	i.assertActor()
+	for _, other := range i.players {
 		other.sendAgentDespawned(agent)
 	}
+	return nil
 }
 
-func (inst *Instance) RemovePlayer(player *Player) {
-	inst.mu.Lock()
+func (i *Instance) removePlayer(player *Player) error {
+	i.assertActor()
 	removed := false
-	for i, v := range inst.players {
+	for idx, v := range i.players {
 		if v == nil {
 			continue
 		}
 		if player.uuid == v.uuid {
-			inst.players = slices.Delete(inst.players, i, i+1)
+			i.players = slices.Delete(i.players, idx, idx+1)
 			removed = true
 			break
 		}
 	}
-	inst.mu.Unlock()
+	player.connectedInstance.Store(nil)
+	i.playerCount.Store(int64(len(i.players)))
 	if removed {
-		inst.TransmitAgentDespawned(&player.Agent)
-		inst.log.Debug().Uint64("playerUuid", player.uuid).Msg("player removed from instance")
-		if inst.definition.Explorable && len(inst.players) == 0 {
-			inst.log.Debug().Msg("explorable instance shutting down due to inactivity")
-			inst.gracefulShutdownSignal <- true
+		i.transmitAgentDespawned(&player.Agent)
+		i.log.Debug().Uint64("playerUuid", player.uuid).Msg("player removed from instance")
+		if i.definition.Explorable && len(i.players) == 0 {
+			i.log.Debug().Msg("explorable instance shutting down due to inactivity")
+			i.gracefulShutdownSignal <- true
 		}
 	}
+	return nil
 }
 
-func NewInstance(mapId int, definition instanceDefinition) (i Instance) {
-	i = Instance{
+func NewInstance(mapId int, definition instanceDefinition) *Instance {
+	i := &Instance{
 		definition:             definition,
 		uuid:                   rand.Uint64(),
 		tag:                    rand.Uint32(),
@@ -252,7 +265,8 @@ func NewInstance(mapId int, definition instanceDefinition) (i Instance) {
 		agents:                 make([]Agent, 0),
 		gracefulShutdownSignal: make(chan bool, 1),
 		forceShutdownSignal:    make(chan bool, 1),
-		mu:                     &sync.RWMutex{},
+		cmdCh:                  make(chan instanceMsg, 64),
+		done:                   make(chan struct{}),
 	}
 	i.log = log.With().Uint64("uuid", i.uuid).Int("mapId", i.mapId).Logger()
 	if i.definition.Explorable {
@@ -267,7 +281,7 @@ func NewInstance(mapId int, definition instanceDefinition) (i Instance) {
 			continue
 		}
 		ag := Agent{
-			agentId:             i.NextFreeAgentId(),
+			agentId:             i.nextFreeAgentId(),
 			definitionIndex:     agentDefinition.DefinitionIndex,
 			name:                agentDefinition.Name,
 			posX:                agentToSpawn.SpawnPoint[0],
@@ -288,56 +302,82 @@ func NewInstance(mapId int, definition instanceDefinition) (i Instance) {
 		i.agents = append(i.agents, ag)
 		//log.Info().Str("name", agentToSpawn.Name).Int("agentId", ag.agentId).Msg("added agent!")
 	}
-	return
+	go i.actorLoop()
+	return i
 }
 
-func (i *Instance) MainLoop() {
+// gameTick is the instance actor's fixed timestep. Matching the old movement
+// tick, gameplay (input, movement, chat) is processed at this cadence.
+const gameTick = 50 * time.Millisecond
+
+// actorLoop is the instance's single owner goroutine. It executes lifecycle
+// messages from the mailbox (add/remove/transfer) as they arrive, and the
+// game tick, which runs the tick-batched two-phase model: phase 1 drains each
+// player's connection buffer into intent fields, phase 2 applies that intent
+// to world state, then outbound buffers are flushed. The mailbox messages are
+// control-plane only and may block a caller for up to one tick.
+func (i *Instance) actorLoop() {
+	ping := time.NewTicker(5 * time.Second)
+	game := time.NewTicker(gameTick)
+	defer ping.Stop()
+	defer game.Stop()
+	defer func() {
+		i.alive = false
+		i.finish()
+	}()
 	for {
 		select {
+		case m := <-i.cmdCh:
+			i.inActor.Store(true)
+			i.apply(m)
+			i.flushPlayers()
+			i.inActor.Store(false)
+		case <-ping.C:
+			i.inActor.Store(true)
+			i.pingPlayers()
+			i.flushPlayers()
+			i.inActor.Store(false)
+		case <-game.C:
+			i.inActor.Store(true)
+			i.gameTick()
+			i.flushPlayers()
+			i.inActor.Store(false)
 		case <-i.gracefulShutdownSignal:
 			i.log.Debug().Msg("graceful shutdown")
-			i.mu.Lock()
-			i.alive = false
-			i.mu.Unlock()
 			return
 		case <-i.forceShutdownSignal:
 			i.log.Debug().Msg("force shutdown")
-			i.mu.Lock()
-			i.alive = false
-			i.mu.Unlock()
 			return
-		default:
-			time.Sleep(time.Second * 5)
-			i.mu.RLock()
-			for _, player := range i.players {
-				if player.conn.IsClosed() {
-					continue
-				}
-				player.EnqueuePacket(MarshalServerPingRequest(30, 100)) // dont know what these values mean
-			}
-			i.mu.RUnlock()
 		}
 	}
 }
 
-func (i *Instance) isAlive() bool {
-	i.mu.RLock()
-	defer i.mu.RUnlock()
-	return i.alive
+func (i *Instance) pingPlayers() {
+	for _, player := range i.players {
+		if player.conn.IsClosed() {
+			continue
+		}
+		player.EnqueuePacket(MarshalServerPingRequest(30, 100)) // dont know what these values mean
+	}
 }
 
-func (i *Instance) MovementTickLoop() {
-	for i.isAlive() {
-		time.Sleep(time.Millisecond * 50)
-		i.mu.RLock()
-		for _, player := range i.players {
-			if player.conn.IsClosed() {
-				continue
-			}
-			player.EnqueuePacket(MarshalAgentMovementTick(50))
-		}
-		i.mu.RUnlock()
+// finish closes the shutdown channel so pending deliver calls unblock. It is
+// idempotent.
+func (i *Instance) finish() {
+	i.closeOnce.Do(func() {
+		close(i.done)
+	})
+}
+
+// Shutdown stops the actor goroutine. Used by tests; persistent instances live
+// for the lifetime of the process and explorable instances shut down on their
+// own when they empty.
+func (i *Instance) Shutdown() {
+	select {
+	case i.forceShutdownSignal <- true:
+	default:
 	}
+	i.finish()
 }
 
 func contains(slice []int, val any) bool {
@@ -354,14 +394,15 @@ func randomFloatAround(start, rangeVal float32) float32 {
 	return start + offset
 }
 
-func (i *Instance) NextFreeAgentId() int {
+func (i *Instance) nextFreeAgentId() int {
 	return len(i.agents) + 1
 }
-func (i *Instance) NextFreePlayerId() int {
+
+func (i *Instance) nextFreePlayerId() int {
 	return len(i.players) + 1
 }
 
-func (i *Instance) NextSpawnPoint() (x, y float32, plane int) {
+func (i *Instance) nextSpawnPoint() (x, y float32, plane int) {
 	nSpawnPoints := len(i.definition.SpawnPoints)
 	// Special case for dev:
 	if nSpawnPoints == 0 {
@@ -414,33 +455,33 @@ func convertEncName(in string) []byte {
 	return conv
 }
 
-func (i *Instance) AddPlayer(player *Player) {
-	i.mu.Lock()
-	player.agentId = i.NextFreeAgentId()
-	player.playerId = i.NextFreePlayerId()
-	player.connectedInstance = i
-	i.players = append(i.players, player)
-	i.agents = append(i.agents, player.Agent)
-	i.mu.Unlock()
-	i.log.Info().Int("count", len(i.players)).Msgf("%s added to instance", player.name)
+func (i *Instance) addPlayer(p *Player) error {
+	i.assertActor()
+	p.agentId = i.nextFreeAgentId()
+	p.playerId = i.nextFreePlayerId()
+	p.connectedInstance.Store(i)
+	i.players = append(i.players, p)
+	i.agents = append(i.agents, p.Agent)
+	i.playerCount.Store(int64(len(i.players)))
+	i.log.Info().Int("count", len(i.players)).Msgf("%s added to instance", p.name)
 	for idx, v := range i.players {
 		i.log.Debug().Int("index", idx).Int("playerID", v.playerId).Int("agentID", v.agentId).Str("name", v.name).Msg("player in instance")
 	}
-	player.EnqueuePacket(MarshalInstanceLoadHead())
-	player.posX, player.posY, player.plane = i.NextSpawnPoint()
-	player.sendWorldInstanceHead()
-	player.sendWorldInstanceBody()
-	player.EnqueuePacket(MarshalUpdateCurrentMapId(i.mapId))
-	player.EnqueuePacket(MarshalReadyForMapSpawn())
-	player.EnqueuePacket(MarshalInstanceManifestDone(0, i.mapId, 0))
-	player.SendWelcomeChatMessage()
+	p.EnqueuePacket(MarshalInstanceLoadHead())
+	p.posX, p.posY, p.plane = i.nextSpawnPoint()
+	p.sendWorldInstanceHead()
+	p.sendWorldInstanceBody()
+	p.EnqueuePacket(MarshalReadyForMapSpawn())
+	p.EnqueuePacket(MarshalUpdateCurrentMapId(i.mapId))
+	p.EnqueuePacket(MarshalInstanceManifestDone(0, i.mapId, 0))
+	p.SendWelcomeChatMessage()
 
-	i.TransmitPlayerToOthers(player)
+	i.transmitPlayerToOthers(p)
+	return nil
 }
 
-func (i *Instance) SendActiveAgents(to *Player) {
-	i.mu.RLock()
-	defer i.mu.RUnlock()
+func (i *Instance) sendActiveAgents(to *Player) error {
+	i.assertActor()
 
 	// Let's send agent info now.
 	transmittedDefinitions := make([]int, 0)
@@ -478,32 +519,34 @@ func (i *Instance) SendActiveAgents(to *Player) {
 		))
 		i.log.Info().Int("agentId", ag.agentId).Int("ToAgId", to.agentId).Int("ToPlayerId", to.playerId).Msg("Transmitted Agent")
 	}
-	i.TransmitOtherPlayersToPlayer(to)
+	i.transmitOtherPlayersToPlayer(to)
+	return nil
 }
 
-func (i *Instance) TransmitOtherPlayersToPlayer(to *Player) {
-	i.mu.RLock()
-	defer i.mu.RUnlock()
+func (i *Instance) transmitOtherPlayersToPlayer(to *Player) error {
+	i.assertActor()
 	for _, other := range i.players {
 		if other.playerId == to.playerId {
 			continue
 		}
-		i.TransmitPlayer(to, other)
+		i.transmitPlayer(to, other)
 	}
+	return nil
 }
 
-func (i *Instance) TransmitPlayerToOthers(player *Player) {
-	i.mu.RLock()
-	defer i.mu.RUnlock()
+func (i *Instance) transmitPlayerToOthers(player *Player) error {
+	i.assertActor()
 	for _, other := range i.players {
 		if other.playerId == player.playerId {
 			continue
 		}
-		i.TransmitPlayer(other, player)
+		i.transmitPlayer(other, player)
 	}
+	return nil
 }
 
-func (i *Instance) TransmitPlayer(to *Player, other *Player) {
+func (i *Instance) transmitPlayer(to *Player, other *Player) error {
+	i.assertActor()
 	to.EnqueuePacket(MarshalAgentCreatePlayer(other.playerId, other.agentId, int(other.dbChar.AppearanceBits), other.name))
 	to.EnqueuePacket(MarshalAgentUpdateProfession(other.agentId, other.primaryProfession, other.secondaryProfession))
 	to.EnqueuePacket(MarshalAgentAttrUpdateInt(36, other.agentId, other.level))
@@ -525,11 +568,11 @@ func (i *Instance) TransmitPlayer(to *Player, other *Player) {
 	))
 	// What's this?
 	to.EnqueuePacket(MarshalAgentAttrUpdateInt(30, other.agentId, other.playerId))
+	return nil
 }
 
-func (i *Instance) UpdateRequestedPlayerPos(player *Player, x float32, y float32) {
-	i.mu.RLock()
-	defer i.mu.RUnlock()
+func (i *Instance) updateRequestedPlayerPos(player *Player, x float32, y float32) error {
+	i.assertActor()
 	found := false
 	for _, cur := range i.players {
 		if cur.playerId == player.playerId {
@@ -539,7 +582,7 @@ func (i *Instance) UpdateRequestedPlayerPos(player *Player, x float32, y float32
 	}
 	if !found {
 		i.log.Warn().Msg("refusing to update player pos for a player not in this instance")
-		return
+		return nil
 	}
 	// The player requested a new position -- for now just update the instance definition and transmit movement update to everyone.
 	player.posX = x
@@ -547,28 +590,23 @@ func (i *Instance) UpdateRequestedPlayerPos(player *Player, x float32, y float32
 	for _, other := range i.players {
 		other.EnqueuePacket(MarshalAgentUpdatePosition(player.agentId, x, y, player.plane))
 	}
+	return nil
 }
 
-func (i *Instance) BroadcastGeneric(packet GwPacket.Out) {
-	i.mu.RLock()
-	defer i.mu.RUnlock()
-
+func (i *Instance) broadcastGeneric(packet GwPacket.Out) error {
+	i.assertActor()
 	for _, other := range i.players {
 		other.EnqueuePacket(packet)
 	}
-}
-
-func (i *Instance) BroadcastLocalChat(from *Player, message string) {
-	packet := MarshalChatMessageCore(fmt.Sprintf("\u0108\u0107%s\u0001", message))
-	packet.Merge(MarshalChatMessageLocal(from.playerId, 3))
-	i.BroadcastGeneric(packet)
+	return nil
 }
 
 func (i *Instance) GetTag() uint32 {
 	return i.tag
 }
 
-func (i *Instance) TransferPlayerToNewMap(player *Player, newMapId int) error {
+func (i *Instance) transferPlayerToNewMap(player *Player, newMapId int) error {
+	i.assertActor()
 	// TODO: check valid map
 	// TODO: check player has map unlocked
 	// TODO: check same continent
@@ -577,8 +615,11 @@ func (i *Instance) TransferPlayerToNewMap(player *Player, newMapId int) error {
 
 	inst, err := InstanceManager.GetOrCreateInstanceByMapId(newMapId)
 	if inst == nil || err != nil {
-		// something went wrong - decline connection
 		player.log.Error().Err(err).Msg("unable to create instance")
+		// Remove the player from this instance first (we are on the actor) so
+		// that Disconnect's RemovePlayer path sees a nil connectedInstance and
+		// does not try to submit another blocking command to this actor.
+		i.removePlayer(player)
 		player.Disconnect()
 		return nil
 	}
@@ -587,9 +628,6 @@ func (i *Instance) TransferPlayerToNewMap(player *Player, newMapId int) error {
 	instanceTag := inst.GetTag()
 	securityTag := GenerateConnectionTokenForInstance(instanceTag, true, player.dbChar.UUID, player.dbAcc.UUID, player.conn.clientIP())
 
-	// Hold the old instance lock while removing the player and updating their state,
-	// so no other goroutine (movement tick, main loop) can observe an intermediate state.
-	i.mu.Lock()
 	// Remove player from current instance
 	removed := false
 	for idx, v := range i.players {
@@ -603,11 +641,11 @@ func (i *Instance) TransferPlayerToNewMap(player *Player, newMapId int) error {
 		}
 	}
 	// Clear connectedInstance before any disconnect path can trigger a second RemovePlayer
-	player.connectedInstance = nil
-	i.mu.Unlock()
-	// Broadcast despawn AFTER releasing the write lock to avoid deadlock.
+	player.connectedInstance.Store(nil)
+	i.playerCount.Store(int64(len(i.players)))
+	// Broadcast despawn
 	if removed {
-		i.TransmitAgentDespawned(&player.Agent)
+		i.transmitAgentDespawned(&player.Agent)
 	}
 
 	// Send transfer packets to client (no lock needed — these go to the client socket)
@@ -622,7 +660,7 @@ func (i *Instance) TransferPlayerToNewMap(player *Player, newMapId int) error {
 	player.conn.EnqueuePacket(MarshalUpdateCurrentMapId(newMapId))
 
 	// Point player at the new instance
-	player.connectedInstance = inst
+	player.connectedInstance.Store(inst)
 	if err := db.SaveCharacterMapTransfer(player.dbChar.ID, uint16(newMapId), player.itemMgr.BuildDBBags()); err != nil {
 		player.log.Error().Err(err).Msg("unable to save character map transfer data")
 		return err
@@ -633,4 +671,25 @@ func (i *Instance) TransferPlayerToNewMap(player *Player, newMapId int) error {
 
 func (i *Instance) IsExplorable() bool {
 	return i.definition.Explorable
+}
+
+func (i *Instance) loadSpawnPoint(p *Player) error {
+	i.assertActor()
+	p.sendInstanceLoadSpawnPoint()
+	return nil
+}
+
+func (i *Instance) loadRequestPlayers(p *Player, payload InstanceLoadRequestPlayers) error {
+	i.assertActor()
+	p.sendInstanceLoadRequestPlayers(payload)
+	return nil
+}
+
+// assertActor panics if instance state is touched from outside the actor
+// goroutine. It is a debug aid only; the real invariant is that wrappers in
+// instance_msg.go are the sole entry points into world code.
+func (i *Instance) assertActor() {
+	if !i.inActor.Load() {
+		panic("gameservice: instance state accessed outside the instance actor goroutine")
+	}
 }
