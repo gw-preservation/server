@@ -429,7 +429,7 @@ func UnmarshalCreateCharRequestPlayer(in *GwPacket.In) (resp CreateCharRequestPl
 	}
 	return
 }
-func UnmarshalCreateCharRequestArmors(in *GwPacket.In) (resp CreateCharRequestArmors, err error) {
+func UnmarshalCreateCharRequestItems(in *GwPacket.In) (resp CreateCharRequestItems, err error) {
 	if in.Opcode() != 0x8089 {
 		err = errors.New("bad opcode")
 		return
@@ -524,6 +524,23 @@ func UnmarshalPartyInvite(in *GwPacket.In) (resp PartyInvite, err error) {
 	resp.name, err = in.UTF16WithLengthPrefix(20)
 	if err != nil {
 		err = fmt.Errorf("read name: %w", err)
+		return
+	}
+	return
+}
+func UnmarshalInstanceLoadRequestItems(in *GwPacket.In) (resp InstanceLoadRequestItems, err error) {
+	if in.Opcode() != 0x8090 {
+		err = errors.New("bad opcode")
+		return
+	}
+	resp.unk1, err = in.Uint8()
+	if err != nil {
+		err = fmt.Errorf("read unk1: %w", err)
+		return
+	}
+	resp.unk2, err = in.Uint8()
+	if err != nil {
+		err = fmt.Errorf("read unk2: %w", err)
 		return
 	}
 	return

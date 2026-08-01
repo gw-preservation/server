@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 	"unicode/utf16"
 
@@ -28,20 +29,15 @@ func init() {
 type HexStr int
 
 func (h *HexStr) UnmarshalJSON(data []byte) error {
-	// First unmarshal the JSON string
 	var s string
 	if err := json.Unmarshal(data, &s); err != nil {
 		return err
 	}
-
-	// Optional: allow both "0x..." and plain hex
 	s = strings.TrimPrefix(strings.ToLower(s), "0x")
-
 	v, err := strconv.ParseInt(s, 16, 0)
 	if err != nil {
 		return err
 	}
-
 	*h = HexStr(v)
 	return nil
 }
@@ -76,7 +72,6 @@ type agentDefinition struct {
 }
 
 func InitializeInstances() error {
-	// Annotate NPC agent definitions with an index
 	index := 0
 	for name := range instanceDefinitions.Agents {
 		def := instanceDefinitions.Agents[name]
@@ -85,19 +80,12 @@ func InitializeInstances() error {
 		index++
 	}
 
-	// Now start up all persistent instances:
 	for mapId, definition := range instanceDefinitions.Instances {
 		if definition.Explorable {
 			continue
 		}
-
-		nSpawnPoints := len(definition.SpawnPoints)
-		if nSpawnPoints == 0 {
-			//log.Error().Int("mapId", mapId).Msg("map definition has no spawn points")
-		}
-
 		inst := NewInstance(mapId, definition)
-		InstanceManager.AddInstance(&inst)
+		InstanceManager.AddInstance(inst)
 	}
 	log.Info().Int("count", len(InstanceManager.instances)).Msg("persistent instances created")
 	return nil
@@ -138,14 +126,11 @@ var InstanceManager = instanceManager{
 }
 
 func (im *instanceManager) GetOrCreateInstanceByMapId(mapId int) (*Instance, error) {
-	// Check definition for mapId
 	definition, ok := instanceDefinitions.Instances[mapId]
 	if !ok {
 		return nil, fmt.Errorf("missing instance definition for map id %d", mapId)
 	}
-	var inst Instance
 	if !definition.Explorable {
-		// Public, persistent instance
 		existingInst, hasExistingInst := im.GetInstanceByMapId(mapId)
 		if !hasExistingInst {
 			log.Error().Int("mapId", mapId).Msg("missing persistent instance")
@@ -153,10 +138,9 @@ func (im *instanceManager) GetOrCreateInstanceByMapId(mapId int) (*Instance, err
 		}
 		return existingInst, nil
 	}
-	// Private instance -- create one now:
-	inst = NewInstance(mapId, definition)
-	im.AddInstance(&inst)
-	return &inst, nil
+	inst := NewInstance(mapId, definition)
+	im.AddInstance(inst)
+	return inst, nil
 }
 
 func (im *instanceManager) BroadcastPacketToAllPlayers(packet GwPacket.Out) {
@@ -168,11 +152,11 @@ func (im *instanceManager) BroadcastPacketToAllPlayers(packet GwPacket.Out) {
 }
 
 func (im *instanceManager) NumPlayersOnline() int {
-	im.mu.Lock()
-	defer im.mu.Unlock()
+	im.mu.RLock()
+	defer im.mu.RUnlock()
 	x := 0
 	for _, inst := range im.instances {
-		x += len(inst.players)
+		x += int(inst.playerCount.Load())
 	}
 	return x
 }
@@ -192,8 +176,6 @@ func (im *instanceManager) AddInstance(instance *Instance) {
 	im.mu.Lock()
 	im.instances[instance.uuid] = instance
 	im.mu.Unlock()
-	go instance.MainLoop()
-	go instance.MovementTickLoop()
 }
 
 type Instance struct {
@@ -208,9 +190,29 @@ type Instance struct {
 	forceShutdownSignal    chan bool
 	log                    zerolog.Logger
 	mu                     *sync.RWMutex
+
+	pendingJoins chan *Player
+	done         chan struct{}
+	closeOnce    sync.Once
+	inActor      atomic.Bool
+	playerCount  atomic.Int64
+}
+
+func (i *Instance) assertActor() {
+	if !i.inActor.Load() {
+		panic("assertActor: called outside actor goroutine")
+	}
+}
+
+func (i *Instance) AcceptPlayer(p *Player) {
+	select {
+	case i.pendingJoins <- p:
+	case <-i.done:
+	}
 }
 
 func (inst *Instance) TransmitAgentDespawned(agent *Agent) {
+	inst.assertActor()
 	inst.mu.RLock()
 	defer inst.mu.RUnlock()
 	for _, other := range inst.players {
@@ -219,18 +221,20 @@ func (inst *Instance) TransmitAgentDespawned(agent *Agent) {
 }
 
 func (inst *Instance) RemovePlayer(player *Player) {
+	inst.assertActor()
 	inst.mu.Lock()
 	removed := false
-	for i, v := range inst.players {
+	for idx, v := range inst.players {
 		if v == nil {
 			continue
 		}
 		if player.uuid == v.uuid {
-			inst.players = slices.Delete(inst.players, i, i+1)
+			inst.players = slices.Delete(inst.players, idx, idx+1)
 			removed = true
 			break
 		}
 	}
+	inst.playerCount.Store(int64(len(inst.players)))
 	inst.mu.Unlock()
 	if removed {
 		inst.TransmitAgentDespawned(&player.Agent)
@@ -242,8 +246,15 @@ func (inst *Instance) RemovePlayer(player *Player) {
 	}
 }
 
-func NewInstance(mapId int, definition instanceDefinition) (i Instance) {
-	i = Instance{
+func NewInstance(mapId int, definition instanceDefinition) *Instance {
+	i := newInstance(mapId, definition)
+	go i.actorLoop()
+	return i
+}
+
+// newInstance is for headless tests or as a helper for NewInstance.
+func newInstance(mapId int, definition instanceDefinition) *Instance {
+	i := &Instance{
 		definition:             definition,
 		uuid:                   rand.Uint64(),
 		tag:                    rand.Uint32(),
@@ -253,13 +264,14 @@ func NewInstance(mapId int, definition instanceDefinition) (i Instance) {
 		gracefulShutdownSignal: make(chan bool, 1),
 		forceShutdownSignal:    make(chan bool, 1),
 		mu:                     &sync.RWMutex{},
+		pendingJoins:           make(chan *Player, 16),
+		done:                   make(chan struct{}),
 	}
 	i.log = log.With().Uint64("uuid", i.uuid).Int("mapId", i.mapId).Logger()
 	if i.definition.Explorable {
 		i.log.Debug().Msg("created a new explorable instance")
 	}
 
-	// Set up agents!
 	for _, agentToSpawn := range i.definition.Agents {
 		agentDefinition, ok := instanceDefinitions.Agents[agentToSpawn.Name]
 		if !ok {
@@ -283,61 +295,228 @@ func NewInstance(mapId int, definition instanceDefinition) (i Instance) {
 			secondaryProfession: 0,
 			level:               agentToSpawn.Level,
 			fileId:              agentDefinition.FileId,
-			unkPropertiesBytes:  agentDefinition.UnkPropertiesBytes, // Really what is this? you can set to all 0 and it seems the same?
+			unkPropertiesBytes:  agentDefinition.UnkPropertiesBytes,
 		}
 		i.agents = append(i.agents, ag)
-		//log.Info().Str("name", agentToSpawn.Name).Int("agentId", ag.agentId).Msg("added agent!")
 	}
-	return
+	return i
 }
 
-func (i *Instance) MainLoop() {
+const gameTick = 50 * time.Millisecond
+
+func (i *Instance) actorLoop() {
+	ping := time.NewTicker(5 * time.Second)
+	game := time.NewTicker(gameTick)
+	defer ping.Stop()
+	defer game.Stop()
+	defer func() {
+		i.alive = false
+		i.finish()
+	}()
 	for {
 		select {
+		case <-ping.C:
+			i.pingPlayers()
+			i.flushPlayers()
+		case <-game.C:
+			i.gameTick()
 		case <-i.gracefulShutdownSignal:
 			i.log.Debug().Msg("graceful shutdown")
-			i.mu.Lock()
-			i.alive = false
-			i.mu.Unlock()
 			return
 		case <-i.forceShutdownSignal:
 			i.log.Debug().Msg("force shutdown")
-			i.mu.Lock()
-			i.alive = false
-			i.mu.Unlock()
 			return
+		}
+	}
+}
+
+func (i *Instance) gameTick() {
+	i.inActor.Store(true)
+	defer i.inActor.Store(false)
+
+	// Phase 0: admit pending joins.
+drainJoins:
+	for {
+		select {
+		case p := <-i.pendingJoins:
+			if !p.conn.IsClosed() {
+				i.AddPlayer(p)
+			}
 		default:
-			time.Sleep(time.Second * 5)
-			i.mu.RLock()
-			for _, player := range i.players {
-				if player.conn.IsClosed() {
-					continue
-				}
-				player.EnqueuePacket(MarshalServerPingRequest(30, 100)) // dont know what these values mean
-			}
-			i.mu.RUnlock()
+			break drainJoins
 		}
+	}
+
+	// Phase 1: drain each player's buffered input (handlers record intent).
+	for _, p := range i.players {
+		if !p.conn.HandedOver() {
+			continue
+		}
+		if err := p.conn.DrainInInstance(); err != nil {
+			i.log.Error().Err(err).Uint64("playerUuid", p.uuid).Msg("drain failed, disconnecting player")
+			p.pendingDisconnect = true
+		}
+	}
+
+	// Phase 2: apply requests, collect disconnects.
+	var disconnect []*Player
+	for _, p := range i.players {
+		if p.conn.IsClosed() {
+			disconnect = append(disconnect, p)
+			continue
+		}
+		if i.processPlayer(p) {
+			disconnect = append(disconnect, p)
+		}
+	}
+
+	// Phase 3: movement tick broadcast.
+	for _, p := range i.players {
+		if p.conn.IsClosed() {
+			continue
+		}
+		p.EnqueuePacket(MarshalAgentMovementTick(50))
+	}
+
+	// Flush outbound, then disconnect.
+	i.flushPlayers()
+	for _, p := range disconnect {
+		i.RemovePlayer(p)
+		p.OnUserDisconnected()
+		p.conn.Close()
 	}
 }
 
-func (i *Instance) isAlive() bool {
-	i.mu.RLock()
-	defer i.mu.RUnlock()
-	return i.alive
+func (i *Instance) processPlayer(p *Player) bool {
+	i.assertActor()
+	if p.pendingDisconnect {
+		p.pendingDisconnect = false
+		return true
+	}
+
+	if m := p.moveTo; m != nil {
+		p.moveTo = nil
+		i.UpdateRequestedPlayerPos(p, m.x, m.y)
+		p.EnqueuePacket(MarshalMoveToPointS2C(p.agentId, m.x, m.y, 0))
+	}
+
+	if p.cancelInteractRequested {
+		p.cancelInteractRequested = false
+	}
+
+	if it := p.interact; it != nil {
+		p.interact = nil
+		p.SendChatWarning(fmt.Sprintf("missing interaction definition for agent=%d,action=%d", it.agentId, it.action))
+		p.log.Debug().Int("target", it.agentId).Int("action", it.action).Msg("InteractAgent")
+	}
+
+	if t := p.target; t != nil {
+		p.target = nil
+		p.log.Debug().Int("target", t.targetAgentId).Str("playerName", p.name).Msg("UpdateTarget")
+	}
+
+	if e := p.equip; e != nil {
+		p.equip = nil
+		p.log.Info().Int("itemLocalId", e.itemLocalId).Msg("EquipItem")
+		p.TryEquipItem(e.itemLocalId)
+	}
+
+	if d := p.destroy; d != nil {
+		p.destroy = nil
+		p.log.Info().Int("itemLocalId", d.itemLocalId).Msg("DestroyItem")
+		if err := p.itemMgr.RemoveItemByLocalId(d.itemLocalId); err != nil {
+			p.log.Error().Err(err).Int("itemLocalId", d.itemLocalId).Msg("DestroyItem")
+		}
+	}
+
+	if p.loadSpawnRequested {
+		p.loadSpawnRequested = false
+		p.sendInstanceLoadSpawnPoint()
+	}
+
+	if payload := p.loadPlayers; payload != nil {
+		p.loadPlayers = nil
+		p.sendInstanceLoadRequestPlayers(*payload)
+	}
+
+	if m := p.mapTravel; m != nil {
+		p.mapTravel = nil
+		i.log.Info().Int("mapId", m.mapId).Msg("MapTravel")
+		if err := i.TransferPlayerToNewMap(p, m.mapId); err != nil {
+			p.log.Error().Err(err).Int("mapId", m.mapId).Msg("MapTravel")
+		}
+	}
+
+	if c := p.chat; c != nil {
+		p.chat = nil
+		i.applyChat(p, c)
+	}
+
+	return false
 }
 
-func (i *Instance) MovementTickLoop() {
-	for i.isAlive() {
-		time.Sleep(time.Millisecond * 50)
-		i.mu.RLock()
-		for _, player := range i.players {
-			if player.conn.IsClosed() {
-				continue
-			}
-			player.EnqueuePacket(MarshalAgentMovementTick(50))
-		}
-		i.mu.RUnlock()
+func (i *Instance) applyChat(p *Player, c *ChatMessage) {
+	i.assertActor()
+	msg := c.message
+	if len(msg) <= 1 {
+		return
 	}
+	p.log.Info().Int("ag", c.agentId).Str("msg", msg).Msg("ChatMessage")
+
+	channel := msg[0]
+	remainder := msg[1:]
+	switch channel {
+	case '!':
+		i.BroadcastLocalChat(p, remainder)
+	case '/':
+		words := strings.Fields(remainder)
+		if len(words) == 0 {
+			p.SendChatWarning("Invalid command syntax")
+			return
+		}
+		command := words[0]
+		args := words[1:]
+		if emote, exists := GetEmoteByCommand(command); exists {
+			i.BroadcastGeneric(MarshalEmote(p.playerId, p.agentId, emote))
+			return
+		}
+		HandleCommand(p, command, remainder, args)
+	}
+}
+
+func (i *Instance) flushPlayers() {
+	i.assertActor()
+	for _, p := range i.players {
+		if p.conn.IsClosed() {
+			continue
+		}
+		// don't stall tick cycle if flush takes some time, call async.
+		p.conn.FlushAsync()
+	}
+}
+
+func (i *Instance) pingPlayers() {
+	i.assertActor()
+	for _, player := range i.players {
+		if player.conn.IsClosed() {
+			continue
+		}
+		player.EnqueuePacket(MarshalServerPingRequest(30, 100))
+	}
+}
+
+func (i *Instance) finish() {
+	i.closeOnce.Do(func() {
+		close(i.done)
+	})
+}
+
+func (i *Instance) Shutdown() {
+	select {
+	case i.forceShutdownSignal <- true:
+	default:
+	}
+	i.finish()
 }
 
 func contains(slice []int, val any) bool {
@@ -363,14 +542,12 @@ func (i *Instance) NextFreePlayerId() int {
 
 func (i *Instance) NextSpawnPoint() (x, y float32, plane int) {
 	nSpawnPoints := len(i.definition.SpawnPoints)
-	// Special case for dev:
 	if nSpawnPoints == 0 {
 		x = 0.0
 		y = 0.0
 		plane = 0
 		return
 	}
-	// Choose a random spawn point:
 	randIndex := rand.Intn(nSpawnPoints)
 	spawnPoint := i.definition.SpawnPoints[randIndex]
 	x = randomFloatAround(spawnPoint[0], 100.0)
@@ -380,10 +557,7 @@ func (i *Instance) NextSpawnPoint() (x, y float32, plane int) {
 }
 
 func parseUTF16HexString(s string) (string, error) {
-	// Split the input string by space
 	parts := strings.Fields(s)
-
-	// Create a slice of uint16 to store code units
 	var codeUnits []uint16
 	for _, part := range parts {
 		val, err := strconv.ParseUint(part, 16, 16)
@@ -392,19 +566,14 @@ func parseUTF16HexString(s string) (string, error) {
 		}
 		codeUnits = append(codeUnits, uint16(val))
 	}
-
-	// Decode UTF-16 code units into runes
 	runes := utf16.Decode(codeUnits)
-
 	return string(runes), nil
 }
 
 func convertEncName(in string) []byte {
-	// "2d9e f878 bdbf 12e7"
 	conv := []byte{}
 	fields := strings.Fields(in)
 	for _, word := range fields {
-		// Parse the 4-digit hex word into a uint16
 		val, err := strconv.ParseUint(word, 16, 16)
 		if err != nil {
 			panic(fmt.Errorf("invalid hex word %q: %w", word, err))
@@ -415,12 +584,14 @@ func convertEncName(in string) []byte {
 }
 
 func (i *Instance) AddPlayer(player *Player) {
+	i.assertActor()
 	i.mu.Lock()
 	player.agentId = i.NextFreeAgentId()
 	player.playerId = i.NextFreePlayerId()
 	player.connectedInstance = i
 	i.players = append(i.players, player)
 	i.agents = append(i.agents, player.Agent)
+	i.playerCount.Store(int64(len(i.players)))
 	i.mu.Unlock()
 	i.log.Info().Int("count", len(i.players)).Msgf("%s added to instance", player.name)
 	for idx, v := range i.players {
@@ -429,31 +600,22 @@ func (i *Instance) AddPlayer(player *Player) {
 	player.EnqueuePacket(MarshalInstanceLoadHead())
 	player.posX, player.posY, player.plane = i.NextSpawnPoint()
 	player.sendWorldInstanceHead()
-	player.sendWorldInstanceBody()
-	player.EnqueuePacket(MarshalUpdateCurrentMapId(i.mapId))
-	player.EnqueuePacket(MarshalReadyForMapSpawn())
-	player.EnqueuePacket(MarshalInstanceManifestDone(0, i.mapId, 0))
-	player.SendWelcomeChatMessage()
 
 	i.TransmitPlayerToOthers(player)
 }
 
 func (i *Instance) SendActiveAgents(to *Player) {
+	i.assertActor()
 	i.mu.RLock()
 	defer i.mu.RUnlock()
 
-	// Let's send agent info now.
 	transmittedDefinitions := make([]int, 0)
 	for _, ag := range i.agents {
 		if ag.isPlayer {
 			continue
 		}
 
-		// NOTE: UpdateNPCProperties and UpdateNPCModel are only transmitted for the first instance of that NPC definition
-		// It doesn't look like the client cares what goes into the NpcID property?
 		if !contains(transmittedDefinitions, ag.definitionIndex) {
-			// Original code was this:
-			//agentType := (0x2000 << 16)|(npcIdFromPacketCapture & 0xffff)
 			to.EnqueuePacket(MarshalAgentUpdateNPCProperties(ag.definitionIndex, ag.fileId, ag.primaryProfession, ag.level, convertEncName(ag.unkPropertiesBytes)))
 			to.EnqueuePacket(MarshalAgentUpdateNPCModel(ag.definitionIndex, ag.modelId))
 			transmittedDefinitions = append(transmittedDefinitions, ag.definitionIndex)
@@ -461,10 +623,6 @@ func (i *Instance) SendActiveAgents(to *Player) {
 
 		to.EnqueuePacket(MarshalAgentUpdateNPCName(ag.agentId, convertEncName(ag.encName)))
 		to.EnqueuePacket(MarshalAgentInitialEffects(ag.agentId, 0))
-		// for allegiance:
-		// Player has       0x706c6179
-		// normal NPC has   0x706C6179
-		// blocking NPC has 0x6e6f6e63
 		agentType := (0x2000 << 16) | ag.definitionIndex
 		to.EnqueuePacket(MarshalAgentSpawned(
 			ag.agentId,
@@ -482,6 +640,7 @@ func (i *Instance) SendActiveAgents(to *Player) {
 }
 
 func (i *Instance) TransmitOtherPlayersToPlayer(to *Player) {
+	i.assertActor()
 	i.mu.RLock()
 	defer i.mu.RUnlock()
 	for _, other := range i.players {
@@ -493,6 +652,7 @@ func (i *Instance) TransmitOtherPlayersToPlayer(to *Player) {
 }
 
 func (i *Instance) TransmitPlayerToOthers(player *Player) {
+	i.assertActor()
 	i.mu.RLock()
 	defer i.mu.RUnlock()
 	for _, other := range i.players {
@@ -504,6 +664,7 @@ func (i *Instance) TransmitPlayerToOthers(player *Player) {
 }
 
 func (i *Instance) TransmitPlayer(to *Player, other *Player) {
+	i.assertActor()
 	to.EnqueuePacket(MarshalAgentCreatePlayer(other.playerId, other.agentId, int(other.dbChar.AppearanceBits), other.name))
 	to.EnqueuePacket(MarshalAgentUpdateProfession(other.agentId, other.primaryProfession, other.secondaryProfession))
 	to.EnqueuePacket(MarshalAgentAttrUpdateInt(36, other.agentId, other.level))
@@ -523,11 +684,11 @@ func (i *Instance) TransmitPlayer(to *Player, other *Player) {
 		other.speed,
 		other.allegianceFlags,
 	))
-	// What's this?
 	to.EnqueuePacket(MarshalAgentAttrUpdateInt(30, other.agentId, other.playerId))
 }
 
 func (i *Instance) UpdateRequestedPlayerPos(player *Player, x float32, y float32) {
+	i.assertActor()
 	i.mu.RLock()
 	defer i.mu.RUnlock()
 	found := false
@@ -541,7 +702,6 @@ func (i *Instance) UpdateRequestedPlayerPos(player *Player, x float32, y float32
 		i.log.Warn().Msg("refusing to update player pos for a player not in this instance")
 		return
 	}
-	// The player requested a new position -- for now just update the instance definition and transmit movement update to everyone.
 	player.posX = x
 	player.posY = y
 	for _, other := range i.players {
@@ -550,6 +710,7 @@ func (i *Instance) UpdateRequestedPlayerPos(player *Player, x float32, y float32
 }
 
 func (i *Instance) BroadcastGeneric(packet GwPacket.Out) {
+	i.assertActor()
 	i.mu.RLock()
 	defer i.mu.RUnlock()
 
@@ -559,6 +720,7 @@ func (i *Instance) BroadcastGeneric(packet GwPacket.Out) {
 }
 
 func (i *Instance) BroadcastLocalChat(from *Player, message string) {
+	i.assertActor()
 	packet := MarshalChatMessageCore(fmt.Sprintf("\u0108\u0107%s\u0001", message))
 	packet.Merge(MarshalChatMessageLocal(from.playerId, 3))
 	i.BroadcastGeneric(packet)
@@ -569,60 +731,37 @@ func (i *Instance) GetTag() uint32 {
 }
 
 func (i *Instance) TransferPlayerToNewMap(player *Player, newMapId int) error {
-	// TODO: check valid map
-	// TODO: check player has map unlocked
-	// TODO: check same continent
-	// TODO: check they are party leader
-	// TODO: also transport party
-
+	i.assertActor()
 	inst, err := InstanceManager.GetOrCreateInstanceByMapId(newMapId)
 	if inst == nil || err != nil {
-		// something went wrong - decline connection
 		player.log.Error().Err(err).Msg("unable to create instance")
 		player.Disconnect()
 		return nil
 	}
 
-	// Generate a security token for the transfer
 	instanceTag := inst.GetTag()
 	securityTag := GenerateConnectionTokenForInstance(instanceTag, true, player.dbChar.UUID, player.dbAcc.UUID, player.conn.clientIP())
 
-	// Hold the old instance lock while removing the player and updating their state,
-	// so no other goroutine (movement tick, main loop) can observe an intermediate state.
-	i.mu.Lock()
-	// Remove player from current instance
-	removed := false
-	for idx, v := range i.players {
-		if v == nil {
-			continue
-		}
-		if player.uuid == v.uuid {
-			i.players = slices.Delete(i.players, idx, idx+1)
-			removed = true
-			break
-		}
-	}
-	// Clear connectedInstance before any disconnect path can trigger a second RemovePlayer
-	player.connectedInstance = nil
-	i.mu.Unlock()
-	// Broadcast despawn AFTER releasing the write lock to avoid deadlock.
-	if removed {
-		i.TransmitAgentDespawned(&player.Agent)
-	}
-
-	// Send transfer packets to client (no lock needed — these go to the client socket)
+	// Send transfer packets to client.
 	region := -2
 	player.conn.EnqueuePacket(MarshalTransferGameServerInfo([]byte{
-		0x02, 0x00, // AF_INET
-		0x17, 0xe0, // Port 6112
-		ServerIP[0], ServerIP[1], ServerIP[2], ServerIP[3], // server IP
+		0x02, 0x00,
+		0x17, 0xe0,
+		ServerIP[0], ServerIP[1], ServerIP[2], ServerIP[3],
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	}, int(instanceTag), region, newMapId, i.IsExplorable(), int(securityTag)))
 	player.conn.EnqueuePacket(MarshalUpdateCurrentMapId(newMapId))
 
-	// Point player at the new instance
-	player.connectedInstance = inst
+	// Flush othe client before closing the connection.
+	if err := player.conn.Flush(); err != nil {
+		player.log.Error().Err(err).Msg("unable to flush transfer packets")
+	}
+
+	// Close the connection. The next game tick removes the player from this
+	// instance (IsClosed check). The client then connects to the new instance.
+	player.conn.Close()
+
 	if err := db.SaveCharacterMapTransfer(player.dbChar.ID, uint16(newMapId), player.itemMgr.BuildDBBags()); err != nil {
 		player.log.Error().Err(err).Msg("unable to save character map transfer data")
 		return err

@@ -37,6 +37,21 @@ func (s *headlessSink) clientIP() string {
 	return "127.0.0.1"
 }
 
+func (s *headlessSink) HandedOver() bool {
+	return true
+}
+
+func (s *headlessSink) DrainInInstance() error {
+	return nil
+}
+
+func (s *headlessSink) Flush() error {
+	return nil
+}
+
+func (s *headlessSink) FlushAsync() {
+}
+
 func (s *headlessSink) packetsSent() [][]byte {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -48,8 +63,9 @@ func (s *headlessSink) packetsSent() [][]byte {
 }
 
 func (s *headlessSink) opcodes() []int {
-	opcodes := make([]int, 0, len(s.packets))
-	for _, p := range s.packetsSent() {
+	sent := s.packetsSent()
+	opcodes := make([]int, 0, len(sent))
+	for _, p := range sent {
 		if len(p) < 2 {
 			continue
 		}
@@ -82,39 +98,50 @@ func newTestPlayer(name string) (*Player, *headlessSink) {
 	return p, sink
 }
 
-func newTestInstance(t *testing.T) Instance {
+func newTestInstance(t *testing.T) *Instance {
 	return newTestInstanceForMap(t, 3)
 }
 
-func newTestInstanceForMap(t *testing.T, mapId int) Instance {
+func newTestInstanceForMap(t *testing.T, mapId int) *Instance {
 	t.Helper()
 	definition, ok := instanceDefinitions.Instances[mapId]
 	if !ok {
 		t.Fatalf("missing test instance definition for map id %d", mapId)
 	}
-	return NewInstance(mapId, definition)
+	inst := NewInstance(mapId, definition)
+	t.Cleanup(inst.Shutdown)
+	return inst
+}
+
+// newHeadlessInstance returns a fully-populated Instance with no actor goroutine,
+// so tests can drive the instance methods synchronously.
+func newHeadlessInstance(t *testing.T, mapId int) *Instance {
+	t.Helper()
+	definition, ok := instanceDefinitions.Instances[mapId]
+	if !ok {
+		t.Fatalf("missing test instance definition for map id %d", mapId)
+	}
+	inst := newInstance(mapId, definition)
+	inst.inActor.Store(true)
+	return inst
 }
 
 func TestAddPlayerAssignsIdsAndSetsConnectedInstance(t *testing.T) {
-	inst := newTestInstance(t)
+	inst := newHeadlessInstance(t, 3)
 	player, sink := newTestPlayer("TestPlayer")
 
 	inst.AddPlayer(player)
 
 	assert.Equal(t, 1, player.agentId)
 	assert.Equal(t, 1, player.playerId)
-	assert.Equal(t, &inst, player.connectedInstance)
+	assert.Equal(t, inst, player.connectedInstance)
 	assert.Equal(t, 1, len(inst.players))
 
-	// The load sequence is enqueued to the player's own sink.
 	assert.True(t, sink.hasOpcode(0x17b), "expected MarshalInstanceLoadHead")
-	assert.True(t, sink.hasOpcode(0x1aa), "expected MarshalReadyForMapSpawn")
-	assert.True(t, sink.hasOpcode(0x196), "expected MarshalInstanceManifestDone")
-	assert.True(t, sink.hasOpcode(0x98), "expected MarshalUpdateCurrentMapId")
 }
 
 func TestAddPlayerTransmitsPlayerToOthers(t *testing.T) {
-	inst := newTestInstance(t)
+	inst := newHeadlessInstance(t, 3)
 	first, firstSink := newTestPlayer("First")
 	second, _ := newTestPlayer("Second")
 
@@ -122,13 +149,12 @@ func TestAddPlayerTransmitsPlayerToOthers(t *testing.T) {
 	firstSink.reset()
 	inst.AddPlayer(second)
 
-	// The first player should have received the second player's create/spawn packets.
 	assert.True(t, firstSink.hasOpcode(0x58), "expected MarshalAgentCreatePlayer for second player")
 	assert.Equal(t, 2, len(inst.players))
 }
 
-func TestUpdatePositionBroadcastsMovement(t *testing.T) {
-	inst := newTestInstance(t)
+func TestUpdateRequestedPlayerPosBroadcastsMovement(t *testing.T) {
+	inst := newHeadlessInstance(t, 3)
 	bot, botSink := newTestPlayer("Bot")
 	watcher, watcherSink := newTestPlayer("Watcher")
 
@@ -137,7 +163,7 @@ func TestUpdatePositionBroadcastsMovement(t *testing.T) {
 	botSink.reset()
 	watcherSink.reset()
 
-	bot.UpdatePosition(123.5, 456.25)
+	inst.UpdateRequestedPlayerPos(bot, 123.5, 456.25)
 
 	assert.Equal(t, float32(123.5), bot.posX)
 	assert.Equal(t, float32(456.25), bot.posY)
@@ -145,23 +171,14 @@ func TestUpdatePositionBroadcastsMovement(t *testing.T) {
 	assert.True(t, botSink.hasOpcode(0x2c), "expected MarshalAgentUpdatePosition in moving player sink")
 }
 
-func TestUpdatePositionNoInstanceNoOp(t *testing.T) {
-	player, _ := newTestPlayer("Loner")
-
-	player.UpdatePosition(123.5, 456.25)
-
-	assert.Equal(t, float32(0), player.posX)
-	assert.Equal(t, float32(0), player.posY)
-}
-
-func TestUpdatePositionRejectsRemovedPlayer(t *testing.T) {
-	inst := newTestInstance(t)
+func TestUpdateRequestedPlayerPosRejectsRemovedPlayer(t *testing.T) {
+	inst := newHeadlessInstance(t, 3)
 	player, _ := newTestPlayer("Leaver")
 
 	inst.AddPlayer(player)
 	inst.RemovePlayer(player)
 
-	player.UpdatePosition(123.5, 456.25)
+	inst.UpdateRequestedPlayerPos(player, 123.5, 456.25)
 
 	assert.Equal(t, float32(0), player.posX)
 	assert.Equal(t, float32(0), player.posY)
@@ -179,7 +196,7 @@ func TestSendChatRecordsPacket(t *testing.T) {
 }
 
 func TestRemovePlayerBroadcastsDespawn(t *testing.T) {
-	inst := newTestInstance(t)
+	inst := newHeadlessInstance(t, 3)
 	bot, _ := newTestPlayer("Bot")
 	watcher, watcherSink := newTestPlayer("Watcher")
 
@@ -195,7 +212,7 @@ func TestRemovePlayerBroadcastsDespawn(t *testing.T) {
 }
 
 func TestBroadcastGenericReachesAllPlayers(t *testing.T) {
-	inst := newTestInstance(t)
+	inst := newHeadlessInstance(t, 3)
 	first, firstSink := newTestPlayer("First")
 	second, secondSink := newTestPlayer("Second")
 
@@ -211,7 +228,7 @@ func TestBroadcastGenericReachesAllPlayers(t *testing.T) {
 }
 
 func TestBroadcastLocalChatReachesAllPlayers(t *testing.T) {
-	inst := newTestInstance(t)
+	inst := newHeadlessInstance(t, 3)
 	first, firstSink := newTestPlayer("First")
 	second, secondSink := newTestPlayer("Second")
 
@@ -227,7 +244,7 @@ func TestBroadcastLocalChatReachesAllPlayers(t *testing.T) {
 }
 
 func TestSendActiveAgentsIncludesNPCsAndPlayers(t *testing.T) {
-	inst := newTestInstanceForMap(t, 165)
+	inst := newHeadlessInstance(t, 165)
 	player, playerSink := newTestPlayer("Player")
 	other, _ := newTestPlayer("Other")
 
@@ -244,7 +261,7 @@ func TestSendActiveAgentsIncludesNPCsAndPlayers(t *testing.T) {
 }
 
 func TestInstanceLoadRequestPlayersSendsSpawnSequence(t *testing.T) {
-	inst := newTestInstanceForMap(t, 165)
+	inst := newHeadlessInstance(t, 165)
 	player, sink := newTestPlayer("Player")
 
 	inst.AddPlayer(player)

@@ -146,7 +146,7 @@ type CreateCharRequestPlayer struct {
 }
 
 // opcode: 0x8089
-type CreateCharRequestArmors struct {
+type CreateCharRequestItems struct {
 }
 
 // opcode: 0x8008
@@ -181,4 +181,10 @@ type DestroyItem struct {
 // opcode: 0x80a0
 type PartyInvite struct {
 	name string //maxlen:20
+}
+
+// opcode: 0x8090
+type InstanceLoadRequestItems struct {
+	unk1 int // wire:uint8
+	unk2 int // wire:uint8
 }

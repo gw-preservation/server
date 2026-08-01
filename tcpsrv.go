@@ -146,6 +146,23 @@ func (srv tcpsrv) handleTCPConnection(conn *net.TCPConn) {
 			continue
 		}
 
+		if client, ok := transport.(*gameservice.GSConn); ok {
+			if len(buffer) > 0 {
+				if err := client.AppendIn(buffer); err != nil {
+					logger.Err(err).Str("servicer", servicerName).Msg("game input buffer overflow")
+					transport.Close()
+					return
+				}
+				buffer = nil
+			}
+			if err := client.DrainHandshake(); err != nil {
+				logger.Err(err).Str("servicer", servicerName).Msg("game handshake error")
+				transport.Close()
+				return
+			}
+			continue
+		}
+
 		// consume as many bytes as we can
 		for len(buffer) > 0 {
 			numConsumedThisTime, err := transport.HandleBytes(buffer)

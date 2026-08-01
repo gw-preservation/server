@@ -17,6 +17,10 @@ type playerConn interface {
 	IsClosed() bool
 	Close()
 	clientIP() string
+	HandedOver() bool
+	DrainInInstance() error
+	Flush() error
+	FlushAsync()
 }
 
 type Player struct {
@@ -36,6 +40,19 @@ type Player struct {
 	isTransfer bool
 	dbAcc      db.Account
 	dbChar     db.Character
+
+	pendingDisconnect       bool
+	moveTo                  *MoveToPoint
+	movement                *MovementUpdate
+	chat                    *ChatMessage
+	equip                   *EquipItem
+	destroy                 *DestroyItem
+	mapTravel               *MapTravelToOutpost
+	interact                *InteractAgent
+	cancelInteractRequested bool
+	target                  *UpdateTarget
+	loadSpawnRequested      bool
+	loadPlayers             *InstanceLoadRequestPlayers
 }
 
 func NewPlayer(conn *GSConn, logCtx zerolog.Logger) *Player {
@@ -108,13 +125,6 @@ func (p *Player) EnqueuePacket(out GwPacket.Out) {
 
 func (p *Player) Disconnect() {
 	p.conn.Close()
-}
-
-func (p *Player) UpdatePosition(x, y float32) {
-	if p.connectedInstance == nil {
-		return
-	}
-	p.connectedInstance.UpdateRequestedPlayerPos(p, x, y)
 }
 
 func (p *Player) SendChat(msg string, color int) {
@@ -204,7 +214,7 @@ func (p *Player) applyDyeToItem(lid int, item Item.Item, color int) {
 
 func (p *Player) sendInstanceLoadSpawnPoint() {
 	p.log.Debug().Msg("InstanceLoadRequestSpawnPoint")
-	inst := *p.connectedInstance
+	inst := p.connectedInstance
 	p.EnqueuePacket(MarshalInstanceLoadSpawnPoint(int(inst.definition.MapFileId), p.posX, p.posY, p.plane, false, []byte{0xcd, 0x49, 0x03, 0xcc, 0x17, 0xa7, 0xdb, 0x01}))
 }
 
@@ -386,7 +396,7 @@ func (p *Player) sendWorldInstanceHead() {
 	p.EnqueuePacket(MarshalInstanceLoadInfo(p.playerId, p.connectedInstance.mapId, p.connectedInstance.IsExplorable(), 1, 0, false))
 }
 
-func (p *Player) sendWorldInstanceBody() {
+func (p *Player) sendInstanceLoadItems() {
 	itemStreamId := 1
 	resp := MarshalItemStreamCreate(itemStreamId)
 	p.EnqueuePacket(resp)
@@ -399,7 +409,13 @@ func (p *Player) sendWorldInstanceBody() {
 	p.EnqueuePacket(MarshalItemWeaponSet(itemStreamId, 2))
 	p.EnqueuePacket(MarshalItemWeaponSet(itemStreamId, 3))
 
+	// TODO: should this next one really be here?
 	p.EnqueuePacket(MarshalHeroInfo())
+
+	p.EnqueuePacket(MarshalUpdateCurrentMapId(p.connectedInstance.mapId))
+	p.EnqueuePacket(MarshalReadyForMapSpawn())
+	p.EnqueuePacket(MarshalInstanceManifestDone(0, p.connectedInstance.mapId, 0))
+	p.SendWelcomeChatMessage()
 }
 
 func (p *Player) sendUnlockedSkills() {
