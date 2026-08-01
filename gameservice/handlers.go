@@ -270,7 +270,9 @@ func (conn *GSConn) onVerifyClientConnection(payload *VerifyClientConnection) er
 			return nil
 		}
 
-		p.connectedInstance.Store(inst)
+		// The instance is handed to the actor via ClientSeed/AddPlayer; the
+		// actor stores it on Player.connectedInstance at addPlayer time.
+		conn.verifiedInstance = inst
 	}
 	p.isTransfer = info.IsTransfer
 	verified := false

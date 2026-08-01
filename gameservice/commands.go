@@ -5,6 +5,11 @@ import (
 	"strings"
 )
 
+// commandHandler runs on the instance actor (chat/commands are applied in
+// phase 2 of the game tick). i is the actor-owned instance: world-mutating
+// commands (e.g. travel) call its impls directly — never the blocking
+// deliver wrappers, which would deadlock on the actor. Handlers that only
+// touch the player or send packets ignore i.
 type commandHandler func(i *Instance, p *Player, args []string) bool
 
 func HandleCommand(i *Instance, p *Player, command string, fullInput string, args []string) bool {

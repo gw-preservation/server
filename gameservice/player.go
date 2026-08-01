@@ -6,7 +6,6 @@ import (
 	GwPacket "gw1/server/gwpacket"
 	Item "gw1/server/item"
 	"math/rand"
-	"sync/atomic"
 
 	"github.com/rs/zerolog"
 )
@@ -34,7 +33,11 @@ type Player struct {
 	playerId           int
 	conn               playerConn
 	questBytes         []byte
-	connectedInstance  atomic.Pointer[Instance]
+	// connectedInstance is the instance actor that owns this player. It is
+	// written and read only by that actor (addPlayer/removePlayer/transfer);
+	// connection goroutines never touch it — the handshake records the instance
+	// on the GSConn, and Close() relies on the actor's tick to discover leaves.
+	connectedInstance  *Instance
 	log                zerolog.Logger
 	readyForAgentTicks bool // TODO: refactor into LoadingState / ReadyState
 	xp                 int
@@ -226,7 +229,7 @@ func (p *Player) applyDyeToItem(lid int, item Item.Item, color int) {
 
 func (p *Player) sendInstanceLoadSpawnPoint() {
 	p.log.Debug().Msg("InstanceLoadRequestSpawnPoint")
-	inst := p.connectedInstance.Load()
+	inst := p.connectedInstance
 	p.EnqueuePacket(MarshalInstanceLoadSpawnPoint(int(inst.definition.MapFileId), p.posX, p.posY, p.plane, false, []byte{0xcd, 0x49, 0x03, 0xcc, 0x17, 0xa7, 0xdb, 0x01}))
 }
 
@@ -255,7 +258,7 @@ func (p *Player) sendWorldSyncData() {
 	p.sendUnlockedPvpHeroes()
 	p.sendQuestInfoSync()
 	p.sendMapsUnlockedSync()
-	switch p.connectedInstance.Load().definition.Expansion {
+	switch p.connectedInstance.definition.Expansion {
 	case "factions":
 		p.sendCartographyDataFactions()
 	case "prophecies", "eotn":
@@ -265,7 +268,7 @@ func (p *Player) sendWorldSyncData() {
 	case "presearing":
 		p.sendCartographyDataPresearing()
 	default:
-		p.log.Error().Str("expansion", p.connectedInstance.Load().definition.Expansion).Msg("missing cartography data packets")
+		p.log.Error().Str("expansion", p.connectedInstance.definition.Expansion).Msg("missing cartography data packets")
 		return
 	}
 	p.EnqueuePacket(MarshalInstanceLoaded())
@@ -295,7 +298,7 @@ func (p *Player) sendPlayerAttributes() {
 
 func (p *Player) spawnPlayerAgent() {
 	p.EnqueuePacket(MarshalAgentCreatePlayer(p.playerId, p.agentId, int(p.dbChar.AppearanceBits), p.name))
-	p.connectedInstance.Load().sendActiveAgents(p)
+	p.connectedInstance.sendActiveAgents(p)
 
 	// REVERSE THIS MORE:
 	p.EnqueuePacket(MarshalUnknown00b0(p.playerId, p.playerId))
@@ -405,7 +408,7 @@ func (p *Player) sendCreateCharacterInstanceInfo() {
 func (p *Player) sendWorldInstanceHead() {
 	p.EnqueuePacket(MarshalInstancePlayerDataStart())
 	p.EnqueuePacket(MarshalInstanceLoadPlayerName(p.name))
-	p.EnqueuePacket(MarshalInstanceLoadInfo(p.playerId, p.connectedInstance.Load().mapId, p.connectedInstance.Load().IsExplorable(), 1, 0, false))
+	p.EnqueuePacket(MarshalInstanceLoadInfo(p.playerId, p.connectedInstance.mapId, p.connectedInstance.IsExplorable(), 1, 0, false))
 }
 
 func (p *Player) sendWorldInstanceBody() {

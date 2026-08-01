@@ -73,6 +73,12 @@ type GSConn struct {
 	// owns the buffer. It is the ownership handoff, never set for
 	// character-creation connections.
 	handedOver atomic.Bool
+
+	// verifiedInstance is the instance resolved during the verify handshake,
+	// used by ClientSeed to add the player to it. It is owned by the connection
+	// goroutine during the handshake only; the actor owns Player.connectedInstance
+	// after the handoff. It is nil for character-creation connections.
+	verifiedInstance *Instance
 }
 
 func NewGSConn(socket *net.TCPConn, logCtx zerolog.Logger) *GSConn {
