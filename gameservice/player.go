@@ -13,46 +13,6 @@ import (
 
 const equipmentBagIndex = 1
 
-// intent structs are written by phase-1 handlers on the instance actor during
-// the game tick and consumed by phase 2 of the same tick. They are
-// single-slot ("latest wins") so intent never queues across ticks.
-type moveIntent struct {
-	x, y  float32
-	plane int
-}
-
-type movementIntent struct {
-	posX, posY float32
-	unk1       int
-	facingX    float32
-	facingY    float32
-	unk2       int
-}
-
-type rotateIntent struct {
-	unk1, unk2 int
-}
-
-type lastPosCancelIntent struct {
-	x, y float32
-	unk2 int
-}
-
-type chatIntent struct {
-	agentId int
-	message string
-}
-
-type interactIntent struct {
-	agentId int
-	action  int
-}
-
-type targetIntent struct {
-	targetAgentId int
-	agentId2      int
-}
-
 type playerConn interface {
 	EnqueuePacket(out GwPacket.Out)
 	IsClosed() bool
@@ -87,23 +47,24 @@ type Player struct {
 	dbAcc      db.Account
 	dbChar     db.Character
 
-	// pending * intents are the phase-1 output of the game tick; phase 2
-	// consumes and clears them in the same tick. Only the instance actor
-	// touches these.
-	pendingDisconnect     bool
-	pendingMove           *moveIntent
-	pendingMovement       *movementIntent
-	pendingRotate         *rotateIntent
-	pendingMoveCancelled  *lastPosCancelIntent
-	pendingChat           *chatIntent
-	pendingInteract       *interactIntent
-	pendingCancelInteract bool
-	pendingTarget         *targetIntent
-	pendingEquip          *int
-	pendingDestroy        *int
-	pendingLoadSpawn      bool
-	pendingLoadPlayers    *InstanceLoadRequestPlayers
-	pendingMapTravel      *int
+	// Request fields are written by the in-instance packet handlers, which run
+	// on the instance actor during the tick's drain (phase 1). They record what
+	// the client asked for without touching world state; processPlayer consumes
+	// and clears them in phase 2 of the same tick. Single-slot ("latest wins")
+	// so requests never queue across ticks. Only the instance actor touches
+	// these.
+	pendingDisconnect       bool
+	moveTo                  *MoveToPoint
+	movement                *MovementUpdate
+	chat                    *ChatMessage
+	equip                   *EquipItem
+	destroy                 *DestroyItem
+	loadSpawnRequested      bool
+	loadPlayers             *InstanceLoadRequestPlayers
+	mapTravel               *MapTravelToOutpost
+	interact                *InteractAgent
+	cancelInteractRequested bool
+	target                  *UpdateTarget
 }
 
 func NewPlayer(conn *GSConn, logCtx zerolog.Logger) *Player {
@@ -183,87 +144,6 @@ func (p *Player) UpdatePosition(x, y float32) {
 		return
 	}
 	p.connectedInstance.Load().UpdateRequestedPlayerPos(p, x, y)
-}
-
-// Phase-1 intent setters. These run on the instance actor during the game
-// tick's collect pass; they only record what the client requested and never
-// touch world state. Phase 2 (applyPlayerIntents) consumes them in the same
-// tick.
-
-func (p *Player) setDisconnectIntent(payload *ClientDisconnect) error {
-	p.pendingDisconnect = true
-	return nil
-}
-
-func (p *Player) setMoveIntent(payload *MoveToPoint) error {
-	p.pendingMove = &moveIntent{x: payload.x, y: payload.y, plane: payload.plane}
-	return nil
-}
-
-func (p *Player) setMovementIntent(payload *MovementUpdate) error {
-	p.pendingMovement = &movementIntent{
-		posX: payload.posX, posY: payload.posY,
-		unk1: payload.unk1, facingX: payload.facingX, facingY: payload.facingY, unk2: payload.unk2,
-	}
-	return nil
-}
-
-func (p *Player) setRotateIntent(payload *RotateAgent) error {
-	p.pendingRotate = &rotateIntent{unk1: payload.unk1, unk2: payload.unk2}
-	return nil
-}
-
-func (p *Player) setLastPosCancelIntent(payload *LastPosBeforeMoveCancelled) error {
-	p.pendingMoveCancelled = &lastPosCancelIntent{x: payload.x, y: payload.y, unk2: payload.unk2}
-	return nil
-}
-
-func (p *Player) setChatIntent(payload *ChatMessage) error {
-	p.pendingChat = &chatIntent{agentId: payload.agentId, message: payload.message}
-	return nil
-}
-
-func (p *Player) setInteractIntent(payload *InteractAgent) error {
-	p.pendingInteract = &interactIntent{agentId: payload.agentId, action: payload.action}
-	return nil
-}
-
-func (p *Player) setCancelInteractionIntent(payload *CancelInteraction) error {
-	p.pendingCancelInteract = true
-	return nil
-}
-
-func (p *Player) setTargetIntent(payload *UpdateTarget) error {
-	p.pendingTarget = &targetIntent{targetAgentId: payload.targetAgentId, agentId2: payload.agentId2}
-	return nil
-}
-
-func (p *Player) setEquipIntent(payload *EquipItem) error {
-	lid := payload.itemLocalId
-	p.pendingEquip = &lid
-	return nil
-}
-
-func (p *Player) setDestroyIntent(payload *DestroyItem) error {
-	lid := payload.itemLocalId
-	p.pendingDestroy = &lid
-	return nil
-}
-
-func (p *Player) setLoadSpawnIntent(payload *InstanceLoadRequestSpawnPoint) error {
-	p.pendingLoadSpawn = true
-	return nil
-}
-
-func (p *Player) setLoadPlayersIntent(payload *InstanceLoadRequestPlayers) error {
-	p.pendingLoadPlayers = payload
-	return nil
-}
-
-func (p *Player) setMapTravelIntent(payload *MapTravelToOutpost) error {
-	mapId := payload.mapId
-	p.pendingMapTravel = &mapId
-	return nil
 }
 
 func (p *Player) SendChat(msg string, color int) {

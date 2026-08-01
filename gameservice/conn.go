@@ -145,7 +145,8 @@ func (conn *GSConn) DrainHandshake() error {
 
 // DrainInInstance parses and processes the connection's buffered packets. It
 // must only be called from the instance actor's game tick (phase 1), after
-// the handshake handoff, so the packets it dispatches set intent only.
+// the handshake handoff, so the packets it dispatches only record requests on
+// the player and never touch world state.
 func (conn *GSConn) DrainInInstance() error {
 	_, err := conn.drain()
 	return err

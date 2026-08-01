@@ -62,7 +62,8 @@ func hasPositionUpdate(packets [][]byte, wantX, wantY float32) bool {
 }
 
 // TestTick_Phase1CollectsPhase2Applies verifies the two-phase split directly:
-// phase 1 (intent setter) does not touch world state, phase 2 applies it.
+// phase 1 (drain handler recording the request) does not touch world state,
+// phase 2 (processPlayer) applies it.
 func TestTick_Phase1CollectsPhase2Applies(t *testing.T) {
 	inst := newTickTestInstance()
 	bot, botSink := newTestPlayer("Bot")
@@ -71,24 +72,26 @@ func TestTick_Phase1CollectsPhase2Applies(t *testing.T) {
 	bot.agentId = 2
 	inst.players = append(inst.players, bot, watcher)
 
-	require.NoError(t, bot.setMoveIntent(&MoveToPoint{x: 123.5, y: 456.25, plane: 0}))
+	// A drain handler records the client's move request on the player only
+	// (here set directly, as the handler would).
+	bot.moveTo = &MoveToPoint{x: 123.5, y: 456.25, plane: 0}
 
 	assert.Equal(t, float32(0), bot.posX, "phase 1 must not mutate world state")
-	assert.NotNil(t, bot.pendingMove, "phase 1 records intent")
+	assert.NotNil(t, bot.moveTo, "phase 1 records the request")
 
 	inst.inActor.Store(true)
-	disconnect := inst.applyPlayerIntents(bot)
+	disconnect := inst.processPlayer(bot)
 	inst.inActor.Store(false)
 
 	assert.False(t, disconnect)
 	assert.Equal(t, float32(123.5), bot.posX)
 	assert.Equal(t, float32(456.25), bot.posY)
-	assert.Nil(t, bot.pendingMove, "intent is consumed in the same tick")
+	assert.Nil(t, bot.moveTo, "request is consumed in the same tick")
 	assert.True(t, watcherSink.hasOpcode(0x2c), "move must be broadcast to watcher")
 	assert.True(t, botSink.hasOpcode(0x2c), "move broadcast reaches the mover")
 }
 
-// TestTick_ChatAppliedSameTick verifies chat intents are broadcast in phase 2
+// TestTick_ChatAppliedSameTick verifies chat requests are broadcast in phase 2
 // and cleared within the tick.
 func TestTick_ChatAppliedSameTick(t *testing.T) {
 	inst := newTickTestInstance()
@@ -97,15 +100,15 @@ func TestTick_ChatAppliedSameTick(t *testing.T) {
 	bot.playerId = 1
 	inst.players = append(inst.players, bot, watcher)
 
-	require.NoError(t, bot.setChatIntent(&ChatMessage{agentId: 2, message: "!hello everyone"}))
+	bot.chat = &ChatMessage{agentId: 2, message: "!hello everyone"}
 	watcherSink.reset()
 
 	inst.inActor.Store(true)
-	disconnect := inst.applyPlayerIntents(bot)
+	disconnect := inst.processPlayer(bot)
 	inst.inActor.Store(false)
 
 	assert.False(t, disconnect)
-	assert.Nil(t, bot.pendingChat, "chat intent consumed in the same tick")
+	assert.Nil(t, bot.chat, "chat request consumed in the same tick")
 	assert.True(t, watcherSink.hasOpcode(0x5c), "local chat must be broadcast")
 }
 

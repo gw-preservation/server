@@ -312,10 +312,11 @@ const gameTick = 50 * time.Millisecond
 
 // actorLoop is the instance's single owner goroutine. It executes lifecycle
 // messages from the mailbox (add/remove/transfer) as they arrive, and the
-// game tick, which runs the tick-batched two-phase model: phase 1 drains each
-// player's connection buffer into intent fields, phase 2 applies that intent
-// to world state, then outbound buffers are flushed. The mailbox messages are
-// control-plane only and may block a caller for up to one tick.
+// game tick, which runs the tick-batched model: phase 1 drains each player's
+// connection buffer and the handlers record requests on the player, phase 2
+// (processPlayer) applies those requests to world state, then outbound buffers
+// are flushed. The mailbox messages are control-plane only and may block a
+// caller for up to one tick.
 func (i *Instance) actorLoop() {
 	ping := time.NewTicker(5 * time.Second)
 	game := time.NewTicker(gameTick)

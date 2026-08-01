@@ -32,25 +32,6 @@ func wrap[T any](
 	}
 }
 
-// wrapP is like wrap but dispatches to a phase-1 intent setter on the Player.
-// It is used by the in-instance handler table, which runs on the instance
-// actor during the game tick and must not touch world state.
-func wrapP[T any](
-	unmarshal func(*GwPacket.In) (T, error),
-	handler func(*Player, *T) error,
-) packetHandler {
-	return func(conn *GSConn, in *GwPacket.In) (int, error) {
-		payload, err := unmarshal(in)
-		if err != nil {
-			return 0, err
-		}
-		if err := handler(conn.player, &payload); err != nil {
-			return 0, err
-		}
-		return in.Position(), nil
-	}
-}
-
 // handlers for the login handshake packets. Which of these is allowed at any
 // given time is enforced by the connection state machine in conn.go. They run
 // immediately on the connection goroutine via DrainHandshake.
@@ -78,29 +59,106 @@ var charCreationHandlers = map[int]packetHandler{
 	0x8091: wrap(UnmarshalUnknown8091, (*GSConn).on8091),
 }
 
-// inInstanceHandlers run on the instance actor's game tick. Phase 1 setters
-// only record intent on the player; the actor applies the intent in phase 2 of
-// the same tick, so incoming packets never affect world state immediately.
-// Stateless replies (ping, gpu) write responses directly during phase 1.
+// inInstanceHandlers run on the instance actor during the tick's drain (phase
+// 1). They record what the client requested on the player and never touch
+// world state; processPlayer consumes the requests in phase 2 of the same
+// tick. Stateless replies (ping, gpu) write responses directly during phase 1.
+// Handlers must not call the blocking instance wrappers — they would deadlock
+// on the actor.
 var inInstanceHandlers = map[int]packetHandler{
-	0x8008: wrapP(UnmarshalClientDisconnect, (*Player).setDisconnectIntent),
+	0x8008: wrap(UnmarshalClientDisconnect, (*GSConn).onInInstanceDisconnect),
 	0x8009: wrap(UnmarshalPingReply, (*GSConn).onPingReply),
 	0x800a: wrap(UnmarshalGpuInformation, (*GSConn).onGPUInformation),
 	0x800c: wrap(UnmarshalClientPingRequest, (*GSConn).onClientPingRequest),
-	0x8027: wrapP(UnmarshalCancelInteraction, (*Player).setCancelInteractionIntent),
-	0x802f: wrapP(UnmarshalEquipItem, (*Player).setEquipIntent),
-	0x8038: wrapP(UnmarshalInteractAgent, (*Player).setInteractIntent),
-	0x803c: wrapP(UnmarshalMovementUpdate, (*Player).setMovementIntent),
-	0x803d: wrapP(UnmarshalMoveToPoint, (*Player).setMoveIntent),
-	0x803f: wrapP(UnmarshalRotateAgent, (*Player).setRotateIntent),
-	0x8046: wrapP(UnmarshalLastPosBeforeMoveCancelled, (*Player).setLastPosCancelIntent),
-	0x8063: wrapP(UnmarshalChatMessage, (*Player).setChatIntent),
-	0x8068: wrapP(UnmarshalDestroyItem, (*Player).setDestroyIntent),
-	0x8087: wrapP(UnmarshalInstanceLoadRequestSpawnPoint, (*Player).setLoadSpawnIntent),
-	0x808f: wrapP(UnmarshalInstanceLoadRequestPlayers, (*Player).setLoadPlayersIntent),
+	0x8027: wrap(UnmarshalCancelInteraction, (*GSConn).onCancelInteraction),
+	0x802f: wrap(UnmarshalEquipItem, (*GSConn).onEquipItem),
+	0x8038: wrap(UnmarshalInteractAgent, (*GSConn).onInteractAgent),
+	0x803c: wrap(UnmarshalMovementUpdate, (*GSConn).onMovementUpdate),
+	0x803d: wrap(UnmarshalMoveToPoint, (*GSConn).onMoveToPoint),
+	0x803f: wrap(UnmarshalRotateAgent, (*GSConn).onRotateAgent),
+	0x8046: wrap(UnmarshalLastPosBeforeMoveCancelled, (*GSConn).onLastPosBeforeMoveCancelled),
+	0x8063: wrap(UnmarshalChatMessage, (*GSConn).onChatMessage),
+	0x8068: wrap(UnmarshalDestroyItem, (*GSConn).onDestroyItem),
+	0x8087: wrap(UnmarshalInstanceLoadRequestSpawnPoint, (*GSConn).onInstanceLoadRequestSpawnPoint),
+	0x808f: wrap(UnmarshalInstanceLoadRequestPlayers, (*GSConn).onInstanceLoadRequestPlayers),
 	0x80a0: wrap(UnmarshalPartyInvite, (*GSConn).onPartyInvite),
-	0x80b0: wrapP(UnmarshalMapTravelToOutpost, (*Player).setMapTravelIntent),
-	0x80c0: wrapP(UnmarshalUpdateTarget, (*Player).setTargetIntent),
+	0x80b0: wrap(UnmarshalMapTravelToOutpost, (*GSConn).onMapTravelToOutpost),
+	0x80c0: wrap(UnmarshalUpdateTarget, (*GSConn).onUpdateTarget),
+}
+
+// The in-instance handlers below run on the instance actor. They only record
+// what the client asked for on the player (see Player's request fields);
+// processPlayer applies the requests in phase 2 of the same tick.
+
+func (conn *GSConn) onInInstanceDisconnect(payload *ClientDisconnect) error {
+	conn.player.pendingDisconnect = true
+	return nil
+}
+
+func (conn *GSConn) onMoveToPoint(payload *MoveToPoint) error {
+	conn.player.moveTo = payload
+	return nil
+}
+
+func (conn *GSConn) onMovementUpdate(payload *MovementUpdate) error {
+	conn.player.movement = payload
+	return nil
+}
+
+func (conn *GSConn) onRotateAgent(payload *RotateAgent) error {
+	// Facing semantics not yet reverse-engineered (see data/); MovementUpdate
+	// carries the facing the server acts on.
+	return nil
+}
+
+func (conn *GSConn) onLastPosBeforeMoveCancelled(payload *LastPosBeforeMoveCancelled) error {
+	// Cancel semantics not yet reverse-engineered (see data/); no-op for now.
+	return nil
+}
+
+func (conn *GSConn) onChatMessage(payload *ChatMessage) error {
+	conn.player.chat = payload
+	return nil
+}
+
+func (conn *GSConn) onEquipItem(payload *EquipItem) error {
+	conn.player.equip = payload
+	return nil
+}
+
+func (conn *GSConn) onDestroyItem(payload *DestroyItem) error {
+	conn.player.destroy = payload
+	return nil
+}
+
+func (conn *GSConn) onInstanceLoadRequestSpawnPoint(payload *InstanceLoadRequestSpawnPoint) error {
+	conn.player.loadSpawnRequested = true
+	return nil
+}
+
+func (conn *GSConn) onInstanceLoadRequestPlayers(payload *InstanceLoadRequestPlayers) error {
+	conn.player.loadPlayers = payload
+	return nil
+}
+
+func (conn *GSConn) onMapTravelToOutpost(payload *MapTravelToOutpost) error {
+	conn.player.mapTravel = payload
+	return nil
+}
+
+func (conn *GSConn) onInteractAgent(payload *InteractAgent) error {
+	conn.player.interact = payload
+	return nil
+}
+
+func (conn *GSConn) onCancelInteraction(payload *CancelInteraction) error {
+	conn.player.cancelInteractRequested = true
+	return nil
+}
+
+func (conn *GSConn) onUpdateTarget(payload *UpdateTarget) error {
+	conn.player.target = payload
+	return nil
 }
 
 func (conn *GSConn) onPartyInvite(payload *PartyInvite) error {

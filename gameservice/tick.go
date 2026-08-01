@@ -6,16 +6,18 @@ import (
 )
 
 // gameTick is the actor's fixed-timestep world update. It implements the
-// tick-batched two-phase model:
+// tick-batched model, mirroring engine-ts's processClientsIn/processPlayers:
 //
-//	phase 1 (collect):  drain each player's buffered input into intent fields
-//	phase 2 (apply):    consume the intents and mutate world state
+//	phase 1 (collect):  drain each player's buffered input; handlers record
+//	                    the client's requests on the player (no world state)
+//	phase 2 (apply):    processPlayer consumes the requests and mutates state
 //	phase 3 (output):   movement-tick broadcast (folded into the game tick)
 //
 // Outbound buffers are flushed by the caller (actorLoop) after gameTick
-// returns. Intent is consumed within this tick and never queues across ticks.
+// returns. Requests are consumed within this tick and never queue across
+// ticks.
 func (i *Instance) gameTick() {
-	// Phase 1: collect intents. Handlers set fields on the player only, so a
+	// Phase 1: collect requests. Handlers set fields on the player only, so a
 	// flood of packets cannot mutate world state mid-tick.
 	var disconnect []*Player
 	for _, p := range i.players {
@@ -28,9 +30,9 @@ func (i *Instance) gameTick() {
 		}
 	}
 
-	// Phase 2: apply intents.
+	// Phase 2: apply requests.
 	for _, p := range i.players {
-		if i.applyPlayerIntents(p) {
+		if i.processPlayer(p) {
 			disconnect = append(disconnect, p)
 		}
 	}
@@ -52,92 +54,84 @@ func (i *Instance) gameTick() {
 	}
 }
 
-// applyPlayerIntents consumes a player's phase-1 intent fields (phase 2 of
-// the tick). It must run on the instance actor, and it calls the actor-only
-// impl methods directly rather than the blocking deliver wrappers. It returns
-// true if the player requested a disconnect, in which case the caller removes
-// and closes them.
-func (i *Instance) applyPlayerIntents(p *Player) bool {
+// processPlayer consumes a player's phase-1 request fields (phase 2 of the
+// tick). It must run on the instance actor, and it calls the actor-only impl
+// methods directly rather than the blocking deliver wrappers. It returns true
+// if the player requested a disconnect, in which case the caller removes and
+// closes them.
+func (i *Instance) processPlayer(p *Player) bool {
 	if p.pendingDisconnect {
 		p.pendingDisconnect = false
 		return true
 	}
 
-	if m := p.pendingMove; m != nil {
-		p.pendingMove = nil
+	if m := p.moveTo; m != nil {
+		p.moveTo = nil
 		if err := i.updateRequestedPlayerPos(p, m.x, m.y); err != nil {
 			p.log.Error().Err(err).Msg("updateRequestedPlayerPos")
 		}
 		p.EnqueuePacket(MarshalMoveToPointS2C(p.agentId, m.x, m.y, 0))
 	}
 
-	if m := p.pendingMovement; m != nil {
-		p.pendingMovement = nil
+	if m := p.movement; m != nil {
+		p.movement = nil
 		p.facingX = m.facingX
 		p.facingY = m.facingY
 	}
 
-	if r := p.pendingRotate; r != nil {
-		p.pendingRotate = nil
+	if p.cancelInteractRequested {
+		p.cancelInteractRequested = false
 	}
 
-	if c := p.pendingMoveCancelled; c != nil {
-		p.pendingMoveCancelled = nil
-	}
-
-	if p.pendingCancelInteract {
-		p.pendingCancelInteract = false
-	}
-
-	if it := p.pendingInteract; it != nil {
-		p.pendingInteract = nil
+	if it := p.interact; it != nil {
+		p.interact = nil
 		p.SendChatWarning(fmt.Sprintf("missing interaction definition for agent=%d,action=%d", it.agentId, it.action))
 		p.log.Debug().Int("target", it.agentId).Int("action", it.action).Msg("InteractAgent")
 	}
 
-	if t := p.pendingTarget; t != nil {
-		p.pendingTarget = nil
+	if t := p.target; t != nil {
+		p.target = nil
 		p.log.Debug().Int("target", t.targetAgentId).Str("playerName", p.name).Msg("UpdateTarget")
 	}
 
-	if lid := p.pendingEquip; lid != nil {
-		p.pendingEquip = nil
-		p.log.Info().Int("itemLocalId", *lid).Msg("EquipItem")
-		p.TryEquipItem(*lid)
+	if e := p.equip; e != nil {
+		p.equip = nil
+		p.log.Info().Int("itemLocalId", e.itemLocalId).Msg("EquipItem")
+		p.TryEquipItem(e.itemLocalId)
 	}
 
-	if lid := p.pendingDestroy; lid != nil {
-		p.pendingDestroy = nil
-		p.log.Info().Int("itemLocalId", *lid).Msg("DestroyItem")
-		if err := p.itemMgr.RemoveItemByLocalId(*lid); err != nil {
-			p.log.Error().Err(err).Int("itemLocalId", *lid).Msg("DestroyItem")
+	if d := p.destroy; d != nil {
+		p.destroy = nil
+		p.log.Info().Int("itemLocalId", d.itemLocalId).Msg("DestroyItem")
+		if err := p.itemMgr.RemoveItemByLocalId(d.itemLocalId); err != nil {
+			p.log.Error().Err(err).Int("itemLocalId", d.itemLocalId).Msg("DestroyItem")
 		}
 	}
 
-	if p.pendingLoadSpawn {
-		p.pendingLoadSpawn = false
+	if p.loadSpawnRequested {
+		p.loadSpawnRequested = false
 		if err := i.loadSpawnPoint(p); err != nil {
 			p.log.Error().Err(err).Msg("loadSpawnPoint")
 		}
 	}
 
-	if payload := p.pendingLoadPlayers; payload != nil {
-		p.pendingLoadPlayers = nil
+	if payload := p.loadPlayers; payload != nil {
+		p.loadPlayers = nil
 		if err := i.loadRequestPlayers(p, *payload); err != nil {
 			p.log.Error().Err(err).Msg("loadRequestPlayers")
 		}
 	}
 
-	if mapId := p.pendingMapTravel; mapId != nil {
-		p.pendingMapTravel = nil
-		i.log.Info().Int("mapId", *mapId).Msg("MapTravel")
-		if err := i.transferPlayerToNewMap(p, *mapId); err != nil {
-			p.log.Error().Err(err).Int("mapId", *mapId).Msg("MapTravel")
+	if m := p.mapTravel; m != nil {
+		p.mapTravel = nil
+		i.log.Info().Int("mapId", m.mapId).Msg("MapTravel")
+		if err := i.transferPlayerToNewMap(p, m.mapId); err != nil {
+			p.log.Error().Err(err).Int("mapId", m.mapId).Msg("MapTravel")
 		}
 	}
 
-	if c := p.pendingChat; c != nil {
-		p.pendingChat = nil
+	if c := p.chat; c != nil {
+		p.chat = nil
 		i.applyChat(p, c)
 	}
 
@@ -147,7 +141,7 @@ func (i *Instance) applyPlayerIntents(p *Player) bool {
 // applyChat processes a chat message in phase 2 (on the actor). Local chat is
 // broadcast to the instance; emotes and commands run here via actor-context
 // helpers so they can touch instance state directly.
-func (i *Instance) applyChat(p *Player, c *chatIntent) {
+func (i *Instance) applyChat(p *Player, c *ChatMessage) {
 	msg := c.message
 	if len(msg) <= 1 {
 		return
