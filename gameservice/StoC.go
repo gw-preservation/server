@@ -588,3 +588,8 @@ type AgentUpdateSpeedBase struct {
 	agentId int // wire:uint32
 	speed   float32
 }
+
+// opcode: 0x001d
+type SetUnlockedSkills struct {
+	skills []uint32
+}

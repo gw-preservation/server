@@ -178,6 +178,8 @@ func (im *instanceManager) AddInstance(instance *Instance) {
 	im.mu.Unlock()
 }
 
+// Instance is single-writer: every field is owned by the actor goroutine and
+// unsynchronized. Never touch instance state off the actor.
 type Instance struct {
 	uuid                   uint64
 	tag                    uint32
@@ -189,7 +191,6 @@ type Instance struct {
 	gracefulShutdownSignal chan bool
 	forceShutdownSignal    chan bool
 	log                    zerolog.Logger
-	mu                     *sync.RWMutex
 
 	pendingJoins chan *Player
 	done         chan struct{}
@@ -213,8 +214,6 @@ func (i *Instance) AcceptPlayer(p *Player) {
 
 func (inst *Instance) TransmitAgentDespawned(agent *Agent) {
 	inst.assertActor()
-	inst.mu.RLock()
-	defer inst.mu.RUnlock()
 	for _, other := range inst.players {
 		other.sendAgentDespawned(agent)
 	}
@@ -222,7 +221,6 @@ func (inst *Instance) TransmitAgentDespawned(agent *Agent) {
 
 func (inst *Instance) RemovePlayer(player *Player) {
 	inst.assertActor()
-	inst.mu.Lock()
 	removed := false
 	for idx, v := range inst.players {
 		if v == nil {
@@ -235,7 +233,6 @@ func (inst *Instance) RemovePlayer(player *Player) {
 		}
 	}
 	inst.playerCount.Store(int64(len(inst.players)))
-	inst.mu.Unlock()
 	if removed {
 		inst.TransmitAgentDespawned(&player.Agent)
 		inst.log.Debug().Uint64("playerUuid", player.uuid).Msg("player removed from instance")
@@ -263,7 +260,6 @@ func newInstance(mapId int, definition instanceDefinition) *Instance {
 		agents:                 make([]Agent, 0),
 		gracefulShutdownSignal: make(chan bool, 1),
 		forceShutdownSignal:    make(chan bool, 1),
-		mu:                     &sync.RWMutex{},
 		pendingJoins:           make(chan *Player, 16),
 		done:                   make(chan struct{}),
 	}
@@ -587,14 +583,12 @@ func convertEncName(in string) []byte {
 
 func (i *Instance) AddPlayer(player *Player) {
 	i.assertActor()
-	i.mu.Lock()
 	player.agentId = i.NextFreeAgentId()
 	player.playerId = i.NextFreePlayerId()
 	player.connectedInstance = i
 	i.players = append(i.players, player)
 	i.agents = append(i.agents, player.Agent)
 	i.playerCount.Store(int64(len(i.players)))
-	i.mu.Unlock()
 	i.log.Info().Int("count", len(i.players)).Msgf("%s added to instance", player.name)
 	for idx, v := range i.players {
 		i.log.Debug().Int("index", idx).Int("playerID", v.playerId).Int("agentID", v.agentId).Str("name", v.name).Msg("player in instance")
@@ -608,8 +602,6 @@ func (i *Instance) AddPlayer(player *Player) {
 
 func (i *Instance) SendActiveAgents(to *Player) {
 	i.assertActor()
-	i.mu.RLock()
-	defer i.mu.RUnlock()
 
 	transmittedDefinitions := make([]int, 0)
 	for _, ag := range i.agents {
@@ -643,8 +635,6 @@ func (i *Instance) SendActiveAgents(to *Player) {
 
 func (i *Instance) TransmitOtherPlayersToPlayer(to *Player) {
 	i.assertActor()
-	i.mu.RLock()
-	defer i.mu.RUnlock()
 	for _, other := range i.players {
 		if other.playerId == to.playerId {
 			continue
@@ -655,8 +645,6 @@ func (i *Instance) TransmitOtherPlayersToPlayer(to *Player) {
 
 func (i *Instance) TransmitPlayerToOthers(player *Player) {
 	i.assertActor()
-	i.mu.RLock()
-	defer i.mu.RUnlock()
 	for _, other := range i.players {
 		if other.playerId == player.playerId {
 			continue
@@ -691,8 +679,6 @@ func (i *Instance) TransmitPlayer(to *Player, other *Player) {
 
 func (i *Instance) UpdateRequestedPlayerPos(player *Player, x float32, y float32) {
 	i.assertActor()
-	i.mu.RLock()
-	defer i.mu.RUnlock()
 	found := false
 	for _, cur := range i.players {
 		if cur.playerId == player.playerId {
@@ -713,8 +699,6 @@ func (i *Instance) UpdateRequestedPlayerPos(player *Player, x float32, y float32
 
 func (i *Instance) BroadcastGeneric(packet GwPacket.Out) {
 	i.assertActor()
-	i.mu.RLock()
-	defer i.mu.RUnlock()
 
 	for _, other := range i.players {
 		other.EnqueuePacket(packet)

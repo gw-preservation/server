@@ -711,3 +711,12 @@ func MarshalAgentUpdateSpeedBase(agentId int, speed float32) (resp GwPacket.Out)
 	resp.Float32(speed)
 	return
 }
+
+func MarshalSetUnlockedSkills(skills []uint32) (resp GwPacket.Out) {
+	resp = GwPacket.NewOut(0x1d)
+	resp.Uint16(len(skills))
+	for _, i := range skills {
+		resp.Uint32(int(i))
+	}
+	return
+}
