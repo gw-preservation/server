@@ -316,8 +316,10 @@ func (i *Instance) actorLoop() {
 	for {
 		select {
 		case <-ping.C:
+			i.inActor.Store(true)
 			i.pingPlayers()
 			i.flushPlayers()
+			i.inActor.Store(false)
 		case <-game.C:
 			i.gameTick()
 		case <-i.gracefulShutdownSignal:
