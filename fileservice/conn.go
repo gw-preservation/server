@@ -77,7 +77,6 @@ func (conn *FSConn) onLoadingStatus(in *GwPacket.In) (int, error) {
 		return 0, nil
 	}
 	in.Skip(len)
-	conn.Close()
 	return in.Position(), nil
 }
 
