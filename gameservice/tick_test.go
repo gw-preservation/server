@@ -2,7 +2,6 @@ package gameservice
 
 import (
 	"math"
-	"math/rand"
 	"net"
 	"testing"
 	"time"
@@ -31,18 +30,7 @@ func eventually(t *testing.T, timeout time.Duration, cond func() bool) {
 // newTickTestInstance returns an Instance with no actor goroutine, so tests can
 // drive the tick phases synchronously without racing the real actor.
 func newTickTestInstance() *Instance {
-	i := &Instance{
-		uuid:                   rand.Uint64(),
-		tag:                    rand.Uint32(),
-		alive:                  true,
-		agents:                 make([]Agent, 0),
-		gracefulShutdownSignal: make(chan bool, 1),
-		forceShutdownSignal:    make(chan bool, 1),
-		cmdCh:                  make(chan instanceMsg, 64),
-		done:                   make(chan struct{}),
-	}
-	i.log = log.With().Uint64("uuid", i.uuid).Logger()
-	return i
+	return newInstance(0, instanceDefinition{})
 }
 
 // hasPositionUpdate reports whether a sink packet is a MarshalAgentUpdatePosition
@@ -115,7 +103,8 @@ func TestTick_ChatAppliedSameTick(t *testing.T) {
 // setupTickWorld wires a real GSConn (already handed over to an instance) plus
 // a headless watcher into a live instance, and drains the client socket in the
 // background so the actor's per-tick flush never blocks on a full kernel
-// buffer.
+// buffer. The players are admitted via the actor's own tick (AcceptPlayer is
+// fire-and-forget), so setup waits for them to be registered.
 func setupTickWorld(t *testing.T) (*Instance, *GSConn, *headlessSink) {
 	t.Helper()
 	clientConn, conn := setupTestConn(t)
@@ -124,11 +113,8 @@ func setupTickWorld(t *testing.T) (*Instance, *GSConn, *headlessSink) {
 	inst := newTestInstance(t)
 	conn.state = StateVerified
 	conn.handedOver.Store(true)
-	require.NoError(t, inst.AddPlayer(conn.player))
 
 	watcher, watcherSink := newTestPlayer("Watcher")
-	require.NoError(t, inst.AddPlayer(watcher))
-	watcherSink.reset()
 
 	stop := make(chan struct{})
 	t.Cleanup(func() { close(stop) })
@@ -149,6 +135,13 @@ func setupTickWorld(t *testing.T) (*Instance, *GSConn, *headlessSink) {
 			}
 		}
 	}()
+
+	inst.AcceptPlayer(conn.player)
+	inst.AcceptPlayer(watcher)
+	eventually(t, 2*time.Second, func() bool {
+		return inst.playerCount.Load() == 2
+	})
+	watcherSink.reset()
 
 	return inst, conn, watcherSink
 }

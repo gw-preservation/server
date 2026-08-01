@@ -342,17 +342,16 @@ func (conn *GSConn) onClientSeed(payload *ClientSeed) error {
 		conn.player.EnqueuePacket(MarshalInstanceLoadHead())
 		conn.player.EnqueuePacket(MarshalCharCreationStart())
 	} else if inst := conn.player.connectedInstance.Load(); inst != nil {
-		if err := inst.AddPlayer(conn.player); err != nil {
-			conn.log.Error().Err(err).Msg("failed to add player to instance")
-		}
+		inst.AcceptPlayer(conn.player)
 	}
 
 	conn.state = StateVerified
 
-	// Hand the input buffer over to the instance actor. The player is already
-	// in the instance (AddPlayer above is synchronous), so the actor's next
-	// game tick will drain buffered packets; character-creation connections
-	// stay owned by the connection goroutine.
+	// Hand the input buffer over to the instance actor. AcceptPlayer is
+	// fire-and-forget, so the player may not be registered until the actor's
+	// next game tick; that tick drains pending joins before any player buffers,
+	// so a player's packets are never processed before they are added.
+	// Character-creation connections stay owned by the connection goroutine.
 	if !conn.player.charCreationInProgress {
 		conn.handedOver.Store(true)
 	}

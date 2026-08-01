@@ -139,13 +139,6 @@ func (p *Player) Disconnect() {
 	p.conn.Close()
 }
 
-func (p *Player) UpdatePosition(x, y float32) {
-	if p.connectedInstance.Load() == nil {
-		return
-	}
-	p.connectedInstance.Load().UpdateRequestedPlayerPos(p, x, y)
-}
-
 func (p *Player) SendChat(msg string, color int) {
 	p.conn.EnqueuePacket(MarshalChatMessageFromServer(fmt.Sprintf("(server) %s", msg), color))
 }

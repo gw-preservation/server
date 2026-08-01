@@ -225,8 +225,9 @@ func TestHandleBytes_VerifiedNilInstanceDoesNotPanic(t *testing.T) {
 	assert.Equal(t, len(packet), consumed) // unhandled packet consumed, no panic
 }
 
-// ClientSeed before verification previously called AddPlayer on a nil
-// connectedInstance and crashed. The seed response must still be written.
+// ClientSeed before verification previously called AddPlayer (now the
+// fire-and-forget AcceptPlayer, only reached when connectedInstance is set) on
+// a nil connectedInstance and crashed. The seed response must still be written.
 func TestOnClientSeed_NoInstanceDoesNotPanic(t *testing.T) {
 	listener, err := net.ListenTCP("tcp", &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 0})
 	require.NoError(t, err)

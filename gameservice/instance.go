@@ -160,18 +160,6 @@ func (im *instanceManager) GetOrCreateInstanceByMapId(mapId int) (*Instance, err
 	return inst, nil
 }
 
-func (im *instanceManager) BroadcastPacketToAllPlayers(packet GwPacket.Out) {
-	im.mu.RLock()
-	insts := make([]*Instance, 0, len(im.instances))
-	for _, inst := range im.instances {
-		insts = append(insts, inst)
-	}
-	im.mu.RUnlock()
-	for _, inst := range insts {
-		inst.BroadcastGeneric(packet)
-	}
-}
-
 func (im *instanceManager) NumPlayersOnline() int {
 	im.mu.RLock()
 	defer im.mu.RUnlock()
@@ -201,8 +189,9 @@ func (im *instanceManager) AddInstance(instance *Instance) {
 
 // Instance is the single-writer owner of all its state. Exactly one goroutine
 // (the actor started in NewInstance) may read or mutate the instance's shared
-// state; everything else submits work through the message protocol in
-// instance_msg.go.
+// state. Other goroutines hand a player over via AcceptPlayer; the actor
+// drains those joins on its game tick, and it notices players whose connection
+// has closed. There is no request/response protocol.
 type Instance struct {
 	uuid                   uint64
 	tag                    uint32
@@ -214,11 +203,23 @@ type Instance struct {
 	gracefulShutdownSignal chan bool
 	forceShutdownSignal    chan bool
 	log                    zerolog.Logger
-	cmdCh                  chan instanceMsg
+	pendingJoins           chan *Player
 	done                   chan struct{}
 	closeOnce              sync.Once
 	inActor                atomic.Bool
 	playerCount            atomic.Int64
+}
+
+// AcceptPlayer hands a player over to the instance. The connection goroutine
+// calls this after the verify handshake, before marking the connection handed
+// over; the actor's next game tick drains the join and adds the player. It is
+// fire-and-forget: no acknowledgement, no result. If the instance has shut
+// down the player is dropped.
+func (i *Instance) AcceptPlayer(p *Player) {
+	select {
+	case i.pendingJoins <- p:
+	case <-i.done:
+	}
 }
 
 func (i *Instance) transmitAgentDespawned(agent *Agent) error {
@@ -256,6 +257,14 @@ func (i *Instance) removePlayer(player *Player) error {
 }
 
 func NewInstance(mapId int, definition instanceDefinition) *Instance {
+	i := newInstance(mapId, definition)
+	go i.actorLoop()
+	return i
+}
+
+// newInstance builds an Instance without starting its actor goroutine. Tests
+// drive the actor phases manually on the returned instance.
+func newInstance(mapId int, definition instanceDefinition) *Instance {
 	i := &Instance{
 		definition:             definition,
 		uuid:                   rand.Uint64(),
@@ -265,7 +274,7 @@ func NewInstance(mapId int, definition instanceDefinition) *Instance {
 		agents:                 make([]Agent, 0),
 		gracefulShutdownSignal: make(chan bool, 1),
 		forceShutdownSignal:    make(chan bool, 1),
-		cmdCh:                  make(chan instanceMsg, 64),
+		pendingJoins:           make(chan *Player, 16),
 		done:                   make(chan struct{}),
 	}
 	i.log = log.With().Uint64("uuid", i.uuid).Int("mapId", i.mapId).Logger()
@@ -302,7 +311,6 @@ func NewInstance(mapId int, definition instanceDefinition) *Instance {
 		i.agents = append(i.agents, ag)
 		//log.Info().Str("name", agentToSpawn.Name).Int("agentId", ag.agentId).Msg("added agent!")
 	}
-	go i.actorLoop()
 	return i
 }
 
@@ -310,13 +318,12 @@ func NewInstance(mapId int, definition instanceDefinition) *Instance {
 // tick, gameplay (input, movement, chat) is processed at this cadence.
 const gameTick = 50 * time.Millisecond
 
-// actorLoop is the instance's single owner goroutine. It executes lifecycle
-// messages from the mailbox (add/remove/transfer) as they arrive, and the
-// game tick, which runs the tick-batched model: phase 1 drains each player's
-// connection buffer and the handlers record requests on the player, phase 2
-// (processPlayer) applies those requests to world state, then outbound buffers
-// are flushed. The mailbox messages are control-plane only and may block a
-// caller for up to one tick.
+// actorLoop is the instance's single owner goroutine. It runs the game tick,
+// which drains pending player joins, processes the tick-batched model (phase 1
+// drains each player's connection buffer and the handlers record requests on
+// the player, phase 2 (processPlayer) applies those requests to world state,
+// then outbound buffers are flushed), plus a ping tick. Join/leave requests
+// are fire-and-forget and are acted on by the game tick.
 func (i *Instance) actorLoop() {
 	ping := time.NewTicker(5 * time.Second)
 	game := time.NewTicker(gameTick)
@@ -328,11 +335,6 @@ func (i *Instance) actorLoop() {
 	}()
 	for {
 		select {
-		case m := <-i.cmdCh:
-			i.inActor.Store(true)
-			i.apply(m)
-			i.flushPlayers()
-			i.inActor.Store(false)
 		case <-ping.C:
 			i.inActor.Store(true)
 			i.pingPlayers()
@@ -618,8 +620,8 @@ func (i *Instance) transferPlayerToNewMap(player *Player, newMapId int) error {
 	if inst == nil || err != nil {
 		player.log.Error().Err(err).Msg("unable to create instance")
 		// Remove the player from this instance first (we are on the actor) so
-		// that Disconnect's RemovePlayer path sees a nil connectedInstance and
-		// does not try to submit another blocking command to this actor.
+		// Disconnect/Close below does not leave the player pointing at an
+		// instance they were never placed in.
 		i.removePlayer(player)
 		player.Disconnect()
 		return nil
@@ -641,7 +643,8 @@ func (i *Instance) transferPlayerToNewMap(player *Player, newMapId int) error {
 			break
 		}
 	}
-	// Clear connectedInstance before any disconnect path can trigger a second RemovePlayer
+	// Clear connectedInstance so the player's closed connection cannot be
+	// re-found by the tick's removal sweep.
 	player.connectedInstance.Store(nil)
 	i.playerCount.Store(int64(len(i.players)))
 	// Broadcast despawn
@@ -687,8 +690,8 @@ func (i *Instance) loadRequestPlayers(p *Player, payload InstanceLoadRequestPlay
 }
 
 // assertActor panics if instance state is touched from outside the actor
-// goroutine. It is a debug aid only; the real invariant is that wrappers in
-// instance_msg.go are the sole entry points into world code.
+// goroutine. It is a debug aid only; the real invariant is that the actor's
+// game tick (and the impls it calls) are the sole entry points into world code.
 func (i *Instance) assertActor() {
 	if !i.inActor.Load() {
 		panic("gameservice: instance state accessed outside the instance actor goroutine")

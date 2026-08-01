@@ -318,17 +318,17 @@ func (conn *GSConn) clientIP() string {
 	return host
 }
 
-// Close tears down the connection. It removes the player from any connected
-// instance via the (blocking) instance mailbox. It must not be called from the
-// instance actor unless connectedInstance has already been cleared (e.g. after
-// removePlayer), otherwise it would deliver to its own actor and deadlock.
+// Close tears down the connection: mark closed, untrack the account, close the
+// socket. Removing the player from their instance is the actor's job — the
+// instance's game tick notices the closed connection and removes the player,
+// so this never blocks on (or delivers to) the instance actor. It must not be
+// called from the instance actor unless the player has already been removed
+// (e.g. after removePlayer), otherwise the player is left pointing at a
+// closing connection until the next tick.
 func (conn *GSConn) Close() {
 	conn.closeOnce.Do(func() {
 		conn.closed.Store(true)
 		close(conn.done)
-		if inst := conn.player.connectedInstance.Load(); inst != nil {
-			inst.RemovePlayer(conn.player)
-		}
 		if conn.accountID != 0 {
 			UntrackAccount(conn.accountID)
 		}

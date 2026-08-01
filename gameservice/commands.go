@@ -5,28 +5,32 @@ import (
 	"strings"
 )
 
-type commandHandler func(p *Player, args []string) bool
-
-var commandHandlers = map[string]commandHandler{
-	"speed": handleSpeedCommand,
-	"e":     handleEquipCommand,
-	"motd":  handleMotdCommand,
-	"gv":    handleGvCommand,
-	"color": handleColorCommand,
-}
+type commandHandler func(i *Instance, p *Player, args []string) bool
 
 func HandleCommand(i *Instance, p *Player, command string, fullInput string, args []string) bool {
-	if command == "travel" {
-		return handleTravelCommand(i, p, args)
+	var handler commandHandler
+	switch command {
+	case "speed":
+		handler = handleSpeedCommand
+	case "e":
+		handler = handleEquipCommand
+	case "motd":
+		handler = handleMotdCommand
+	case "gv":
+		handler = handleGvCommand
+	case "color":
+		handler = handleColorCommand
+	case "travel":
+		handler = handleTravelCommand
 	}
-	if handler, exists := commandHandlers[command]; exists {
-		return handler(p, args)
+	if handler != nil {
+		return handler(i, p, args)
 	}
 	p.SendChatWarning(fmt.Sprintf("Unknown command: %s", fullInput))
 	return false
 }
 
-func handleSpeedCommand(p *Player, args []string) bool {
+func handleSpeedCommand(i *Instance, p *Player, args []string) bool {
 	if len(args) < 1 {
 		p.SendChatWarning("Usage: /speed <speed>")
 		return false
@@ -41,7 +45,7 @@ func handleSpeedCommand(p *Player, args []string) bool {
 	return true
 }
 
-func handleEquipCommand(p *Player, args []string) bool {
+func handleEquipCommand(i *Instance, p *Player, args []string) bool {
 	if len(args) < 1 {
 		p.SendChatWarning("Usage: /e <profession>")
 		return false
@@ -50,12 +54,12 @@ func handleEquipCommand(p *Player, args []string) bool {
 	return true
 }
 
-func handleMotdCommand(p *Player, args []string) bool {
+func handleMotdCommand(i *Instance, p *Player, args []string) bool {
 	p.EnqueuePacket(MarshalMessageOfTheDay("\u0108\u0107Test <c=@ItemRare>message\u0001"))
 	return true
 }
 
-func handleGvCommand(p *Player, args []string) bool {
+func handleGvCommand(i *Instance, p *Player, args []string) bool {
 	if len(args) < 2 {
 		p.SendChatWarning("Usage: /gv <typ> <value>")
 		return false
@@ -84,7 +88,7 @@ func handleGvCommand(p *Player, args []string) bool {
 	return true
 }
 
-func handleColorCommand(p *Player, args []string) bool {
+func handleColorCommand(i *Instance, p *Player, args []string) bool {
 	p.SendChatColorTest()
 	return true
 }

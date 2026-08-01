@@ -8,15 +8,34 @@ import (
 // gameTick is the actor's fixed-timestep world update. It implements the
 // tick-batched model, mirroring engine-ts's processClientsIn/processPlayers:
 //
+//	phase 0 (admit):    drain fire-and-forget joins from the connection
+//	                    goroutines (AcceptPlayer) into the instance
 //	phase 1 (collect):  drain each player's buffered input; handlers record
 //	                    the client's requests on the player (no world state)
-//	phase 2 (apply):    processPlayer consumes the requests and mutates state
+//	phase 2 (apply):    processPlayer consumes the requests and mutates state;
+//	                    players whose connection has closed are removed
 //	phase 3 (output):   movement-tick broadcast (folded into the game tick)
 //
 // Outbound buffers are flushed by the caller (actorLoop) after gameTick
 // returns. Requests are consumed within this tick and never queue across
 // ticks.
 func (i *Instance) gameTick() {
+	// Phase 0: admit pending joins. AcceptPlayer is fire-and-forget; drain all
+	// of them before any player buffers so a new player's packets are never
+	// processed before they are added. Players whose connection died before
+	// the actor got to them are dropped.
+drainJoins:
+	for {
+		select {
+		case p := <-i.pendingJoins:
+			if !p.conn.IsClosed() {
+				i.addPlayer(p)
+			}
+		default:
+			break drainJoins
+		}
+	}
+
 	// Phase 1: collect requests. Handlers set fields on the player only, so a
 	// flood of packets cannot mutate world state mid-tick.
 	var disconnect []*Player
@@ -30,8 +49,13 @@ func (i *Instance) gameTick() {
 		}
 	}
 
-	// Phase 2: apply requests.
+	// Phase 2: apply requests, and remove players whose connection closed on
+	// the connection goroutine (GSConn.Close no longer touches the instance).
 	for _, p := range i.players {
+		if p.conn.IsClosed() {
+			disconnect = append(disconnect, p)
+			continue
+		}
 		if i.processPlayer(p) {
 			disconnect = append(disconnect, p)
 		}

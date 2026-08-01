@@ -2,10 +2,10 @@ package gameservice
 
 import (
 	GwPacket "gw1/server/gwpacket"
-	"math/rand"
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -111,11 +111,31 @@ func newTestInstanceForMap(t *testing.T, mapId int) *Instance {
 	return inst
 }
 
+// newHeadlessInstance returns a fully-populated Instance (real definition, NPC
+// agents spawned) with no actor goroutine, so tests can drive the actor phases
+// synchronously via runInActor without racing a live game tick.
+func newHeadlessInstance(t *testing.T, mapId int) *Instance {
+	t.Helper()
+	definition, ok := instanceDefinitions.Instances[mapId]
+	if !ok {
+		t.Fatalf("missing test instance definition for map id %d", mapId)
+	}
+	return newInstance(mapId, definition)
+}
+
+// runInActor runs fn as if on the instance actor goroutine, satisfying the
+// assertActor guard so tests can call the actor-only impl methods directly.
+func runInActor(inst *Instance, fn func()) {
+	inst.inActor.Store(true)
+	defer inst.inActor.Store(false)
+	fn()
+}
+
 func TestAddPlayerAssignsIdsAndSetsConnectedInstance(t *testing.T) {
-	inst := newTestInstance(t)
+	inst := newHeadlessInstance(t, 3)
 	player, sink := newTestPlayer("TestPlayer")
 
-	inst.AddPlayer(player)
+	runInActor(inst, func() { inst.addPlayer(player) })
 
 	assert.Equal(t, 1, player.agentId)
 	assert.Equal(t, 1, player.playerId)
@@ -130,30 +150,34 @@ func TestAddPlayerAssignsIdsAndSetsConnectedInstance(t *testing.T) {
 }
 
 func TestAddPlayerTransmitsPlayerToOthers(t *testing.T) {
-	inst := newTestInstance(t)
+	inst := newHeadlessInstance(t, 3)
 	first, firstSink := newTestPlayer("First")
 	second, _ := newTestPlayer("Second")
 
-	inst.AddPlayer(first)
-	firstSink.reset()
-	inst.AddPlayer(second)
+	runInActor(inst, func() {
+		inst.addPlayer(first)
+		firstSink.reset()
+		inst.addPlayer(second)
+	})
 
 	// The first player should have received the second player's create/spawn packets.
 	assert.True(t, firstSink.hasOpcode(0x58), "expected MarshalAgentCreatePlayer for second player")
 	assert.Equal(t, 2, len(inst.players))
 }
 
-func TestUpdatePositionBroadcastsMovement(t *testing.T) {
-	inst := newTestInstance(t)
+func TestUpdateRequestedPlayerPosBroadcastsMovement(t *testing.T) {
+	inst := newHeadlessInstance(t, 3)
 	bot, botSink := newTestPlayer("Bot")
 	watcher, watcherSink := newTestPlayer("Watcher")
 
-	inst.AddPlayer(bot)
-	inst.AddPlayer(watcher)
+	runInActor(inst, func() {
+		inst.addPlayer(bot)
+		inst.addPlayer(watcher)
+	})
 	botSink.reset()
 	watcherSink.reset()
 
-	bot.UpdatePosition(123.5, 456.25)
+	runInActor(inst, func() { inst.updateRequestedPlayerPos(bot, 123.5, 456.25) })
 
 	assert.Equal(t, float32(123.5), bot.posX)
 	assert.Equal(t, float32(456.25), bot.posY)
@@ -161,23 +185,16 @@ func TestUpdatePositionBroadcastsMovement(t *testing.T) {
 	assert.True(t, botSink.hasOpcode(0x2c), "expected MarshalAgentUpdatePosition in moving player sink")
 }
 
-func TestUpdatePositionNoInstanceNoOp(t *testing.T) {
-	player, _ := newTestPlayer("Loner")
-
-	player.UpdatePosition(123.5, 456.25)
-
-	assert.Equal(t, float32(0), player.posX)
-	assert.Equal(t, float32(0), player.posY)
-}
-
-func TestUpdatePositionRejectsRemovedPlayer(t *testing.T) {
-	inst := newTestInstance(t)
+func TestUpdateRequestedPlayerPosRejectsRemovedPlayer(t *testing.T) {
+	inst := newHeadlessInstance(t, 3)
 	player, _ := newTestPlayer("Leaver")
 
-	inst.AddPlayer(player)
-	inst.RemovePlayer(player)
+	runInActor(inst, func() {
+		inst.addPlayer(player)
+		inst.removePlayer(player)
+	})
 
-	player.UpdatePosition(123.5, 456.25)
+	runInActor(inst, func() { inst.updateRequestedPlayerPos(player, 123.5, 456.25) })
 
 	assert.Equal(t, float32(0), player.posX)
 	assert.Equal(t, float32(0), player.posY)
@@ -195,15 +212,17 @@ func TestSendChatRecordsPacket(t *testing.T) {
 }
 
 func TestRemovePlayerBroadcastsDespawn(t *testing.T) {
-	inst := newTestInstance(t)
+	inst := newHeadlessInstance(t, 3)
 	bot, _ := newTestPlayer("Bot")
 	watcher, watcherSink := newTestPlayer("Watcher")
 
-	inst.AddPlayer(bot)
-	inst.AddPlayer(watcher)
+	runInActor(inst, func() {
+		inst.addPlayer(bot)
+		inst.addPlayer(watcher)
+	})
 	watcherSink.reset()
 
-	inst.RemovePlayer(bot)
+	runInActor(inst, func() { inst.removePlayer(bot) })
 
 	assert.Equal(t, 1, len(inst.players))
 	assert.Equal(t, watcher.playerId, inst.players[0].playerId)
@@ -211,47 +230,35 @@ func TestRemovePlayerBroadcastsDespawn(t *testing.T) {
 }
 
 func TestBroadcastGenericReachesAllPlayers(t *testing.T) {
-	inst := newTestInstance(t)
+	inst := newHeadlessInstance(t, 3)
 	first, firstSink := newTestPlayer("First")
 	second, secondSink := newTestPlayer("Second")
 
-	inst.AddPlayer(first)
-	inst.AddPlayer(second)
+	runInActor(inst, func() {
+		inst.addPlayer(first)
+		inst.addPlayer(second)
+	})
 	firstSink.reset()
 	secondSink.reset()
 
-	inst.BroadcastGeneric(GwPacket.NewOut(0x1234))
+	runInActor(inst, func() { inst.broadcastGeneric(GwPacket.NewOut(0x1234)) })
 
 	assert.Contains(t, firstSink.opcodes(), 0x1234)
 	assert.Contains(t, secondSink.opcodes(), 0x1234)
 }
 
-func TestBroadcastLocalChatReachesAllPlayers(t *testing.T) {
-	inst := newTestInstance(t)
-	first, firstSink := newTestPlayer("First")
-	second, secondSink := newTestPlayer("Second")
-
-	inst.AddPlayer(first)
-	inst.AddPlayer(second)
-	firstSink.reset()
-	secondSink.reset()
-
-	inst.BroadcastLocalChat(first, "hello everyone")
-
-	assert.Contains(t, firstSink.opcodes(), 0x5c)
-	assert.Contains(t, secondSink.opcodes(), 0x5c)
-}
-
 func TestSendActiveAgentsIncludesNPCsAndPlayers(t *testing.T) {
-	inst := newTestInstanceForMap(t, 165)
+	inst := newHeadlessInstance(t, 165)
 	player, playerSink := newTestPlayer("Player")
 	other, _ := newTestPlayer("Other")
 
-	inst.AddPlayer(player)
-	inst.AddPlayer(other)
+	runInActor(inst, func() {
+		inst.addPlayer(player)
+		inst.addPlayer(other)
+	})
 	playerSink.reset()
 
-	inst.SendActiveAgents(player)
+	runInActor(inst, func() { inst.sendActiveAgents(player) })
 
 	ops := playerSink.opcodes()
 	assert.Contains(t, ops, 0x9a, "expected MarshalAgentUpdateNPCName for NPC agents")
@@ -260,15 +267,15 @@ func TestSendActiveAgentsIncludesNPCsAndPlayers(t *testing.T) {
 }
 
 func TestInstanceLoadRequestPlayersSendsSpawnSequence(t *testing.T) {
-	inst := newTestInstanceForMap(t, 165)
+	inst := newHeadlessInstance(t, 165)
 	player, sink := newTestPlayer("Player")
 
-	inst.AddPlayer(player)
+	runInActor(inst, func() { inst.addPlayer(player) })
 	player.itemMgr.AddBag(20, 1)
 	player.itemMgr.AddBag(9, 2)
 	sink.reset()
 
-	inst.LoadRequestPlayers(player, InstanceLoadRequestPlayers{})
+	runInActor(inst, func() { inst.loadRequestPlayers(player, InstanceLoadRequestPlayers{}) })
 
 	for _, op := range []int{0x58, 0x20, 0xaf, 0x1d1, 0x18d, 0x9a} {
 		assert.Contains(t, sink.opcodes(), op, "expected spawn sequence opcode %04x", op)
@@ -278,15 +285,15 @@ func TestInstanceLoadRequestPlayersSendsSpawnSequence(t *testing.T) {
 func TestCommandsRecordPackets(t *testing.T) {
 	player, sink := newTestPlayer("Commander")
 
-	assert.True(t, handleSpeedCommand(player, []string{"288"}))
+	assert.True(t, handleSpeedCommand(nil, player, []string{"288"}))
 	assert.True(t, sink.hasOpcode(0x27), "expected MarshalAgentUpdateSpeedBase")
 
 	sink.reset()
-	assert.True(t, handleColorCommand(player, nil))
+	assert.True(t, handleColorCommand(nil, player, nil))
 	assert.Len(t, sink.opcodes(), 14)
 
 	sink.reset()
-	assert.True(t, handleMotdCommand(player, nil))
+	assert.True(t, handleMotdCommand(nil, player, nil))
 	assert.NotEmpty(t, sink.opcodes())
 }
 
@@ -300,32 +307,26 @@ func TestDisconnectClosesSink(t *testing.T) {
 	assert.True(t, sink.IsClosed())
 }
 
-// TestConcurrentWorldOpsSerialize exercises the single-writer actor: many
-// connection goroutines submit world operations for the same instance at once.
-// Every operation is a blocking deliver, so the actor serializes them and there
-// must be no data races on shared player/instance state. Run with -race.
-func TestConcurrentWorldOpsSerialize(t *testing.T) {
+// TestConcurrentJoinsSerialize exercises the fire-and-forget join handoff: many
+// connection goroutines call AcceptPlayer on the same live instance at once.
+// The actor drains the join queue on its game tick and must admit every player
+// with no data races. Run with -race.
+func TestConcurrentJoinsSerialize(t *testing.T) {
 	inst := newTestInstance(t)
-	first, firstSink := newTestPlayer("First")
-	second, secondSink := newTestPlayer("Second")
 
-	inst.AddPlayer(first)
-	inst.AddPlayer(second)
-
+	const n = 100
 	var wg sync.WaitGroup
-	for range 50 {
-		wg.Add(2)
+	for range n {
+		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			inst.UpdateRequestedPlayerPos(first, rand.Float32()*100, rand.Float32()*100)
-		}()
-		go func() {
-			defer wg.Done()
-			inst.UpdateRequestedPlayerPos(second, rand.Float32()*100, rand.Float32()*100)
+			p, _ := newTestPlayer("Joiner")
+			inst.AcceptPlayer(p)
 		}()
 	}
 	wg.Wait()
 
-	assert.True(t, firstSink.hasOpcode(0x2c), "expected MarshalAgentUpdatePosition in first sink")
-	assert.True(t, secondSink.hasOpcode(0x2c), "expected MarshalAgentUpdatePosition in second sink")
+	eventually(t, 2*time.Second, func() bool {
+		return inst.playerCount.Load() == n
+	})
 }
