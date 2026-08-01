@@ -2,7 +2,6 @@ package portalservice
 
 import (
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -15,11 +14,7 @@ const (
 )
 
 func clearActiveTokens() {
-	activeTokensMu.Lock()
-	defer activeTokensMu.Unlock()
-	for k := range activeTokens {
-		delete(activeTokens, k)
-	}
+	activeTokens.Clear()
 }
 
 func testUUID(v byte) []byte {
@@ -44,12 +39,7 @@ func TestValidateConnectionToken(t *testing.T) {
 	_, ok := ValidateConnectionToken(anotherTokenStr)
 	assert.False(t, ok)
 
-	activeTokensMu.Lock()
-	activeTokens[anotherTokenStr2] = portalToken{
-		info:      ConnectionInfo{AccountID: 0x1000, ClientIP: testIP, AccountUUID: [16]byte{0xCC}},
-		createdAt: time.Now(),
-	}
-	activeTokensMu.Unlock()
+	activeTokens.Set(anotherTokenStr2, ConnectionInfo{AccountID: 0x1000, ClientIP: testIP, AccountUUID: [16]byte{0xCC}})
 
 	info, ok := ValidateConnectionToken(anotherTokenStr2)
 	assert.True(t, ok)

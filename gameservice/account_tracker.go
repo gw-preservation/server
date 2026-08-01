@@ -1,24 +1,13 @@
 package gameservice
 
-import "sync"
+import "gw1/server/accountstore"
 
-var (
-	mu       sync.RWMutex
-	loggedIn = map[uint64]struct{}{}
-)
+var accountTracker = accountstore.New()
 
 func TrackAccount(accountID uint64) bool {
-	mu.Lock()
-	defer mu.Unlock()
-	if _, ok := loggedIn[accountID]; ok {
-		return false
-	}
-	loggedIn[accountID] = struct{}{}
-	return true
+	return accountTracker.Track(accountID)
 }
 
 func UntrackAccount(accountID uint64) {
-	mu.Lock()
-	defer mu.Unlock()
-	delete(loggedIn, accountID)
+	accountTracker.Untrack(accountID)
 }

@@ -15,24 +15,15 @@ func testUUID(v byte) []byte {
 const testIP = "192.0.2.1"
 
 func clearActiveTokens() {
-	activeTokensMu.Lock()
-	defer activeTokensMu.Unlock()
-	for k := range activeTokens {
-		delete(activeTokens, k)
-	}
+	activeTokens.Clear()
 }
 
-func getActiveToken(key uint32) (gameToken, bool) {
-	activeTokensMu.Lock()
-	defer activeTokensMu.Unlock()
-	v, ok := activeTokens[key]
-	return v, ok
+func getActiveToken(key uint32) (ConnectionInfo, bool) {
+	return activeTokens.Consume(key)
 }
 
 func activeTokenCount() int {
-	activeTokensMu.Lock()
-	defer activeTokensMu.Unlock()
-	return len(activeTokens)
+	return activeTokens.Len()
 }
 
 func TestGenerateConnectionTokenForInstance(t *testing.T) {
@@ -45,11 +36,11 @@ func TestGenerateConnectionTokenForInstance(t *testing.T) {
 
 	entry, ok := getActiveToken(token)
 	assert.True(t, ok)
-	assert.Equal(t, uint32(100), entry.info.InstanceTag)
-	assert.False(t, entry.info.IsTransfer)
-	assert.Equal(t, charUUID, entry.info.CharacterUUID[:])
-	assert.Equal(t, accUUID, entry.info.AccountUUID[:])
-	assert.Equal(t, testIP, entry.info.ClientIP)
+	assert.Equal(t, uint32(100), entry.InstanceTag)
+	assert.False(t, entry.IsTransfer)
+	assert.Equal(t, charUUID, entry.CharacterUUID[:])
+	assert.Equal(t, accUUID, entry.AccountUUID[:])
+	assert.Equal(t, testIP, entry.ClientIP)
 }
 
 func TestGenerateConnectionTokenForInstance_Transfer(t *testing.T) {
@@ -61,11 +52,11 @@ func TestGenerateConnectionTokenForInstance_Transfer(t *testing.T) {
 
 	entry, ok := getActiveToken(token)
 	assert.True(t, ok)
-	assert.Equal(t, uint32(200), entry.info.InstanceTag)
-	assert.True(t, entry.info.IsTransfer)
-	assert.Equal(t, charUUID, entry.info.CharacterUUID[:])
-	assert.Equal(t, accUUID, entry.info.AccountUUID[:])
-	assert.Equal(t, testIP, entry.info.ClientIP)
+	assert.Equal(t, uint32(200), entry.InstanceTag)
+	assert.True(t, entry.IsTransfer)
+	assert.Equal(t, charUUID, entry.CharacterUUID[:])
+	assert.Equal(t, accUUID, entry.AccountUUID[:])
+	assert.Equal(t, testIP, entry.ClientIP)
 }
 
 func TestGenerateConnectionTokenForInstance_NilUUIDs(t *testing.T) {
@@ -76,9 +67,9 @@ func TestGenerateConnectionTokenForInstance_NilUUIDs(t *testing.T) {
 
 	entry, ok := getActiveToken(token)
 	assert.True(t, ok)
-	assert.Equal(t, [16]byte{}, entry.info.CharacterUUID)
-	assert.Equal(t, [16]byte{}, entry.info.AccountUUID)
-	assert.Equal(t, "", entry.info.ClientIP)
+	assert.Equal(t, [16]byte{}, entry.CharacterUUID)
+	assert.Equal(t, [16]byte{}, entry.AccountUUID)
+	assert.Equal(t, "", entry.ClientIP)
 }
 
 func TestGenerateConnectionTokenForInstance_UniqueTokens(t *testing.T) {

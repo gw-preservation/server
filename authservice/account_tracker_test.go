@@ -7,9 +7,7 @@ import (
 )
 
 func clearTracker() {
-	mu.Lock()
-	defer mu.Unlock()
-	loggedIn = map[uint64]struct{}{}
+	accountTracker.Reset()
 }
 
 func TestTrackAccount_Success(t *testing.T) {

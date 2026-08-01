@@ -3,7 +3,7 @@ package portalservice
 import (
 	"crypto/rand"
 	"gw1/server/db"
-	"sync"
+	"gw1/server/tokenstore"
 	"time"
 )
 
@@ -13,26 +13,18 @@ type ConnectionInfo struct {
 	AccountUUID [16]byte
 }
 
-type portalToken struct {
-	info      ConnectionInfo
-	createdAt time.Time
-}
-
-var (
-	activeTokensMu sync.Mutex
-	activeTokens   = make(map[string]portalToken)
+const (
+	tokenTTL             = 5 * time.Minute
+	tokenCleanupInterval = 1 * time.Minute
 )
+
+var activeTokens = tokenstore.New[string, ConnectionInfo](tokenCleanupInterval, tokenTTL)
 
 func generateConnectionTokenWithRandomBytes(accountId uint64, tokenBytes []byte, clientIP string, accountUUID []byte) (token string) {
 	token = db.UUIDStr(tokenBytes)
 	var accUUID [16]byte
 	copy(accUUID[:], accountUUID)
-	activeTokensMu.Lock()
-	activeTokens[token] = portalToken{
-		info:      ConnectionInfo{AccountID: accountId, ClientIP: clientIP, AccountUUID: accUUID},
-		createdAt: time.Now(),
-	}
-	activeTokensMu.Unlock()
+	activeTokens.Set(token, ConnectionInfo{AccountID: accountId, ClientIP: clientIP, AccountUUID: accUUID})
 	return token
 }
 
@@ -50,39 +42,9 @@ func GenerateConnectionTokenForTest(accountId uint64, tokenBytes []byte, clientI
 }
 
 func ValidateConnectionToken(token string) (info ConnectionInfo, ok bool) {
-	activeTokensMu.Lock()
-	entry, ok := activeTokens[token]
-	if ok {
-		delete(activeTokens, token)
-	}
-	activeTokensMu.Unlock()
-	return entry.info, ok
+	return activeTokens.Consume(token)
 }
-
-var tokenCleanupStop = make(chan struct{})
 
 func StopCleanup() {
-	close(tokenCleanupStop)
-}
-
-func init() {
-	go func() {
-		ticker := time.NewTicker(1 * time.Minute)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ticker.C:
-				now := time.Now()
-				activeTokensMu.Lock()
-				for k, v := range activeTokens {
-					if now.Sub(v.createdAt) > 5*time.Minute {
-						delete(activeTokens, k)
-					}
-				}
-				activeTokensMu.Unlock()
-			case <-tokenCleanupStop:
-				return
-			}
-		}
-	}()
+	activeTokens.Stop()
 }

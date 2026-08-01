@@ -3,8 +3,9 @@ package gameservice
 import (
 	"crypto/rand"
 	"encoding/binary"
-	"sync"
 	"time"
+
+	"gw1/server/tokenstore"
 )
 
 type ConnectionInfo struct {
@@ -15,15 +16,12 @@ type ConnectionInfo struct {
 	ClientIP      string   // IP address that generated the token
 }
 
-type gameToken struct {
-	info      ConnectionInfo
-	createdAt time.Time
-}
-
-var (
-	activeTokensMu sync.Mutex
-	activeTokens   = make(map[uint32]gameToken)
+const (
+	tokenTTL             = 5 * time.Minute
+	tokenCleanupInterval = 1 * time.Minute
 )
+
+var activeTokens = tokenstore.New[uint32, ConnectionInfo](tokenCleanupInterval, tokenTTL)
 
 var CharCreationTag = randUint32()
 
@@ -41,49 +39,20 @@ func GenerateConnectionTokenForInstance(instanceTag uint32, isTransfer bool, cha
 	var charID, accID [16]byte
 	copy(charID[:], characterUUID)
 	copy(accID[:], accountUUID)
-	activeTokensMu.Lock()
-	activeTokens[securityTag] = gameToken{
-		info:      ConnectionInfo{InstanceTag: instanceTag, IsTransfer: isTransfer, CharacterUUID: charID, AccountUUID: accID, ClientIP: clientIP},
-		createdAt: time.Now(),
-	}
-	activeTokensMu.Unlock()
+	activeTokens.Set(securityTag, ConnectionInfo{
+		InstanceTag:   instanceTag,
+		IsTransfer:    isTransfer,
+		CharacterUUID: charID,
+		AccountUUID:   accID,
+		ClientIP:      clientIP,
+	})
 	return securityTag
 }
 
 func ValidateConnectionToken(securityTag uint32) (info ConnectionInfo, ok bool) {
-	activeTokensMu.Lock()
-	entry, ok := activeTokens[securityTag]
-	if ok {
-		delete(activeTokens, securityTag)
-	}
-	activeTokensMu.Unlock()
-	return entry.info, ok
+	return activeTokens.Consume(securityTag)
 }
-
-var tokenCleanupStop = make(chan struct{})
 
 func StopCleanup() {
-	close(tokenCleanupStop)
-}
-
-func init() {
-	go func() {
-		ticker := time.NewTicker(1 * time.Minute)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ticker.C:
-				now := time.Now()
-				activeTokensMu.Lock()
-				for k, v := range activeTokens {
-					if now.Sub(v.createdAt) > 5*time.Minute {
-						delete(activeTokens, k)
-					}
-				}
-				activeTokensMu.Unlock()
-			case <-tokenCleanupStop:
-				return
-			}
-		}
-	}()
+	activeTokens.Stop()
 }
