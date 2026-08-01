@@ -259,16 +259,11 @@ type CartographyData struct {
 
 // opcode: 0x0093
 type MapsUnlocked struct {
-	data []byte
-}
-
-// opcode: 0x0093
-type MapsUnlocked2 struct {
-	completedMissions []uint32
-	unk1              []uint32
-	unk2              []uint32
-	unk3              []uint32
-	maps              []uint32
+	missionsBonus      []uint32
+	missionsFinished   []uint32
+	missionsBonusHM    []uint32
+	missionsFinishedHM []uint32
+	mapsUnlocked       []uint32
 }
 
 // opcode: 0x004a

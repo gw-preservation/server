@@ -1,6 +1,9 @@
 package gameservice
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 type commandHandler func(p *Player, args []string) bool
 
@@ -90,7 +93,7 @@ func handleTravelCommand(p *Player, args []string) bool {
 		return false
 	}
 	if len(args) < 1 {
-		p.SendChatWarning("Usage: /travel <mapId> or /travel \"<map_debug_name>\"")
+		p.SendChatWarning("Usage: /travel <mapId> or /travel \"<map_name>\"")
 		return false
 	}
 
@@ -99,16 +102,17 @@ func handleTravelCommand(p *Player, args []string) bool {
 	if nParsed == 0 || err != nil {
 		// maybe it's a name instead of an ID
 		var ok bool
-		newMapId, ok = GetMapIdForName(args[0])
+		newMapId, ok = GetMapIdForNameCaseInsensitive(strings.ReplaceAll(strings.Join(args, " "), "\"", ""))
 		if !ok || newMapId == 0 {
-			p.log.Error().Err(err).Msg("failed to find map by id or debug name")
+			p.log.Error().Err(err).Msg("failed to find map by id or name")
+			p.SendChatWarning("Unable to find map.")
 			return false
 		}
 	}
 	p.log.Info().Int("newMapId", newMapId).Msg("travel command")
 	// Is it a valid map?
 	if !HasInstanceDefinitionForMapId(newMapId) {
-		p.SendChatWarning(fmt.Sprintf("Map ID %d is not valid", newMapId))
+		p.SendChatWarning(fmt.Sprintf("Map ID %d has no definition data", newMapId))
 		return false
 	}
 	// Transfer player to new map

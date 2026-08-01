@@ -296,32 +296,26 @@ func MarshalCartographyData(data []uint32) (resp GwPacket.Out) {
 	return
 }
 
-func MarshalMapsUnlocked(data []byte) (resp GwPacket.Out) {
+func MarshalMapsUnlocked(missionsBonus []uint32, missionsFinished []uint32, missionsBonusHM []uint32, missionsFinishedHM []uint32, mapsUnlocked []uint32) (resp GwPacket.Out) {
 	resp = GwPacket.NewOut(0x93)
-	resp.Bytes(data)
-	return
-}
-
-func MarshalMapsUnlocked2(completedMissions []uint32, unk1 []uint32, unk2 []uint32, unk3 []uint32, maps []uint32) (resp GwPacket.Out) {
-	resp = GwPacket.NewOut(0x93)
-	resp.Uint16(len(completedMissions))
-	for _, i := range completedMissions {
+	resp.Uint16(len(missionsBonus))
+	for _, i := range missionsBonus {
 		resp.Uint32(int(i))
 	}
-	resp.Uint16(len(unk1))
-	for _, i := range unk1 {
+	resp.Uint16(len(missionsFinished))
+	for _, i := range missionsFinished {
 		resp.Uint32(int(i))
 	}
-	resp.Uint16(len(unk2))
-	for _, i := range unk2 {
+	resp.Uint16(len(missionsBonusHM))
+	for _, i := range missionsBonusHM {
 		resp.Uint32(int(i))
 	}
-	resp.Uint16(len(unk3))
-	for _, i := range unk3 {
+	resp.Uint16(len(missionsFinishedHM))
+	for _, i := range missionsFinishedHM {
 		resp.Uint32(int(i))
 	}
-	resp.Uint16(len(maps))
-	for _, i := range maps {
+	resp.Uint16(len(mapsUnlocked))
+	for _, i := range mapsUnlocked {
 		resp.Uint32(int(i))
 	}
 	return

@@ -103,6 +103,16 @@ func InitializeInstances() error {
 	return nil
 }
 
+func GetMapIdForNameCaseInsensitive(name string) (int, bool) {
+	name = strings.ToLower(name)
+	for mapId, definition := range instanceDefinitions.Instances {
+		if strings.ToLower(definition.Name) == name {
+			return mapId, true
+		}
+	}
+	return 0, false
+}
+
 func GetMapIdForName(name string) (int, bool) {
 	for mapId, definition := range instanceDefinitions.Instances {
 		if definition.Name == name {
