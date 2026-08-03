@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"gw1/server/db"
 	GwPacket "gw1/server/gwpacket"
+	"gw1/server/pathing"
 	"math/rand"
 	"slices"
 	"strconv"
@@ -22,7 +23,7 @@ var ServerIP [4]byte
 
 func init() {
 	log = zerolog.New(zerolog.NewConsoleWriter())
-	log = log.Level(zerolog.DebugLevel)
+	log = log.Level(zerolog.InfoLevel)
 	log = log.With().Timestamp().Logger()
 }
 
@@ -71,7 +72,9 @@ type agentDefinition struct {
 	DefinitionIndex    int
 }
 
-func InitializeInstances() error {
+// InitializeInstances assigns agent definition indices and prepares lazy
+// pathing.
+func InitializeInstances(gwdatPath string) error {
 	index := 0
 	for name := range instanceDefinitions.Agents {
 		def := instanceDefinitions.Agents[name]
@@ -79,7 +82,7 @@ func InitializeInstances() error {
 		instanceDefinitions.Agents[name] = def
 		index++
 	}
-	return nil
+	return initializePathing(gwdatPath)
 }
 
 func GetMapIdForNameCaseInsensitive(name string) (int, bool) {
@@ -125,7 +128,10 @@ func (im *instanceManager) GetOrCreateInstanceByMapId(mapId int) (*Instance, err
 	if hasExistingInst {
 		return existingInst, nil
 	}
-	inst := NewInstance(mapId, definition)
+	inst, err := NewInstance(mapId, definition)
+	if err != nil {
+		return nil, err
+	}
 	im.AddInstance(inst)
 	return inst, nil
 }
@@ -173,20 +179,21 @@ type Instance struct {
 	players                []*Player
 	mapId                  int
 	definition             instanceDefinition
+	path                   *pathing.PathData // navmesh for this map, shared read-only; never nil (NewInstance fails without one)
 	alive                  bool
 	agents                 []Agent
 	gracefulShutdownSignal chan bool
 	forceShutdownSignal    chan bool
 	log                    zerolog.Logger
 
-	pendingJoins       chan *Player
-	done               chan struct{}
-	closeOnce          sync.Once
-	inActor            atomic.Bool
-	playerCount        atomic.Int64
-	lastTickAt         time.Time
-	lastMovementTickAt time.Time
-	tickCount          int64
+	pendingJoins          chan *Player
+	done                  chan struct{}
+	closeOnce             sync.Once
+	inActor               atomic.Bool
+	playerCount           atomic.Int64
+	lastTickAt            time.Time
+	lastMovementAdvanceAt time.Time
+	tickCount             int64
 }
 
 func (i *Instance) assertActor() {
@@ -233,20 +240,29 @@ func (inst *Instance) RemovePlayer(player *Player) {
 	}
 }
 
-func NewInstance(mapId int, definition instanceDefinition) *Instance {
-	i := newInstance(mapId, definition)
+// NewInstance builds an Instance for the given map, refusing to create one
+// without a navmesh.
+func NewInstance(mapId int, definition instanceDefinition) (*Instance, error) {
+	i, err := newInstance(mapId, definition)
+	if err != nil {
+		return nil, err
+	}
 	go i.actorLoop()
-	return i
+	return i, nil
 }
 
-// newInstance is for headless tests or as a helper for NewInstance.
-func newInstance(mapId int, definition instanceDefinition) *Instance {
+func newInstance(mapId int, definition instanceDefinition) (*Instance, error) {
+	sd, err := ensurePathLoaded(uint32(definition.MapFileId), definition.Name)
+	if err != nil {
+		return nil, err
+	}
 	i := &Instance{
 		definition:             definition,
 		uuid:                   rand.Uint64(),
 		tag:                    rand.Uint32(),
 		mapId:                  mapId,
 		alive:                  true,
+		path:                   sd,
 		agents:                 make([]Agent, 0),
 		gracefulShutdownSignal: make(chan bool, 1),
 		forceShutdownSignal:    make(chan bool, 1),
@@ -273,7 +289,7 @@ func newInstance(mapId int, definition instanceDefinition) *Instance {
 			plane:               int(agentToSpawn.SpawnPoint[2]),
 			facingX:             1.0,
 			facingY:             0.0,
-			speed:               agentDefinition.Speed,
+			baseSpeed:           agentDefinition.Speed,
 			modelId:             agentDefinition.ModelId,
 			allegianceFlags:     agentDefinition.AllegianceFlags,
 			encName:             agentDefinition.EncName,
@@ -285,7 +301,7 @@ func newInstance(mapId int, definition instanceDefinition) *Instance {
 		}
 		i.agents = append(i.agents, ag)
 	}
-	return i
+	return i, nil
 }
 
 const targetGameTick = 50 * time.Millisecond
@@ -368,19 +384,7 @@ drainJoins:
 		}
 	}
 
-	// if this is a movement tick, send movement updates to all players.
-	isMovementTick := (i.tickCount%10 == 0)
-	if isMovementTick {
-		tookHowLong := int(time.Since(i.lastMovementTickAt).Milliseconds())
-		for _, p := range i.players {
-			if p.conn.IsClosed() {
-				continue
-			}
-			// no world simulation yet
-			p.EnqueuePacket(MarshalInstanceMovementTick(tookHowLong))
-		}
-		i.lastMovementTickAt = time.Now()
-	}
+	i.tickMovement()
 
 	// Phase 3: flush outbound, then disconnect any players that were marked for disconnect.
 	i.flushPlayers()
@@ -403,8 +407,7 @@ func (i *Instance) processPlayer(p *Player) bool {
 
 	if m := p.moveTo; m != nil {
 		p.moveTo = nil
-		i.UpdateRequestedPlayerPos(p, m.x, m.y)
-		p.EnqueuePacket(MarshalMoveToPointS2C(p.agentId, m.x, m.y, 0))
+		i.startPlayerMove(p, m.x, m.y, m.plane)
 	}
 
 	if p.cancelInteractRequested {
@@ -634,7 +637,7 @@ func (i *Instance) SendActiveAgents(to *Player) {
 			9,
 			ag.posX, ag.posY, ag.plane,
 			ag.facingX, ag.facingY,
-			ag.speed,
+			ag.baseSpeed,
 			ag.allegianceFlags,
 		))
 		i.log.Info().Int("agentId", ag.agentId).Int("ToAgId", to.agentId).Int("ToPlayerId", to.playerId).Msg("Transmitted Agent")
@@ -680,29 +683,15 @@ func (i *Instance) TransmitPlayer(to *Player, other *Player) {
 		other.plane,
 		other.facingX,
 		other.facingY,
-		other.speed,
+		other.baseSpeed,
 		other.allegianceFlags,
 	))
 	to.EnqueuePacket(MarshalAgentAttrUpdateInt(30, other.agentId, other.playerId))
 }
 
-func (i *Instance) UpdateRequestedPlayerPos(player *Player, x float32, y float32) {
-	i.assertActor()
-	found := false
-	for _, cur := range i.players {
-		if cur.playerId == player.playerId {
-			found = true
-			break
-		}
-	}
-	if !found {
-		i.log.Warn().Msg("refusing to update player pos for a player not in this instance")
-		return
-	}
-	player.posX = x
-	player.posY = y
+func (i *Instance) broadcastPlayerPos(player *Player) {
 	for _, other := range i.players {
-		other.EnqueuePacket(MarshalAgentUpdatePosition(player.agentId, x, y, player.plane))
+		other.EnqueuePacket(MarshalAgentUpdatePosition(player.agentId, player.posX, player.posY, player.plane))
 	}
 }
 

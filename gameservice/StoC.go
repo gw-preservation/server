@@ -31,11 +31,11 @@ type InstanceMovementTick struct {
 
 // opcode: 0x0029
 type MoveToPointS2C struct {
-	agentId int //wire:uint32
-	x       float32
-	y       float32
-	plane   int //wire:uint16
-	unk1    int //wire:uint16,val:0
+	agentId      int //wire:uint32
+	x            float32
+	y            float32
+	plane        int //wire:uint16
+	currentPlane int //wire:uint16
 }
 
 // opcode: 0x001b
@@ -592,4 +592,24 @@ type AgentUpdateSpeedBase struct {
 // opcode: 0x001d
 type SetUnlockedSkills struct {
 	skills []uint32
+}
+
+// opcode: 0x0028
+type AgentStopMoving struct {
+	agentId int // wire:uint32
+}
+
+// opcode: 0x0025
+type AgentUpdateDirection struct {
+	agentId          int // wire:uint32
+	facingX          float32
+	facingY          float32
+	moveTypeCardinal int // wire:uint8
+}
+
+// opcode: 0x002b
+type AgentUpdateSpeed struct {
+	agentId          int // wire:uint32
+	speed            float32
+	moveTypeCardinal int // wire:uint8
 }

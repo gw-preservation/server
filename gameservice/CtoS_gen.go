@@ -360,9 +360,9 @@ func UnmarshalMovementUpdate(in *GwPacket.In) (resp MovementUpdate, err error) {
 		err = fmt.Errorf("read facingY: %w", err)
 		return
 	}
-	resp.unk2, err = in.Uint32()
+	resp.dir, err = in.Uint32()
 	if err != nil {
-		err = fmt.Errorf("read unk2: %w", err)
+		err = fmt.Errorf("read dir: %w", err)
 		return
 	}
 	return

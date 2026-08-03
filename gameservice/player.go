@@ -43,7 +43,6 @@ type Player struct {
 
 	pendingDisconnect       bool
 	moveTo                  *MoveToPoint
-	movement                *MovementUpdate
 	chat                    *ChatMessage
 	equip                   *EquipItem
 	destroy                 *DestroyItem
@@ -68,6 +67,8 @@ func newPlayer(conn playerConn, logCtx zerolog.Logger) *Player {
 	}
 	p.itemMgr = NewItemMgr(p)
 	p.allegianceFlags = 0x706c6179
+	p.baseSpeed = 288
+	p.speedMultiplier = 1.0
 	p.uuid = rand.Uint64()
 	p.log = logCtx.With().Uint64("uuid", p.uuid).Logger()
 	p.isPlayer = true
@@ -301,7 +302,7 @@ func (p *Player) spawnPlayerAgent() {
 	plane := 0
 	facingX := float32(0)
 	facingY := float32(0)
-	speed := float32(288) // 1x speed
+	speed := p.baseSpeed
 	p.EnqueuePacket(MarshalAgentSpawned(
 		p.agentId,
 		agentType,

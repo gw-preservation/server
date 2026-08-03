@@ -41,7 +41,8 @@ func handleSpeedCommand(p *Player, args []string) bool {
 		p.SendChatWarning("Usage: /speed <speed>")
 		return false
 	}
-	p.EnqueuePacket(MarshalAgentUpdateSpeedBase(p.agentId, speed))
+	p.baseSpeed = speed
+	p.EnqueuePacket(MarshalAgentUpdateSpeedBase(p.agentId, p.baseSpeed))
 	return true
 }
 

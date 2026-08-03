@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 340" font-family="monospace" font-size="13">
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="#555"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="260" y="24" text-anchor="middle" font-size="15" font-weight="bold">Trapezoid Structure</text>
+
+  <!-- Trapezoid shape -->
+  <polygon points="100,80 420,80 380,260 140,260" fill="#e8f4fd" stroke="#2c3e50" stroke-width="2"/>
+
+  <!-- Labels on edges -->
+  <text x="260" y="68" text-anchor="middle" fill="#2c3e50" font-weight="bold">top (YT)</text>
+  <text x="260" y="282" text-anchor="middle" fill="#2c3e50" font-weight="bold">bottom (YB)</text>
+
+  <!-- Left edge label -->
+  <text x="55" y="174" text-anchor="middle" fill="#c0392b" font-weight="bold" transform="rotate(-65,55,174)">left edge</text>
+  <!-- Right edge label -->
+  <text x="465" y="174" text-anchor="middle" fill="#c0392b" font-weight="bold" transform="rotate(65,465,174)">right edge</text>
+
+  <!-- Corner points -->
+  <circle cx="100" cy="80" r="5" fill="#e74c3c"/>
+  <text x="80" y="72" text-anchor="end" fill="#e74c3c" font-weight="bold">XTL</text>
+
+  <circle cx="420" cy="80" r="5" fill="#e74c3c"/>
+  <text x="440" y="72" text-anchor="start" fill="#e74c3c" font-weight="bold">XTR</text>
+
+  <circle cx="140" cy="260" r="5" fill="#e74c3c"/>
+  <text x="120" y="280" text-anchor="end" fill="#e74c3c" font-weight="bold">XBL</text>
+
+  <circle cx="380" cy="260" r="5" fill="#e74c3c"/>
+  <text x="400" y="280" text-anchor="start" fill="#e74c3c" font-weight="bold">XBR</text>
+
+  <!-- Neighbor arrows (top) -->
+  <line x1="170" y1="80" x2="170" y2="30" stroke="#2980b9" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="170" y="22" text-anchor="middle" fill="#2980b9" font-weight="bold">NeighborTL</text>
+
+  <line x1="350" y1="80" x2="350" y2="30" stroke="#2980b9" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="350" y="22" text-anchor="middle" fill="#2980b9" font-weight="bold">NeighborTR</text>
+
+  <!-- Neighbor arrows (bottom) -->
+  <line x1="200" y1="260" x2="200" y2="310" stroke="#27ae60" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="200" y="328" text-anchor="middle" fill="#27ae60" font-weight="bold">NeighborBL</text>
+
+  <line x1="320" y1="260" x2="320" y2="310" stroke="#27ae60" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="320" y="328" text-anchor="middle" fill="#27ae60" font-weight="bold">NeighborBR</text>
+
+  <!-- Portal indicators on left/right -->
+  <rect x="70" y="155" width="50" height="20" rx="3" fill="#f39c12" stroke="#e67e22" stroke-width="1"/>
+  <text x="95" y="169" text-anchor="middle" fill="white" font-size="10" font-weight="bold">Portal?</text>
+
+  <rect x="400" y="155" width="50" height="20" rx="3" fill="#f39c12" stroke="#e67e22" stroke-width="1"/>
+  <text x="425" y="169" text-anchor="middle" fill="white" font-size="10" font-weight="bold">Portal?</text>
+</svg>

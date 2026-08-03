@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	gw1 "gw1/server"
 	"gw1/server/authservice"
 	"gw1/server/db"
@@ -15,11 +16,14 @@ import (
 
 const serverIP = "192.168.1.124"
 
+var gwDatPath = flag.String("gwdat", "./Gw.dat", "path to the Guild Wars Gw.dat archive (pathing data)")
+
 func main() {
+	flag.Parse()
 	if err := db.Initialize(); err != nil {
 		panic(err)
 	}
-	if err := gameservice.InitializeInstances(); err != nil {
+	if err := gameservice.InitializeInstances(*gwDatPath); err != nil {
 		panic(err)
 	}
 	ip := net.ParseIP(serverIP).To4()

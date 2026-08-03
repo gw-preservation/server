@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 580 400" font-family="monospace" font-size="12">
+  <defs>
+    <marker id="a" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+      <path d="M0,0 L7,2.5 L0,5" fill="#555"/>
+    </marker>
+    <marker id="ga" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+      <path d="M0,0 L7,2.5 L0,5" fill="#27ae60"/>
+    </marker>
+  </defs>
+
+  <text x="290" y="22" text-anchor="middle" font-size="15" font-weight="bold">A* Pathfinding Over Trapezoids</text>
+
+  <!-- Trapezoid mesh -->
+  <!-- T1 -->
+  <polygon points="60,80 160,80 145,140 75,140" fill="#eaf2f8" stroke="#2980b9" stroke-width="1.5"/>
+  <text x="110" y="115" text-anchor="middle" fill="#2980b9" font-weight="bold">T1</text>
+
+  <!-- T2 -->
+  <polygon points="165,80 265,80 250,140 180,140" fill="#eaf2f8" stroke="#2980b9" stroke-width="1.5"/>
+  <text x="215" y="115" text-anchor="middle" fill="#2980b9" font-weight="bold">T2</text>
+
+  <!-- T3 -->
+  <polygon points="270,80 370,80 355,140 285,140" fill="#eaf2f8" stroke="#2980b9" stroke-width="1.5"/>
+  <text x="320" y="115" text-anchor="middle" fill="#2980b9" font-weight="bold">T3</text>
+
+  <!-- T4 -->
+  <polygon points="90,145 190,145 175,205 105,205" fill="#eaf2f8" stroke="#2980b9" stroke-width="1.5"/>
+  <text x="140" y="180" text-anchor="middle" fill="#2980b9" font-weight="bold">T4</text>
+
+  <!-- T5 -->
+  <polygon points="195,145 295,145 280,205 210,205" fill="#eaf2f8" stroke="#2980b9" stroke-width="1.5"/>
+  <text x="245" y="180" text-anchor="middle" fill="#2980b9" font-weight="bold">T5</text>
+
+  <!-- T6 -->
+  <polygon points="300,145 400,145 385,205 315,205" fill="#eaf2f8" stroke="#2980b9" stroke-width="1.5"/>
+  <text x="350" y="180" text-anchor="middle" fill="#2980b9" font-weight="bold">T6</text>
+
+  <!-- T7 -->
+  <polygon points="150,210 250,210 235,270 165,270" fill="#eaf2f8" stroke="#2980b9" stroke-width="1.5"/>
+  <text x="200" y="245" text-anchor="middle" fill="#2980b9" font-weight="bold">T7</text>
+
+  <!-- T8 -->
+  <polygon points="255,210 355,210 340,270 270,270" fill="#eaf2f8" stroke="#2980b9" stroke-width="1.5"/>
+  <text x="305" y="245" text-anchor="middle" fill="#2980b9" font-weight="bold">T8</text>
+
+  <!-- T9 -->
+  <polygon points="200,275 300,275 285,335 215,335" fill="#eaf2f8" stroke="#2980b9" stroke-width="1.5"/>
+  <text x="250" y="310" text-anchor="middle" fill="#2980b9" font-weight="bold">T9</text>
+
+  <!-- Start point -->
+  <circle cx="110" cy="110" r="6" fill="#27ae60"/>
+  <text x="110" y="70" text-anchor="middle" fill="#27ae60" font-weight="bold" font-size="11">Start</text>
+
+  <!-- End point -->
+  <circle cx="250" cy="305" r="6" fill="#e74c3c"/>
+  <text x="250" y="355" text-anchor="middle" fill="#e74c3c" font-weight="bold" font-size="11">End</text>
+
+  <!-- Path (highlighted trapezoids) -->
+  <polygon points="60,80 160,80 145,140 75,140" fill="none" stroke="#27ae60" stroke-width="3" opacity="0.6"/>
+  <polygon points="165,80 265,80 250,140 180,140" fill="none" stroke="#27ae60" stroke-width="3" opacity="0.6"/>
+  <polygon points="195,145 295,145 280,205 210,205" fill="none" stroke="#27ae60" stroke-width="3" opacity="0.6"/>
+  <polygon points="150,210 250,210 235,270 165,270" fill="none" stroke="#27ae60" stroke-width="3" opacity="0.6"/>
+  <polygon points="200,275 300,275 285,335 215,335" fill="none" stroke="#27ae60" stroke-width="3" opacity="0.6"/>
+
+  <!-- Path line (waypoints after funnel smoothing) -->
+  <polyline points="110,110 195,110 245,175 200,240 250,305" fill="none" stroke="#e74c3c" stroke-width="2.5" stroke-dasharray="6,3"/>
+
+  <!-- Waypoint dots -->
+  <circle cx="195" cy="110" r="3.5" fill="#e74c3c"/>
+  <circle cx="245" cy="175" r="3.5" fill="#e74c3c"/>
+  <circle cx="200" cy="240" r="3.5" fill="#e74c3c"/>
+
+  <!-- Legend -->
+  <rect x="410" y="75" width="160" height="100" rx="5" fill="#f8f9fa" stroke="#ccc" stroke-width="1"/>
+  <text x="490" y="95" text-anchor="middle" font-weight="bold" font-size="11">Legend</text>
+  <line x1="425" y1="112" x2="455" y2="112" stroke="#27ae60" stroke-width="3" opacity="0.6"/>
+  <text x="462" y="116" fill="#555" font-size="10">Explored traps</text>
+  <line x1="425" y1="132" x2="455" y2="132" stroke="#e74c3c" stroke-width="2" stroke-dasharray="6,3"/>
+  <text x="462" y="136" fill="#555" font-size="10">Funnel path</text>
+  <circle cx="440" cy="152" r="3.5" fill="#e74c3c"/>
+  <text x="462" y="156" fill="#555" font-size="10">Waypoints</text>
+</svg>

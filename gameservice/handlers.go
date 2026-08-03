@@ -91,7 +91,9 @@ func (conn *GSConn) onMoveToPoint(payload *MoveToPoint) error {
 }
 
 func (conn *GSConn) onMovementUpdate(payload *MovementUpdate) error {
-	conn.player.movement = payload
+	if inst := conn.player.connectedInstance; inst != nil {
+		inst.applyDirMovement(conn.player, payload.posX, payload.posY, payload.facingX, payload.facingY, payload.dir)
+	}
 	return nil
 }
 
@@ -100,6 +102,9 @@ func (conn *GSConn) onRotateAgent(payload *RotateAgent) error {
 }
 
 func (conn *GSConn) onLastPosBeforeMoveCancelled(payload *LastPosBeforeMoveCancelled) error {
+	if inst := conn.player.connectedInstance; inst != nil {
+		inst.applyLastPosCorrection(conn.player, payload.x, payload.y, payload.unk2)
+	}
 	return nil
 }
 

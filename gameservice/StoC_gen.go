@@ -31,13 +31,13 @@ func MarshalInstanceMovementTick(delta int) (resp GwPacket.Out) {
 	return
 }
 
-func MarshalMoveToPointS2C(agentId int, x float32, y float32, plane int) (resp GwPacket.Out) {
+func MarshalMoveToPointS2C(agentId int, x float32, y float32, plane int, currentPlane int) (resp GwPacket.Out) {
 	resp = GwPacket.NewOut(0x29)
 	resp.Uint32(agentId)
 	resp.Float32(x)
 	resp.Float32(y)
 	resp.Uint16(plane)
-	resp.Uint16(0)
+	resp.Uint16(currentPlane)
 	return
 }
 
@@ -718,5 +718,28 @@ func MarshalSetUnlockedSkills(skills []uint32) (resp GwPacket.Out) {
 	for _, i := range skills {
 		resp.Uint32(int(i))
 	}
+	return
+}
+
+func MarshalAgentStopMoving(agentId int) (resp GwPacket.Out) {
+	resp = GwPacket.NewOut(0x28)
+	resp.Uint32(agentId)
+	return
+}
+
+func MarshalAgentUpdateDirection(agentId int, facingX float32, facingY float32, moveTypeCardinal int) (resp GwPacket.Out) {
+	resp = GwPacket.NewOut(0x25)
+	resp.Uint32(agentId)
+	resp.Float32(facingX)
+	resp.Float32(facingY)
+	resp.Uint8(moveTypeCardinal)
+	return
+}
+
+func MarshalAgentUpdateSpeed(agentId int, speed float32, moveTypeCardinal int) (resp GwPacket.Out) {
+	resp = GwPacket.NewOut(0x2b)
+	resp.Uint32(agentId)
+	resp.Float32(speed)
+	resp.Uint8(moveTypeCardinal)
 	return
 }

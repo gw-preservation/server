@@ -1014,7 +1014,7 @@ var instanceDefinitions = struct {
 		242: {
 			Name:      "Shing Jea Monastery",
 			Expansion: "factions",
-			MapFileId: 0x3ef18,
+			MapFileId: 0x26529,
 		},
 		243: {
 			Name:      "Shing Jea Arena",

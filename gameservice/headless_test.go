@@ -2,9 +2,11 @@ package gameservice
 
 import (
 	GwPacket "gw1/server/gwpacket"
+	"gw1/server/pathing"
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -98,17 +100,36 @@ func newTestPlayer(name string) (*Player, *headlessSink) {
 	return p, sink
 }
 
+var testPathStore = func() *pathing.Store {
+	store := pathing.NewStore()
+	for _, id := range []uint32{0x340c6, 0x1b97d, 0x1bacb} {
+		store.Set(id, &pathing.PathData{})
+	}
+	return store
+}()
+
+func ensureTestPathStore(t *testing.T) {
+	t.Helper()
+	if instancePathStore == nil {
+		instancePathStore = testPathStore
+	}
+}
+
 func newTestInstance(t *testing.T) *Instance {
 	return newTestInstanceForMap(t, 3)
 }
 
 func newTestInstanceForMap(t *testing.T, mapId int) *Instance {
 	t.Helper()
+	ensureTestPathStore(t)
 	definition, ok := instanceDefinitions.Instances[mapId]
 	if !ok {
 		t.Fatalf("missing test instance definition for map id %d", mapId)
 	}
-	inst := NewInstance(mapId, definition)
+	inst, err := NewInstance(mapId, definition)
+	if err != nil {
+		t.Fatalf("failed to create instance for map id %d: %v", mapId, err)
+	}
 	t.Cleanup(inst.Shutdown)
 	return inst
 }
@@ -117,11 +138,15 @@ func newTestInstanceForMap(t *testing.T, mapId int) *Instance {
 // so tests can drive the instance methods synchronously.
 func newHeadlessInstance(t *testing.T, mapId int) *Instance {
 	t.Helper()
+	ensureTestPathStore(t)
 	definition, ok := instanceDefinitions.Instances[mapId]
 	if !ok {
 		t.Fatalf("missing test instance definition for map id %d", mapId)
 	}
-	inst := newInstance(mapId, definition)
+	inst, err := newInstance(mapId, definition)
+	if err != nil {
+		t.Fatalf("failed to create instance for map id %d: %v", mapId, err)
+	}
 	inst.inActor.Store(true)
 	return inst
 }
@@ -153,35 +178,42 @@ func TestAddPlayerTransmitsPlayerToOthers(t *testing.T) {
 	assert.Equal(t, 2, len(inst.players))
 }
 
-func TestUpdateRequestedPlayerPosBroadcastsMovement(t *testing.T) {
+func TestStartPlayerMoveBroadcastsMovement(t *testing.T) {
 	inst := newHeadlessInstance(t, 3)
 	bot, botSink := newTestPlayer("Bot")
 	watcher, watcherSink := newTestPlayer("Watcher")
 
 	inst.AddPlayer(bot)
 	inst.AddPlayer(watcher)
+	bot.posX, bot.posY, bot.plane = 0, 50, 0
+	bot.baseSpeed = 288
 	botSink.reset()
 	watcherSink.reset()
 
-	inst.UpdateRequestedPlayerPos(bot, 123.5, 456.25)
+	inst.startPlayerMove(bot, 123.5, 456.25, 0)
 
-	assert.Equal(t, float32(123.5), bot.posX)
-	assert.Equal(t, float32(456.25), bot.posY)
-	assert.True(t, watcherSink.hasOpcode(0x2c), "expected MarshalAgentUpdatePosition in watcher sink")
-	assert.True(t, botSink.hasOpcode(0x2c), "expected MarshalAgentUpdatePosition in moving player sink")
+	assert.Equal(t, float32(123.5), bot.destX)
+	assert.Equal(t, float32(456.25), bot.destY)
+	assert.True(t, watcherSink.hasOpcode(0x29), "expected MarshalMoveToPointS2C in watcher sink")
+	assert.True(t, botSink.hasOpcode(0x29), "expected MarshalMoveToPointS2C in moving player sink")
 }
 
-func TestUpdateRequestedPlayerPosRejectsRemovedPlayer(t *testing.T) {
+func TestRemovedPlayerNotAdvancedBySim(t *testing.T) {
 	inst := newHeadlessInstance(t, 3)
 	player, _ := newTestPlayer("Leaver")
 
 	inst.AddPlayer(player)
 	inst.RemovePlayer(player)
+	player.posX, player.posY, player.plane = 0, 50, 0
+	player.baseSpeed = 288
+	player.waypoints = []pathing.Waypoint{{X: 0, Y: -50, Plane: 0, TrapID: 1}}
+	player.waypointIdx = 1
+	player.destX, player.destY, player.destPlane = 0, -50, 0
+	inst.lastMovementAdvanceAt = time.Now().Add(-500 * time.Millisecond)
 
-	inst.UpdateRequestedPlayerPos(player, 123.5, 456.25)
+	inst.tickMovement()
 
-	assert.Equal(t, float32(0), player.posX)
-	assert.Equal(t, float32(0), player.posY)
+	assert.Equal(t, float32(50), player.posY)
 }
 
 func TestSendChatRecordsPacket(t *testing.T) {
