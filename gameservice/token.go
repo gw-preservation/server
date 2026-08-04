@@ -14,6 +14,10 @@ type ConnectionInfo struct {
 	CharacterUUID [16]byte // who it is for
 	AccountUUID   [16]byte // which account it belongs to
 	ClientIP      string   // IP address that generated the token
+	HasSpawnPoint bool
+	SpawnX        float32
+	SpawnY        float32
+	SpawnPlane    int
 }
 
 const (
@@ -47,6 +51,18 @@ func GenerateConnectionTokenForInstance(instanceTag uint32, isTransfer bool, cha
 		ClientIP:      clientIP,
 	})
 	return securityTag
+}
+
+func SetConnectionTokenSpawnPoint(tag uint32, x, y float32, plane int) {
+	info, ok := activeTokens.Consume(tag)
+	if !ok {
+		return
+	}
+	info.HasSpawnPoint = true
+	info.SpawnX = x
+	info.SpawnY = y
+	info.SpawnPlane = plane
+	activeTokens.Set(tag, info)
 }
 
 func ValidateConnectionToken(securityTag uint32) (info ConnectionInfo, ok bool) {

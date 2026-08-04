@@ -1,7 +1,6 @@
 package gameservice
 
 import (
-	"encoding/json"
 	"fmt"
 	"gw1/server/db"
 	"gw1/server/gwpacket"
@@ -27,48 +26,32 @@ func init() {
 	log = log.With().Timestamp().Logger()
 }
 
-type HexStr int
-
-func (h *HexStr) UnmarshalJSON(data []byte) error {
-	var s string
-	if err := json.Unmarshal(data, &s); err != nil {
-		return err
-	}
-	s = strings.TrimPrefix(strings.ToLower(s), "0x")
-	v, err := strconv.ParseInt(s, 16, 0)
-	if err != nil {
-		return err
-	}
-	*h = HexStr(v)
-	return nil
-}
-
 type agentSpawnInfo struct {
-	Name       string     `json:"name"`
-	Level      int        `json:"level"`
-	SpawnPoint [3]float32 `json:"spawn_point"`
+	Name       string
+	Level      int
+	SpawnPoint [3]float32
 }
 
 type instanceDefinition struct {
-	Name        string           `json:"name"`
-	Expansion   string           `json:"expansion"`
-	IsPvp       bool             `json:"is_pvp"`
-	Explorable  bool             `json:"explorable"`
-	MapFileId   HexStr           `json:"map_file_id"`
-	PartySize   int              `json:"party_size,omitempty"`
-	Agents      []agentSpawnInfo `json:"agents"`
-	SpawnPoints [][]float32      `json:"spawn_points,omitempty"`
+	Name        string
+	Expansion   string
+	IsPvp       bool
+	Explorable  bool
+	MapFileId   int
+	PartySize   int
+	Agents      []agentSpawnInfo
+	SpawnPoints [][]float32
 }
 
 type agentDefinition struct {
-	Name               string  `json:"name"`
-	EncName            string  `json:"enc_name"`
-	ModelId            int     `json:"model_id"`
-	AllegianceFlags    int     `json:"allegiance_flags"`
-	Speed              float32 `json:"speed"`
-	Profession         int     `json:"profession"`
-	FileId             int     `json:"file_id"`
-	UnkPropertiesBytes string  `json:"unk_properties_bytes"`
+	Name               string
+	EncName            string
+	ModelId            int
+	AllegianceFlags    int
+	Speed              float32
+	Profession         int
+	FileId             int
+	UnkPropertiesBytes string
 	DefinitionIndex    int
 }
 
@@ -186,6 +169,7 @@ type Instance struct {
 	mapId                  int
 	definition             instanceDefinition
 	path                   *pathing.PathData // navmesh for this map, shared read-only; never nil (NewInstance fails without one)
+	transitions            []TransitionDefinition
 	alive                  bool
 	agents                 []Agent
 	gracefulShutdownSignal chan bool
@@ -275,6 +259,7 @@ func newInstance(mapId int, definition instanceDefinition) (*Instance, error) {
 		pendingJoins:           make(chan *Player, 16),
 		done:                   make(chan struct{}),
 	}
+	i.transitions = mapTransitions[mapId]
 	i.log = log.With().Uint64("uuid", i.uuid).Int("mapId", i.mapId).Logger()
 	if i.definition.Explorable {
 		i.log.Debug().Msg("created a new explorable instance")
@@ -459,7 +444,7 @@ func (i *Instance) processPlayer(p *Player) bool {
 	if m := p.mapTravel; m != nil {
 		p.mapTravel = nil
 		i.log.Info().Int("mapId", m.mapId).Msg("MapTravel")
-		if err := i.TransferPlayerToNewMap(p, m.mapId); err != nil {
+		if err := i.TransferPlayerToNewMap(p, m.mapId, 0, 0, -1); err != nil {
 			p.log.Error().Err(err).Int("mapId", m.mapId).Msg("MapTravel")
 		}
 	}
@@ -613,7 +598,14 @@ func (i *Instance) AddPlayer(player *Player) {
 		i.log.Debug().Int("index", idx).Int("playerID", v.playerId).Int("agentID", v.agentId).Str("name", v.name).Msg("player in instance")
 	}
 	player.EnqueuePacket(MarshalInstanceLoadHead())
-	player.posX, player.posY, player.plane = i.NextSpawnPoint()
+	if player.hasPendingSpawn {
+		spawnX := randomFloatAround(player.pendingSpawnX, 100.0)
+		spawnY := randomFloatAround(player.pendingSpawnY, 100.0)
+		player.posX, player.posY, player.plane = spawnX, spawnY, player.pendingSpawnPlane
+		player.hasPendingSpawn = false
+	} else {
+		player.posX, player.posY, player.plane = i.NextSpawnPoint()
+	}
 	player.sendWorldInstanceHead()
 
 	i.TransmitPlayerToOthers(player)
@@ -721,7 +713,7 @@ func (i *Instance) GetTag() uint32 {
 	return i.tag
 }
 
-func (i *Instance) TransferPlayerToNewMap(player *Player, newMapId int) error {
+func (i *Instance) TransferPlayerToNewMap(player *Player, newMapId int, spawnX, spawnY float32, spawnPlane int) error {
 	i.assertActor()
 	inst, err := InstanceManager.GetOrCreateInstanceByMapId(newMapId)
 	if inst == nil || err != nil {
@@ -732,6 +724,9 @@ func (i *Instance) TransferPlayerToNewMap(player *Player, newMapId int) error {
 
 	instanceTag := inst.GetTag()
 	securityTag := GenerateConnectionTokenForInstance(instanceTag, true, player.dbChar.UUID, player.dbAcc.UUID, player.conn.clientIP())
+	if spawnPlane >= 0 {
+		SetConnectionTokenSpawnPoint(securityTag, spawnX, spawnY, spawnPlane)
+	}
 
 	// Send transfer packets to client.
 	region := -2

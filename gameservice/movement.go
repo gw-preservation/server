@@ -77,6 +77,33 @@ func (i *Instance) broadcastMoveToPointOthers(a *Agent, except *Player) {
 	}
 }
 
+func transitionCross(ax, ay, bx, by, px, py float32) float32 {
+	return (bx-ax)*(py-ay) - (by-ay)*(px-ax)
+}
+
+func pointInTransitionTrapezoid(t *TransitionTrapezoid, x, y float32) bool {
+	s1 := transitionCross(t.X1, t.Y1, t.X2, t.Y2, x, y)
+	s2 := transitionCross(t.X2, t.Y2, t.X3, t.Y3, x, y)
+	s3 := transitionCross(t.X3, t.Y3, t.X4, t.Y4, x, y)
+	s4 := transitionCross(t.X4, t.Y4, t.X1, t.Y1, x, y)
+	return (s1 >= 0 && s2 >= 0 && s3 >= 0 && s4 >= 0) ||
+		(s1 <= 0 && s2 <= 0 && s3 <= 0 && s4 <= 0)
+}
+
+func (i *Instance) checkMapTransition(p *Player) {
+	for idx := range i.transitions {
+		t := &i.transitions[idx]
+		if t.Plane != p.plane {
+			continue
+		}
+		if pointInTransitionTrapezoid(&t.Trapezoid, p.posX, p.posY) {
+			i.cancelPlayerMovement(p)
+			i.TransferPlayerToNewMap(p, t.DestMapId, t.SpawnX, t.SpawnY, t.SpawnPlane)
+			return
+		}
+	}
+}
+
 func (i *Instance) advanceDirClamped(a *Agent, dist float32) {
 	nx := a.posX + a.facingX*dist
 	ny := a.posY + a.facingY*dist
@@ -168,36 +195,34 @@ func (i *Instance) advanceAgent(p *Player, delta float32) {
 			a.setDirTarget()
 			i.broadcastMoveToPointOthers(a, p)
 		}
-		return
-	}
-	if len(a.waypoints) == 0 {
-		return
-	}
+	} else if len(a.waypoints) > 0 {
+		dist := delta * a.effectiveSpeed()
+		distToDest := vec2Length(a.posX-a.destX, a.posY-a.destY)
 
-	dist := delta * a.effectiveSpeed()
-	distToDest := vec2Length(a.posX-a.destX, a.posY-a.destY)
+		if distToDest <= dist {
+			dist -= distToDest
+			a.posX, a.posY, a.plane = a.destX, a.destY, a.destPlane
+			if a.waypointIdx < len(a.waypoints) {
+				a.setDestination(a.waypoints[a.waypointIdx])
+				a.waypointIdx++
+				i.broadcastMoveToPoint(a)
+			} else {
+				dist = 0
+			}
+		}
 
-	if distToDest <= dist {
-		dist -= distToDest
-		a.posX, a.posY, a.plane = a.destX, a.destY, a.destPlane
-		if a.waypointIdx < len(a.waypoints) {
-			a.setDestination(a.waypoints[a.waypointIdx])
-			a.waypointIdx++
-			i.broadcastMoveToPoint(a)
-		} else {
-			dist = 0
+		if dist > 0 {
+			a.posX += a.facingX * dist
+			a.posY += a.facingY * dist
+		}
+
+		if a.plane == a.destPlane && a.posX == a.destX && a.posY == a.destY {
+			a.waypoints = nil
+			a.waypointIdx = 0
 		}
 	}
 
-	if dist > 0 {
-		a.posX += a.facingX * dist
-		a.posY += a.facingY * dist
-	}
-
-	if a.plane == a.destPlane && a.posX == a.destX && a.posY == a.destY {
-		a.waypoints = nil
-		a.waypointIdx = 0
-	}
+	i.checkMapTransition(p)
 }
 
 // startPlayerMove: A* over the navmesh is the sole validator; movers off the

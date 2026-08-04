@@ -22,6 +22,8 @@ func HandleCommand(p *Player, command string, fullInput string, args []string) b
 		handler = handleColorCommand
 	case "travel":
 		handler = handleTravelCommand
+	case "pos":
+		handler = handlePosCommand
 	}
 	if handler != nil {
 		return handler(p, args)
@@ -113,10 +115,16 @@ func handleTravelCommand(p *Player, args []string) bool {
 		p.SendChatWarning(fmt.Sprintf("Map ID %d has no definition data", newMapId))
 		return false
 	}
-	err = p.connectedInstance.TransferPlayerToNewMap(p, newMapId)
+	err = p.connectedInstance.TransferPlayerToNewMap(p, newMapId, 0, 0, -1)
 	if err != nil {
 		p.log.Error().Err(err).Int("newMapId", newMapId).Msg("failed to transfer player to new map")
 		return false
 	}
+	return true
+}
+
+func handlePosCommand(p *Player, args []string) bool {
+	p.SendChatInfo(fmt.Sprintf("Position: %.1f, %.1f plane=%d", p.posX, p.posY, p.plane))
+	p.log.Info().Float32("x", p.posX).Float32("y", p.posY).Int("plane", p.plane).Msg("player position")
 	return true
 }

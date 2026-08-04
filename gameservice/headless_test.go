@@ -321,6 +321,11 @@ func TestCommandsRecordPackets(t *testing.T) {
 	sink.reset()
 	assert.True(t, handleMotdCommand(player, nil))
 	assert.NotEmpty(t, sink.opcodes())
+
+	sink.reset()
+	player.posX, player.posY, player.plane = 123.4, 567.8, 2
+	assert.True(t, handlePosCommand(player, nil))
+	assert.True(t, sink.hasOpcode(0x5c), "expected MarshalChatMessageFromServer")
 }
 
 func TestDisconnectClosesSink(t *testing.T) {

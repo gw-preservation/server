@@ -459,3 +459,195 @@ func TestGameTickAdvancesMovementAndBroadcastsSimTick(t *testing.T) {
 		assert.Empty(t, bot.waypoints)
 	})
 }
+
+func TestPointInTransitionTrapezoid(t *testing.T) {
+	trap := &TransitionTrapezoid{
+		X1: -50, Y1: 100,
+		X2: 50, Y2: 100,
+		X3: 100, Y3: 0,
+		X4: -100, Y4: 0,
+	}
+
+	inside := []struct {
+		x, y float32
+		name string
+	}{
+		{0, 50, "center"},
+		{-90, 1, "near bottom-left edge"},
+		{90, 1, "near bottom-right edge"},
+		{-45, 99, "near top-left edge"},
+		{45, 99, "near top-right edge"},
+		{0, 0, "bottom center"},
+		{0, 100, "top center"},
+	}
+	for _, tc := range inside {
+		assert.True(t, pointInTransitionTrapezoid(trap, tc.x, tc.y), tc.name)
+	}
+
+	outside := []struct {
+		x, y float32
+		name string
+	}{
+		{0, -1, "below bottom"},
+		{0, 101, "above top"},
+		{-101, 50, "left of bottom edge"},
+		{101, 50, "right of bottom edge"},
+		{-51, 100, "left of top edge"},
+		{51, 100, "right of top edge"},
+		{0, -1000, "far below"},
+		{0, 1000, "far above"},
+	}
+	for _, tc := range outside {
+		assert.False(t, pointInTransitionTrapezoid(trap, tc.x, tc.y), tc.name)
+	}
+}
+
+func TestPointInTransitionTrapezoidRectangle(t *testing.T) {
+	trap := &TransitionTrapezoid{
+		X1: -50, Y1: 100,
+		X2: 50, Y2: 100,
+		X3: 50, Y3: 0,
+		X4: -50, Y4: 0,
+	}
+
+	assert.True(t, pointInTransitionTrapezoid(trap, 0, 50))
+	assert.True(t, pointInTransitionTrapezoid(trap, -50, 0))
+	assert.True(t, pointInTransitionTrapezoid(trap, 50, 100))
+	assert.False(t, pointInTransitionTrapezoid(trap, -51, 50))
+	assert.False(t, pointInTransitionTrapezoid(trap, 51, 50))
+}
+
+func withTransitionNav(t *testing.T, fn func(inst *Instance)) {
+	t.Helper()
+	old := instancePathStore
+	defer func() { instancePathStore = old }()
+
+	store := pathing.NewStore()
+	store.Set(0x340c6, moveNavData())
+	store.Set(0x2fed, &pathing.PathData{})
+	instancePathStore = store
+
+	fn(newHeadlessInstance(t, 3))
+}
+
+func TestCheckMapTransitionDirect(t *testing.T) {
+	withTransitionNav(t, func(inst *Instance) {
+		old := mapTransitions
+		mapTransitions = map[int][]TransitionDefinition{
+			3: {{
+				Trapezoid: TransitionTrapezoid{X1: -100, Y1: -50, X2: 100, Y2: -50, X3: 100, Y3: -100, X4: -100, Y4: -100},
+				Plane:     0,
+				DestMapId: 2,
+			}},
+		}
+		defer func() { mapTransitions = old }()
+		inst.transitions = mapTransitions[3]
+
+		bot, _ := newTestPlayer("Bot")
+		inst.AddPlayer(bot)
+		bot.posX, bot.posY, bot.plane = 0, -75, 0
+
+		inst.checkMapTransition(bot)
+		assert.True(t, bot.conn.IsClosed(), "player in transition zone should be disconnected")
+	})
+}
+
+func TestKeyboardMoveTriggersTransition(t *testing.T) {
+	withTransitionNav(t, func(inst *Instance) {
+		old := mapTransitions
+		mapTransitions = map[int][]TransitionDefinition{
+			3: {{
+				Trapezoid: TransitionTrapezoid{X1: -200, Y1: 50, X2: 200, Y2: 50, X3: 200, Y3: -200, X4: -200, Y4: -200},
+				Plane:     0,
+				DestMapId: 2,
+			}},
+		}
+		defer func() { mapTransitions = old }()
+		inst.transitions = mapTransitions[3]
+
+		bot, _ := newTestPlayer("Bot")
+		inst.AddPlayer(bot)
+		bot.posX, bot.posY, bot.plane = 0, 10, 0
+		bot.baseSpeed = 288
+
+		inst.applyDirMovement(bot, 0, 10, 0, -1, 1)
+
+		inst.lastMovementAdvanceAt = time.Now().Add(-500 * time.Millisecond)
+		inst.flushMovement(time.Now())
+
+		assert.True(t, bot.conn.IsClosed(), "player should be disconnected after transition")
+	})
+}
+
+func TestClickMoveTriggersTransition(t *testing.T) {
+	withTransitionNav(t, func(inst *Instance) {
+		old := mapTransitions
+		mapTransitions = map[int][]TransitionDefinition{
+			3: {{
+				Trapezoid: TransitionTrapezoid{X1: -200, Y1: 50, X2: 200, Y2: 50, X3: 200, Y3: -100, X4: -200, Y4: -100},
+				Plane:     0,
+				DestMapId: 2,
+			}},
+		}
+		defer func() { mapTransitions = old }()
+		inst.transitions = mapTransitions[3]
+
+		bot, _ := newTestPlayer("Bot")
+		inst.AddPlayer(bot)
+		bot.posX, bot.posY, bot.plane = 0, 50, 0
+		bot.baseSpeed = 288
+
+		inst.startPlayerMove(bot, 0, -50, 0)
+
+		inst.lastMovementAdvanceAt = time.Now().Add(-500 * time.Millisecond)
+		inst.flushMovement(time.Now())
+
+		assert.True(t, bot.conn.IsClosed(), "player should be disconnected after transition")
+	})
+}
+
+func TestTransitionIgnoredOnWrongPlane(t *testing.T) {
+	withTransitionNav(t, func(inst *Instance) {
+		old := mapTransitions
+		mapTransitions = map[int][]TransitionDefinition{
+			3: {{
+				Trapezoid: TransitionTrapezoid{X1: -200, Y1: 50, X2: 200, Y2: 50, X3: 200, Y3: -100, X4: -200, Y4: -100},
+				Plane:     1,
+				DestMapId: 2,
+			}},
+		}
+		defer func() { mapTransitions = old }()
+		inst.transitions = mapTransitions[3]
+
+		bot, _ := newTestPlayer("Bot")
+		inst.AddPlayer(bot)
+		bot.posX, bot.posY, bot.plane = 0, -50, 0
+		bot.baseSpeed = 288
+
+		inst.checkMapTransition(bot)
+		assert.False(t, bot.conn.IsClosed(), "no transition on wrong plane")
+	})
+}
+
+func TestNoTransitionOutsideTrapezoid(t *testing.T) {
+	withTransitionNav(t, func(inst *Instance) {
+		old := mapTransitions
+		mapTransitions = map[int][]TransitionDefinition{
+			3: {{
+				Trapezoid: TransitionTrapezoid{X1: -200, Y1: 50, X2: 200, Y2: 50, X3: 200, Y3: 20, X4: -200, Y4: 20},
+				Plane:     0,
+				DestMapId: 2,
+			}},
+		}
+		defer func() { mapTransitions = old }()
+		inst.transitions = mapTransitions[3]
+
+		bot, _ := newTestPlayer("Bot")
+		inst.AddPlayer(bot)
+		bot.posX, bot.posY, bot.plane = 0, 80, 0
+		bot.baseSpeed = 288
+
+		inst.checkMapTransition(bot)
+		assert.False(t, bot.conn.IsClosed(), "no transition outside trapezoid")
+	})
+}

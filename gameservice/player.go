@@ -52,6 +52,10 @@ type Player struct {
 	target                  *UpdateTarget
 	loadSpawnRequested      bool
 	loadPlayers             *InstanceLoadRequestPlayers
+	pendingSpawnX           float32
+	pendingSpawnY           float32
+	pendingSpawnPlane       int
+	hasPendingSpawn         bool
 }
 
 func NewPlayer(conn *GSConn, logCtx zerolog.Logger) *Player {

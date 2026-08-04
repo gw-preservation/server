@@ -387,6 +387,12 @@ func (conn *GSConn) onVerifyClientConnection(payload *VerifyClientConnection) er
 		p.connectedInstance = inst
 	}
 	p.isTransfer = info.IsTransfer
+	if info.HasSpawnPoint {
+		p.hasPendingSpawn = true
+		p.pendingSpawnX = info.SpawnX
+		p.pendingSpawnY = info.SpawnY
+		p.pendingSpawnPlane = info.SpawnPlane
+	}
 	verified := false
 	acc, ok := db.GetFullAccountByUUID(payload.accountUUID[:])
 	if !ok {
