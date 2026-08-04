@@ -101,7 +101,7 @@ func TestSaveCharacterMapTransfer_CreatesBagsAndUpdatesOutpost(t *testing.T) {
 			},
 		},
 	}
-	err = SaveCharacterMapTransfer(char.ID, 999, newBags)
+	err = SaveCharacterMapTransfer(char.ID, 999, newBags, true)
 	require.NoError(t, err)
 
 	var loaded Character
@@ -132,7 +132,7 @@ func TestSaveCharacterMapTransfer_RollbackOnError(t *testing.T) {
 		},
 	}
 	// Use a non-existent character ID to trigger rollback
-	err = SaveCharacterMapTransfer(9999999, 999, newBags)
+	err = SaveCharacterMapTransfer(9999999, 999, newBags, true)
 	require.Error(t, err)
 
 	var loaded Character

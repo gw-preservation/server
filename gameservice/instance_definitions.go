@@ -664,9 +664,10 @@ var instanceDefinitions = struct {
 			MapFileId: 0x1c530,
 		},
 		146: {
-			Name:      "Lakeside County",
-			Expansion: "presearing",
-			MapFileId: 0x1b97d,
+			Name:       "Lakeside County",
+			Expansion:  "presearing",
+			Explorable: true,
+			MapFileId:  0x1b97d,
 		},
 		147: {
 			Name:      "The Northlands",

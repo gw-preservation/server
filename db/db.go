@@ -167,7 +167,7 @@ func CreateCharacter(accountID uint64, name string, primaryProfession int, appea
 	return
 }
 
-func SaveCharacterMapTransfer(charId uint64, newMapId uint16, newBags []Bag) error {
+func SaveCharacterMapTransfer(charId uint64, newMapId uint16, newBags []Bag, updateOutpost bool) error {
 	return database.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("bag_id IN (SELECT id FROM bags WHERE character_id = ?)", charId).Delete(&Slot{}).Error; err != nil {
 			return err
@@ -181,12 +181,14 @@ func SaveCharacterMapTransfer(charId uint64, newMapId uint16, newBags []Bag) err
 				return err
 			}
 		}
-		result := tx.Model(&Character{}).Where("id = ?", charId).Update("last_outpost_id", newMapId)
-		if result.Error != nil {
-			return result.Error
-		}
-		if result.RowsAffected == 0 {
-			return errors.New("character not found")
+		if updateOutpost {
+			result := tx.Model(&Character{}).Where("id = ?", charId).Update("last_outpost_id", newMapId)
+			if result.Error != nil {
+				return result.Error
+			}
+			if result.RowsAffected == 0 {
+				return errors.New("character not found")
+			}
 		}
 		return nil
 	})

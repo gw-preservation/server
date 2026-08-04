@@ -748,7 +748,7 @@ func (i *Instance) TransferPlayerToNewMap(player *Player, newMapId int, spawnX, 
 	// instance (IsClosed check). The client then connects to the new instance.
 	player.conn.Close()
 
-	if err := db.SaveCharacterMapTransfer(player.dbChar.ID, uint16(newMapId), player.itemMgr.BuildDBBags()); err != nil {
+	if err := db.SaveCharacterMapTransfer(player.dbChar.ID, uint16(newMapId), player.itemMgr.BuildDBBags(), !inst.IsExplorable()); err != nil {
 		player.log.Error().Err(err).Msg("unable to save character map transfer data")
 		return err
 	}
