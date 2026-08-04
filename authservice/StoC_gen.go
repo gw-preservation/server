@@ -5,19 +5,19 @@ package authservice
 import (
 	"fmt"
 
-	GwPacket "gw1/server/gwpacket"
+	"gw1/server/gwpacket"
 	"unicode/utf8"
 )
 
-func MarshalRequestResponse(transactionId int, responseCode int) (resp GwPacket.Out) {
-	resp = GwPacket.NewOut(0x3)
+func MarshalRequestResponse(transactionId int, responseCode int) (resp gwpacket.Out) {
+	resp = gwpacket.NewOut(0x3)
 	resp.Uint32(transactionId)
 	resp.Uint32(responseCode)
 	return
 }
 
-func MarshalCharacterSummary(transactionId int, charUUID []byte, unk1 int, charName string, summary VarByte) (resp GwPacket.Out) {
-	resp = GwPacket.NewOut(0x7)
+func MarshalCharacterSummary(transactionId int, charUUID []byte, unk1 int, charName string, summary VarByte) (resp gwpacket.Out) {
+	resp = gwpacket.NewOut(0x7)
 	resp.Uint32(transactionId)
 	if len(charUUID) != 16 {
 		panic(fmt.Errorf("length check failed for field 'charUUID' of struct 'CharacterSummary': %d vs %d", len(charUUID), 16))
@@ -33,15 +33,15 @@ func MarshalCharacterSummary(transactionId int, charUUID []byte, unk1 int, charN
 	return
 }
 
-func MarshalAccountExtraInfoStart(transactionId int, unk1 int) (resp GwPacket.Out) {
-	resp = GwPacket.NewOut(0x14)
+func MarshalAccountExtraInfoStart(transactionId int, unk1 int) (resp gwpacket.Out) {
+	resp = gwpacket.NewOut(0x14)
 	resp.Uint32(transactionId)
 	resp.Uint32(unk1)
 	return
 }
 
-func MarshalAccountExtraInfo(transactionId int, territoryCode int, languageCode int, unk1 []byte, unk2 []byte, accountUUID []byte, activeCharUUID []byte, unk3 int, entitlements VarByte, eulaByte int, unk4 int) (resp GwPacket.Out) {
-	resp = GwPacket.NewOut(0x11)
+func MarshalAccountExtraInfo(transactionId int, territoryCode int, languageCode int, unk1 []byte, unk2 []byte, accountUUID []byte, activeCharUUID []byte, unk3 int, entitlements VarByte, eulaByte int, unk4 int) (resp gwpacket.Out) {
+	resp = gwpacket.NewOut(0x11)
 	resp.Uint32(transactionId)
 	resp.Uint32(territoryCode)
 	resp.Uint32(languageCode)
@@ -69,16 +69,16 @@ func MarshalAccountExtraInfo(transactionId int, territoryCode int, languageCode 
 	return
 }
 
-func MarshalAccountBinaryInfo(transactionId int, binaryData VarByte) (resp GwPacket.Out) {
-	resp = GwPacket.NewOut(0x16)
+func MarshalAccountBinaryInfo(transactionId int, binaryData VarByte) (resp gwpacket.Out) {
+	resp = gwpacket.NewOut(0x16)
 	resp.Uint32(transactionId)
 	resp.Uint16(len(binaryData))
 	resp.Bytes(binaryData)
 	return
 }
 
-func MarshalServerSeed(xoredRandomBytes []byte) (resp GwPacket.Out) {
-	resp = GwPacket.NewOut(0x1601)
+func MarshalServerSeed(xoredRandomBytes []byte) (resp gwpacket.Out) {
+	resp = gwpacket.NewOut(0x1601)
 	if len(xoredRandomBytes) != 20 {
 		panic(fmt.Errorf("length check failed for field 'xoredRandomBytes' of struct 'ServerSeed': %d vs %d", len(xoredRandomBytes), 20))
 	}
@@ -86,15 +86,15 @@ func MarshalServerSeed(xoredRandomBytes []byte) (resp GwPacket.Out) {
 	return
 }
 
-func MarshalSessionSaltInfo(salt int, unk1 int) (resp GwPacket.Out) {
-	resp = GwPacket.NewOut(0x1)
+func MarshalSessionSaltInfo(salt int, unk1 int) (resp gwpacket.Out) {
+	resp = gwpacket.NewOut(0x1)
 	resp.Uint32(salt)
 	resp.Uint32(unk1)
 	return
 }
 
-func MarshalInstanceServerInfo(transactionId int, worldHash int, mapId int, socketData []byte, playerHash int) (resp GwPacket.Out) {
-	resp = GwPacket.NewOut(0x9)
+func MarshalInstanceServerInfo(transactionId int, worldHash int, mapId int, socketData []byte, playerHash int) (resp gwpacket.Out) {
+	resp = gwpacket.NewOut(0x9)
 	resp.Uint32(transactionId)
 	resp.Uint32(worldHash)
 	resp.Uint32(mapId)
@@ -106,8 +106,8 @@ func MarshalInstanceServerInfo(transactionId int, worldHash int, mapId int, sock
 	return
 }
 
-func MarshalServerHeartbeat(unk1 int, unk2 int) (resp GwPacket.Out) {
-	resp = GwPacket.NewOut(0x0)
+func MarshalServerHeartbeat(unk1 int, unk2 int) (resp gwpacket.Out) {
+	resp = gwpacket.NewOut(0x0)
 	resp.Uint32(unk1)
 	resp.Uint32(unk2)
 	return

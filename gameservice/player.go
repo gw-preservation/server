@@ -3,7 +3,7 @@ package gameservice
 import (
 	"fmt"
 	"gw1/server/db"
-	GwPacket "gw1/server/gwpacket"
+	"gw1/server/gwpacket"
 	Item "gw1/server/item"
 	"math/rand"
 
@@ -13,7 +13,7 @@ import (
 const equipmentBagIndex = 1
 
 type playerConn interface {
-	EnqueuePacket(out GwPacket.Out)
+	EnqueuePacket(out gwpacket.Out)
 	IsClosed() bool
 	Close()
 	clientIP() string
@@ -120,7 +120,7 @@ func (p *Player) TryEquipItem(itemLocalId int) {
 	}
 }
 
-func (p *Player) EnqueuePacket(out GwPacket.Out) {
+func (p *Player) EnqueuePacket(out gwpacket.Out) {
 	p.conn.EnqueuePacket(out)
 }
 
@@ -237,7 +237,7 @@ func (p *Player) sendSkillAndProfessionData() {
 	p.sendAttributePointsRemaining()
 	p.sendProfession()
 	p.sendUnlockedProfessions()
-	p.EnqueuePacket(GwPacket.NewOut(0x001b))
+	p.EnqueuePacket(gwpacket.NewOut(0x001b))
 }
 
 func (p *Player) sendWorldSyncData() {
@@ -268,7 +268,7 @@ func (p *Player) sendPlayerAttributes() {
 	p.EnqueuePacket(MarshalPlayerAttrSet(int(p.xp), p.level))
 
 	// REVERSE THIS MORE:
-	resp := GwPacket.NewOut(0x00ee)
+	resp := gwpacket.NewOut(0x00ee)
 	resp.Uint32(255)
 	resp.Uint32(255)
 	p.EnqueuePacket(resp)
@@ -276,7 +276,7 @@ func (p *Player) sendPlayerAttributes() {
 	p.sendAttributeUpdateFloat(43)
 
 	// REVERSE THIS MORE:
-	resp = GwPacket.NewOut(0x114)
+	resp = gwpacket.NewOut(0x114)
 	resp.Uint32(1)
 	resp.Uint32(0)
 	p.EnqueuePacket(resp)
@@ -361,16 +361,16 @@ func (p *Player) sendPartySetup() {
 	p.EnqueuePacket(MarshalPartySetDifficulty(false))
 
 	// party something
-	resp := GwPacket.NewOut(0x1b1)
+	resp := gwpacket.NewOut(0x1b1)
 	resp.Uint16(1)
 	resp.Uint8(1)
 	p.EnqueuePacket(resp)
 
-	resp = GwPacket.NewOut(0x01bc)
+	resp = gwpacket.NewOut(0x01bc)
 	resp.Uint32(0)
 	p.EnqueuePacket(resp)
 
-	resp = GwPacket.NewOut(0x016d)
+	resp = gwpacket.NewOut(0x016d)
 	resp.Uint8(0)
 	p.EnqueuePacket(resp)
 }
@@ -427,7 +427,7 @@ func (p *Player) sendUnlockedSkills() {
 	}
 	p.EnqueuePacket(MarshalSetUnlockedSkills(allUnlocked)) /*
 
-		resp := GwPacket.NewOut(0x001D)
+		resp := gwpacket.NewOut(0x001D)
 			resp.Bytes([]byte{
 				0x45, 0x00,
 				0x06, 0x44, 0x80, 0xd6, 0xd0, 0x89, 0x14, 0x22, 0x38, 0x18, 0x31, 0x10, // 6
@@ -490,12 +490,12 @@ func (p *Player) sendVanquishUpdate() {
 
 func (p *Player) sendDialogStuff() {
 	// Maybe dialog related
-	resp := GwPacket.NewOut(0x007b)
+	resp := gwpacket.NewOut(0x007b)
 	resp.Uint32(1)
 	p.EnqueuePacket(resp)
 
 	// Maybe dialog related
-	resp = GwPacket.NewOut(0x007c)
+	resp = gwpacket.NewOut(0x007c)
 	resp.Uint32(1)
 	p.EnqueuePacket(resp)
 }

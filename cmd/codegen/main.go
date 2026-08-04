@@ -49,7 +49,7 @@ package %s
 
 import (
 	%s
-%s	GwPacket "gw1/server/gwpacket"
+%s	"gw1/server/gwpacket"
 )
 
 `, os.Getenv("GOPACKAGE"), extraImportsLines, utf8Import)
@@ -163,7 +163,7 @@ func WriteUnmarshalFunction(name string, structType *ast.StructType, docs []*ast
 		fields = append(fields, fd)
 	}
 
-	out = fmt.Sprintf("func Unmarshal%s(in *GwPacket.In) (resp %s, err error){\n", name, name)
+	out = fmt.Sprintf("func Unmarshal%s(in *gwpacket.In) (resp %s, err error){\n", name, name)
 
 	opcode := GetOpcode(name, docs)
 	out += fmt.Sprintf("if in.Opcode() != 0x%x {\n", opcode)
@@ -280,10 +280,10 @@ func WriteMarshalFunction(name string, structType *ast.StructType, docs []*ast.C
 		}
 		out += fmt.Sprintf("%s %s, ", fd.name, reqType)
 	}
-	out += ") (resp GwPacket.Out) {"
+	out += ") (resp gwpacket.Out) {"
 
 	opcode := GetOpcode(name, docs)
-	out += fmt.Sprintf("resp = GwPacket.NewOut(0x%x)\n", opcode)
+	out += fmt.Sprintf("resp = gwpacket.NewOut(0x%x)\n", opcode)
 
 	for _, fd := range fields {
 		valToWrite := fd.name

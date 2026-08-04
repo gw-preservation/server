@@ -6,7 +6,7 @@ package gameservice
 
 import (
 	"fmt"
-	GwPacket "gw1/server/gwpacket"
+	"gw1/server/gwpacket"
 )
 
 type NestedUint32 []uint32
@@ -515,7 +515,7 @@ type ChatMessageCore struct {
 	messsage string //maxlen:122
 }
 
-func MarshalChatMessageFromServer(message string, channel int) GwPacket.Out {
+func MarshalChatMessageFromServer(message string, channel int) gwpacket.Out {
 	resp := MarshalChatMessageCore(fmt.Sprintf("\u0108\u0107%s\u0001", message))
 	resp.Merge(MarshalChatMessageServer(channel))
 	return resp

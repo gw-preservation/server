@@ -7,11 +7,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-
-	"github.com/charmbracelet/log"
 )
-
-var logger = log.WithPrefix("sts")
 
 type errorRespMsgPayload struct {
 	XMLName xml.Name `xml:"Error"`

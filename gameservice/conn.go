@@ -4,10 +4,9 @@ import (
 	"crypto/rc4"
 	"errors"
 	"fmt"
-	GwPacket "gw1/server/gwpacket"
+	"gw1/server/gwpacket"
 	"io"
 	"net"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -49,7 +48,7 @@ type GSConn struct {
 	state     State
 	enc       *rc4.Cipher
 	dec       *rc4.Cipher
-	out       GwPacket.Out
+	out       gwpacket.Out
 	outMu     sync.Mutex
 	closed    atomic.Bool
 	log       zerolog.Logger
@@ -70,7 +69,7 @@ func NewGSConn(socket *net.TCPConn, logCtx zerolog.Logger) *GSConn {
 	conn := GSConn{
 		socket:     socket,
 		state:      StateAwaitVerifyClientConnection,
-		out:        GwPacket.NewOutRaw(),
+		out:        gwpacket.NewOutRaw(),
 		log:        logCtx.With().Str("srv", "game").Logger(),
 		done:       make(chan struct{}),
 		flushCh:    make(chan flushRequest, 1),
@@ -241,7 +240,7 @@ func (conn *GSConn) processOne(data []byte) (consumed int, err error) {
 		return 0, nil
 	}
 
-	in := GwPacket.NewIn(data)
+	in := gwpacket.NewIn(data)
 	op, _ := in.Uint16()
 
 	//conn.log.Info().Str("op", fmt.Sprintf("%04x", op)).Hex("data", data).Msg("received packet")
@@ -291,7 +290,7 @@ func (conn *GSConn) Read(buf []byte) (int, error) {
 	return conn.socket.Read(buf)
 }
 
-func (conn *GSConn) writeLocked(packet *GwPacket.Out) error {
+func (conn *GSConn) writeLocked(packet *gwpacket.Out) error {
 	bts := packet.GetBytes()
 	if conn.enc != nil {
 		conn.enc.XORKeyStream(bts, bts)
@@ -300,25 +299,13 @@ func (conn *GSConn) writeLocked(packet *GwPacket.Out) error {
 	return err
 }
 
-func (conn *GSConn) WritePacket(packet *GwPacket.Out) error {
+func (conn *GSConn) WritePacket(packet *gwpacket.Out) error {
 	conn.outMu.Lock()
 	defer conn.outMu.Unlock()
 	return conn.writeLocked(packet)
 }
 
-func prettyBytesString(in []byte) string {
-	var sb strings.Builder
-
-	for i, b := range in {
-		if i > 0 && i%16 == 0 {
-			sb.WriteString("\n")
-		}
-		sb.WriteString(fmt.Sprintf("%02x ", b))
-	}
-	return sb.String()
-}
-
-func (conn *GSConn) EnqueuePacket(packet GwPacket.Out) {
+func (conn *GSConn) EnqueuePacket(packet gwpacket.Out) {
 	conn.outMu.Lock()
 	defer conn.outMu.Unlock()
 	conn.out.Merge(packet)

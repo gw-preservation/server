@@ -115,8 +115,7 @@ func GetBagsForCharacterByID(characterId uint64) (bags []Bag, ok bool) {
 	return
 }
 
-func NewDbSlot(forBagId uint64) (slot Slot) {
-	slot.BagID = forBagId
+func NewDbSlot() (slot Slot) {
 	slot.ItemModifiers = make([]uint32, 0)
 	return
 }
@@ -126,7 +125,7 @@ func NewDbBag(forCharacterId uint64, capacity int, bagType int) (bag Bag) {
 	bag.Capacity = uint8(capacity)
 	bag.Type = uint8(bagType)
 	for range capacity {
-		bag.Slots = append(bag.Slots, NewDbSlot(bag.ID))
+		bag.Slots = append(bag.Slots, NewDbSlot())
 	}
 	return
 }

@@ -11,7 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/charmbracelet/log"
 	"github.com/rs/zerolog"
 )
 
@@ -248,7 +247,7 @@ func (srv tcpsrv) Serve() {
 	for {
 		conn, err := srv.listener.AcceptTCP()
 		if err != nil {
-			log.Fatalf("error accepting tcp connection: %s", err.Error())
+			logger.Fatal().Msgf("error accepting tcp connection: %s", err.Error())
 		}
 		if !activeConns.tryAcquire(conn.RemoteAddr()) {
 			logger.Warn().Str("remoteAddr", conn.RemoteAddr().String()).Msg("connection limit exceeded, rejecting")

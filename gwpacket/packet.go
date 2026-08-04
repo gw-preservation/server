@@ -1,4 +1,4 @@
-package GwPacket
+package gwpacket
 
 import (
 	"bytes"

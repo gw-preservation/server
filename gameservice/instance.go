@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"gw1/server/db"
-	GwPacket "gw1/server/gwpacket"
+	"gw1/server/gwpacket"
 	"gw1/server/pathing"
 	"math/rand"
 	"slices"
@@ -136,7 +136,7 @@ func (im *instanceManager) GetOrCreateInstanceByMapId(mapId int) (*Instance, err
 	return inst, nil
 }
 
-func (im *instanceManager) BroadcastPacketToAllPlayers(packet GwPacket.Out) {
+func (im *instanceManager) BroadcastPacketToAllPlayers(packet gwpacket.Out) {
 	im.mu.Lock()
 	defer im.mu.Unlock()
 	for _, inst := range im.instances {
@@ -536,18 +536,18 @@ func (i *Instance) Shutdown() {
 	i.finish()
 }
 
-func contains(slice []int, val any) bool {
+func randomFloatAround(start, rangeVal float32) float32 {
+	offset := (rand.Float32() * 2 * rangeVal) - rangeVal
+	return start + offset
+}
+
+func contains(slice []int, val int) bool {
 	for _, v := range slice {
 		if v == val {
 			return true
 		}
 	}
 	return false
-}
-
-func randomFloatAround(start, rangeVal float32) float32 {
-	offset := (rand.Float32() * 2 * rangeVal) - rangeVal
-	return start + offset
 }
 
 func (i *Instance) NextFreeAgentId() int {
@@ -702,7 +702,7 @@ func (i *Instance) broadcastPlayerPos(player *Player) {
 	}
 }
 
-func (i *Instance) BroadcastGeneric(packet GwPacket.Out) {
+func (i *Instance) BroadcastGeneric(packet gwpacket.Out) {
 	i.assertActor()
 
 	for _, other := range i.players {

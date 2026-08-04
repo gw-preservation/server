@@ -6,10 +6,10 @@ import (
 	"errors"
 	"fmt"
 
-	GwPacket "gw1/server/gwpacket"
+	"gw1/server/gwpacket"
 )
 
-func UnmarshalCreateCharacterFinish(in *GwPacket.In) (resp CreateCharacterFinish, err error) {
+func UnmarshalCreateCharacterFinish(in *gwpacket.In) (resp CreateCharacterFinish, err error) {
 	if in.Opcode() != 0x808a {
 		err = errors.New("bad opcode")
 		return
@@ -31,7 +31,7 @@ func UnmarshalCreateCharacterFinish(in *GwPacket.In) (resp CreateCharacterFinish
 	}
 	return
 }
-func UnmarshalInstanceLoadRequestPlayers(in *GwPacket.In) (resp InstanceLoadRequestPlayers, err error) {
+func UnmarshalInstanceLoadRequestPlayers(in *gwpacket.In) (resp InstanceLoadRequestPlayers, err error) {
 	if in.Opcode() != 0x808f {
 		err = errors.New("bad opcode")
 		return
@@ -43,7 +43,7 @@ func UnmarshalInstanceLoadRequestPlayers(in *GwPacket.In) (resp InstanceLoadRequ
 	}
 	return
 }
-func UnmarshalUnknown8091(in *GwPacket.In) (resp Unknown8091, err error) {
+func UnmarshalUnknown8091(in *gwpacket.In) (resp Unknown8091, err error) {
 	if in.Opcode() != 0x8091 {
 		err = errors.New("bad opcode")
 		return
@@ -60,7 +60,7 @@ func UnmarshalUnknown8091(in *GwPacket.In) (resp Unknown8091, err error) {
 	}
 	return
 }
-func UnmarshalVerifyClientConnection(in *GwPacket.In) (resp VerifyClientConnection, err error) {
+func UnmarshalVerifyClientConnection(in *gwpacket.In) (resp VerifyClientConnection, err error) {
 	if in.Opcode() != 0x500 {
 		err = errors.New("bad opcode")
 		return
@@ -117,7 +117,7 @@ func UnmarshalVerifyClientConnection(in *GwPacket.In) (resp VerifyClientConnecti
 	}
 	return
 }
-func UnmarshalPingReply(in *GwPacket.In) (resp PingReply, err error) {
+func UnmarshalPingReply(in *gwpacket.In) (resp PingReply, err error) {
 	if in.Opcode() != 0x8009 {
 		err = errors.New("bad opcode")
 		return
@@ -129,7 +129,7 @@ func UnmarshalPingReply(in *GwPacket.In) (resp PingReply, err error) {
 	}
 	return
 }
-func UnmarshalDyeEquipment(in *GwPacket.In) (resp DyeEquipment, err error) {
+func UnmarshalDyeEquipment(in *gwpacket.In) (resp DyeEquipment, err error) {
 	if in.Opcode() != 0x8083 {
 		err = errors.New("bad opcode")
 		return
@@ -146,7 +146,7 @@ func UnmarshalDyeEquipment(in *GwPacket.In) (resp DyeEquipment, err error) {
 	}
 	return
 }
-func UnmarshalUpdateProfessionChoice(in *GwPacket.In) (resp UpdateProfessionChoice, err error) {
+func UnmarshalUpdateProfessionChoice(in *gwpacket.In) (resp UpdateProfessionChoice, err error) {
 	if in.Opcode() != 0x805f {
 		err = errors.New("bad opcode")
 		return
@@ -163,7 +163,7 @@ func UnmarshalUpdateProfessionChoice(in *GwPacket.In) (resp UpdateProfessionChoi
 	}
 	return
 }
-func UnmarshalGpuInformation(in *GwPacket.In) (resp GpuInformation, err error) {
+func UnmarshalGpuInformation(in *gwpacket.In) (resp GpuInformation, err error) {
 	if in.Opcode() != 0x800a {
 		err = errors.New("bad opcode")
 		return
@@ -240,7 +240,7 @@ func UnmarshalGpuInformation(in *GwPacket.In) (resp GpuInformation, err error) {
 	}
 	return
 }
-func UnmarshalClientSeed(in *GwPacket.In) (resp ClientSeed, err error) {
+func UnmarshalClientSeed(in *gwpacket.In) (resp ClientSeed, err error) {
 	if in.Opcode() != 0x4200 {
 		err = errors.New("bad opcode")
 		return
@@ -252,7 +252,7 @@ func UnmarshalClientSeed(in *GwPacket.In) (resp ClientSeed, err error) {
 	}
 	return
 }
-func UnmarshalChatMessage(in *GwPacket.In) (resp ChatMessage, err error) {
+func UnmarshalChatMessage(in *gwpacket.In) (resp ChatMessage, err error) {
 	if in.Opcode() != 0x8063 {
 		err = errors.New("bad opcode")
 		return
@@ -269,7 +269,7 @@ func UnmarshalChatMessage(in *GwPacket.In) (resp ChatMessage, err error) {
 	}
 	return
 }
-func UnmarshalMoveToPoint(in *GwPacket.In) (resp MoveToPoint, err error) {
+func UnmarshalMoveToPoint(in *gwpacket.In) (resp MoveToPoint, err error) {
 	if in.Opcode() != 0x803d {
 		err = errors.New("bad opcode")
 		return
@@ -291,7 +291,7 @@ func UnmarshalMoveToPoint(in *GwPacket.In) (resp MoveToPoint, err error) {
 	}
 	return
 }
-func UnmarshalRotateAgent(in *GwPacket.In) (resp RotateAgent, err error) {
+func UnmarshalRotateAgent(in *gwpacket.In) (resp RotateAgent, err error) {
 	if in.Opcode() != 0x803f {
 		err = errors.New("bad opcode")
 		return
@@ -308,7 +308,7 @@ func UnmarshalRotateAgent(in *GwPacket.In) (resp RotateAgent, err error) {
 	}
 	return
 }
-func UnmarshalLastPosBeforeMoveCancelled(in *GwPacket.In) (resp LastPosBeforeMoveCancelled, err error) {
+func UnmarshalLastPosBeforeMoveCancelled(in *gwpacket.In) (resp LastPosBeforeMoveCancelled, err error) {
 	if in.Opcode() != 0x8046 {
 		err = errors.New("bad opcode")
 		return
@@ -330,7 +330,7 @@ func UnmarshalLastPosBeforeMoveCancelled(in *GwPacket.In) (resp LastPosBeforeMov
 	}
 	return
 }
-func UnmarshalMovementUpdate(in *GwPacket.In) (resp MovementUpdate, err error) {
+func UnmarshalMovementUpdate(in *gwpacket.In) (resp MovementUpdate, err error) {
 	if in.Opcode() != 0x803c {
 		err = errors.New("bad opcode")
 		return
@@ -367,7 +367,7 @@ func UnmarshalMovementUpdate(in *GwPacket.In) (resp MovementUpdate, err error) {
 	}
 	return
 }
-func UnmarshalUpdateTarget(in *GwPacket.In) (resp UpdateTarget, err error) {
+func UnmarshalUpdateTarget(in *gwpacket.In) (resp UpdateTarget, err error) {
 	if in.Opcode() != 0x80c0 {
 		err = errors.New("bad opcode")
 		return
@@ -384,7 +384,7 @@ func UnmarshalUpdateTarget(in *GwPacket.In) (resp UpdateTarget, err error) {
 	}
 	return
 }
-func UnmarshalInteractAgent(in *GwPacket.In) (resp InteractAgent, err error) {
+func UnmarshalInteractAgent(in *gwpacket.In) (resp InteractAgent, err error) {
 	if in.Opcode() != 0x8038 {
 		err = errors.New("bad opcode")
 		return
@@ -401,49 +401,49 @@ func UnmarshalInteractAgent(in *GwPacket.In) (resp InteractAgent, err error) {
 	}
 	return
 }
-func UnmarshalCancelInteraction(in *GwPacket.In) (resp CancelInteraction, err error) {
+func UnmarshalCancelInteraction(in *gwpacket.In) (resp CancelInteraction, err error) {
 	if in.Opcode() != 0x8027 {
 		err = errors.New("bad opcode")
 		return
 	}
 	return
 }
-func UnmarshalClientPingRequest(in *GwPacket.In) (resp ClientPingRequest, err error) {
+func UnmarshalClientPingRequest(in *gwpacket.In) (resp ClientPingRequest, err error) {
 	if in.Opcode() != 0x800c {
 		err = errors.New("bad opcode")
 		return
 	}
 	return
 }
-func UnmarshalInstanceLoadRequestSpawnPoint(in *GwPacket.In) (resp InstanceLoadRequestSpawnPoint, err error) {
+func UnmarshalInstanceLoadRequestSpawnPoint(in *gwpacket.In) (resp InstanceLoadRequestSpawnPoint, err error) {
 	if in.Opcode() != 0x8087 {
 		err = errors.New("bad opcode")
 		return
 	}
 	return
 }
-func UnmarshalCreateCharRequestPlayer(in *GwPacket.In) (resp CreateCharRequestPlayer, err error) {
+func UnmarshalCreateCharRequestPlayer(in *gwpacket.In) (resp CreateCharRequestPlayer, err error) {
 	if in.Opcode() != 0x8088 {
 		err = errors.New("bad opcode")
 		return
 	}
 	return
 }
-func UnmarshalCreateCharRequestItems(in *GwPacket.In) (resp CreateCharRequestItems, err error) {
+func UnmarshalCreateCharRequestItems(in *gwpacket.In) (resp CreateCharRequestItems, err error) {
 	if in.Opcode() != 0x8089 {
 		err = errors.New("bad opcode")
 		return
 	}
 	return
 }
-func UnmarshalClientDisconnect(in *GwPacket.In) (resp ClientDisconnect, err error) {
+func UnmarshalClientDisconnect(in *gwpacket.In) (resp ClientDisconnect, err error) {
 	if in.Opcode() != 0x8008 {
 		err = errors.New("bad opcode")
 		return
 	}
 	return
 }
-func UnmarshalUnknown8090(in *GwPacket.In) (resp Unknown8090, err error) {
+func UnmarshalUnknown8090(in *gwpacket.In) (resp Unknown8090, err error) {
 	if in.Opcode() != 0x8090 {
 		err = errors.New("bad opcode")
 		return
@@ -460,7 +460,7 @@ func UnmarshalUnknown8090(in *GwPacket.In) (resp Unknown8090, err error) {
 	}
 	return
 }
-func UnmarshalMapTravelToOutpost(in *GwPacket.In) (resp MapTravelToOutpost, err error) {
+func UnmarshalMapTravelToOutpost(in *gwpacket.In) (resp MapTravelToOutpost, err error) {
 	if in.Opcode() != 0x80b0 {
 		err = errors.New("bad opcode")
 		return
@@ -492,7 +492,7 @@ func UnmarshalMapTravelToOutpost(in *GwPacket.In) (resp MapTravelToOutpost, err 
 	}
 	return
 }
-func UnmarshalEquipItem(in *GwPacket.In) (resp EquipItem, err error) {
+func UnmarshalEquipItem(in *gwpacket.In) (resp EquipItem, err error) {
 	if in.Opcode() != 0x802f {
 		err = errors.New("bad opcode")
 		return
@@ -504,7 +504,7 @@ func UnmarshalEquipItem(in *GwPacket.In) (resp EquipItem, err error) {
 	}
 	return
 }
-func UnmarshalDestroyItem(in *GwPacket.In) (resp DestroyItem, err error) {
+func UnmarshalDestroyItem(in *gwpacket.In) (resp DestroyItem, err error) {
 	if in.Opcode() != 0x8068 {
 		err = errors.New("bad opcode")
 		return
@@ -516,7 +516,7 @@ func UnmarshalDestroyItem(in *GwPacket.In) (resp DestroyItem, err error) {
 	}
 	return
 }
-func UnmarshalPartyInvite(in *GwPacket.In) (resp PartyInvite, err error) {
+func UnmarshalPartyInvite(in *gwpacket.In) (resp PartyInvite, err error) {
 	if in.Opcode() != 0x80a0 {
 		err = errors.New("bad opcode")
 		return
@@ -528,7 +528,7 @@ func UnmarshalPartyInvite(in *GwPacket.In) (resp PartyInvite, err error) {
 	}
 	return
 }
-func UnmarshalInstanceLoadRequestItems(in *GwPacket.In) (resp InstanceLoadRequestItems, err error) {
+func UnmarshalInstanceLoadRequestItems(in *gwpacket.In) (resp InstanceLoadRequestItems, err error) {
 	if in.Opcode() != 0x8090 {
 		err = errors.New("bad opcode")
 		return

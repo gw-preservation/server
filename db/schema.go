@@ -107,12 +107,10 @@ func CreateDefaultBagsAndItems(characterId uint64, primaryProfession int, equipD
 	equipment := NewDbBag(characterId, 9, 2)
 
 	inventory.Slots[0] = Slot{
-		BagID:        inventory.ID,
 		ItemID:       uint32(Item.ItemEverlastingGhostlyStaff),
 		ItemQuantity: 1,
 	}
 	inventory.Slots[1] = Slot{
-		BagID:        inventory.ID,
 		ItemID:       uint32(Item.ItemSummoningStone),
 		ItemQuantity: 1,
 	}
@@ -123,12 +121,10 @@ func CreateDefaultBagsAndItems(characterId uint64, primaryProfession int, equipD
 		equips = Item.DefaultEquipmentWarrior
 		// Test warrior items
 		equipment.Slots[0] = Slot{
-			BagID:        equipment.ID,
 			ItemID:       uint32(Item.ItemEternalBlade),
 			ItemQuantity: 1,
 		}
 		equipment.Slots[1] = Slot{
-			BagID:        equipment.ID,
 			ItemID:       uint32(Item.ItemEternalShield),
 			ItemQuantity: 1,
 		}
@@ -151,7 +147,6 @@ func CreateDefaultBagsAndItems(characterId uint64, primaryProfession int, equipD
 		}
 		eSlot := itm.GetEquipSlot()
 		equipment.Slots[eSlot] = Slot{
-			BagID:        equipment.ID,
 			ItemID:       uint32(itemid),
 			ItemQuantity: 1,
 			Dye1:         uint8(equipDyes[eSlot]),
