@@ -244,7 +244,7 @@ func (conn *GSConn) processOne(data []byte) (consumed int, err error) {
 	in := GwPacket.NewIn(data)
 	op, _ := in.Uint16()
 
-	conn.log.Info().Str("op", fmt.Sprintf("%04x", op)).Hex("data", data).Msg("received packet")
+	//conn.log.Info().Str("op", fmt.Sprintf("%04x", op)).Hex("data", data).Msg("received packet")
 	if !conn.allowedOp(op) {
 		return 0, fmt.Errorf("[%04x] unexpected for %v connection; len=%d", op, conn.state, in.Remaining())
 	}

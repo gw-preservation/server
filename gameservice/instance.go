@@ -171,6 +171,12 @@ func (im *instanceManager) AddInstance(instance *Instance) {
 	im.mu.Unlock()
 }
 
+func (im *instanceManager) RemoveInstance(uuid uint64) {
+	im.mu.Lock()
+	delete(im.instances, uuid)
+	im.mu.Unlock()
+}
+
 // Instance is single-writer: every field is owned by the actor goroutine and
 // unsynchronized. Never touch instance state off the actor.
 type Instance struct {
@@ -314,6 +320,7 @@ func (i *Instance) actorLoop() {
 	defer func() {
 		i.alive = false
 		i.finish()
+		InstanceManager.RemoveInstance(i.uuid)
 	}()
 	for {
 		select {
