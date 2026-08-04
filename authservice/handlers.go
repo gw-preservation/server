@@ -8,7 +8,7 @@ import (
 	"gw1/server/crypt"
 	"gw1/server/db"
 	"gw1/server/gameservice"
-	"gw1/server/gwpacket"
+	"gw1/server/packet"
 	Item "gw1/server/item"
 	"gw1/server/portalservice"
 	"math/rand"
@@ -17,13 +17,13 @@ import (
 
 var ServerIP [4]byte
 
-type packetHandler func(*ASConn, *gwpacket.In) (int, error)
+type packetHandler func(*ASConn, *packet.In) (int, error)
 
 func wrap[T any](
-	unmarshal func(*gwpacket.In) (T, error),
+	unmarshal func(*packet.In) (T, error),
 	handler func(*ASConn, *T) error,
 ) packetHandler {
-	return func(conn *ASConn, in *gwpacket.In) (int, error) {
+	return func(conn *ASConn, in *packet.In) (int, error) {
 		payload, err := unmarshal(in)
 		if err != nil {
 			return 0, err
@@ -172,7 +172,7 @@ func (conn *ASConn) onGetAccountInfo(payload *GetAccountInfo) error {
 			conn.log.Error().Uint64("char.ID", char.ID).Msg("GetBagsForCharacterByID failed")
 			continue
 		}
-		subBlock := gwpacket.NewOutRaw()
+		subBlock := packet.NewOutRaw()
 		summaryBlockVersion := 6
 		subBlock.Uint16(summaryBlockVersion)
 		subBlock.Uint16(int(char.LastOutpostID))

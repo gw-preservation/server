@@ -3,7 +3,7 @@ package gameservice
 import (
 	"fmt"
 	"gw1/server/db"
-	"gw1/server/gwpacket"
+	"gw1/server/packet"
 	"gw1/server/pathing"
 	"math/rand"
 	"slices"
@@ -119,7 +119,7 @@ func (im *instanceManager) GetOrCreateInstanceByMapId(mapId int) (*Instance, err
 	return inst, nil
 }
 
-func (im *instanceManager) BroadcastPacketToAllPlayers(packet gwpacket.Out) {
+func (im *instanceManager) BroadcastPacketToAllPlayers(packet packet.Out) {
 	im.mu.Lock()
 	defer im.mu.Unlock()
 	for _, inst := range im.instances {
@@ -694,7 +694,7 @@ func (i *Instance) broadcastPlayerPos(player *Player) {
 	}
 }
 
-func (i *Instance) BroadcastGeneric(packet gwpacket.Out) {
+func (i *Instance) BroadcastGeneric(packet packet.Out) {
 	i.assertActor()
 
 	for _, other := range i.players {

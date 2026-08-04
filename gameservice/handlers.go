@@ -7,18 +7,18 @@ import (
 	"fmt"
 	"gw1/server/crypt"
 	"gw1/server/db"
-	"gw1/server/gwpacket"
+	"gw1/server/packet"
 	Item "gw1/server/item"
 	"net"
 )
 
-type packetHandler func(*GSConn, *gwpacket.In) (int, error)
+type packetHandler func(*GSConn, *packet.In) (int, error)
 
 func wrap[T any](
-	unmarshal func(*gwpacket.In) (T, error),
+	unmarshal func(*packet.In) (T, error),
 	handler func(*GSConn, *T) error,
 ) packetHandler {
-	return func(conn *GSConn, in *gwpacket.In) (int, error) {
+	return func(conn *GSConn, in *packet.In) (int, error) {
 		payload, err := unmarshal(in)
 		if err != nil {
 			return 0, err
@@ -174,7 +174,7 @@ func (conn *GSConn) on8091(payload *Unknown8091) error {
 }
 
 func (conn *GSConn) onPingReply(payload *PingReply) error {
-	resp := gwpacket.NewOut(0xd)
+	resp := packet.NewOut(0xd)
 	resp.Uint32(1)
 	conn.EnqueuePacket(resp)
 	return nil
@@ -436,7 +436,7 @@ func (conn *GSConn) onClientSeed(payload *ClientSeed) error {
 	if err != nil {
 		return fmt.Errorf("error creating rc4 decrypter: %s", err)
 	}
-	resp := gwpacket.NewOutRaw()
+	resp := packet.NewOutRaw()
 	resp.Uint8(01)
 	resp.Uint8(len(publicBytes) + 2)
 	resp.Bytes(publicBytes[:])

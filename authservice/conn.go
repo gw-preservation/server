@@ -4,7 +4,7 @@ import (
 	"crypto/rc4"
 	"fmt"
 	"gw1/server/db"
-	"gw1/server/gwpacket"
+	"gw1/server/packet"
 	"net"
 	"sync"
 
@@ -45,7 +45,7 @@ type ASConn struct {
 	state                  State
 	enc                    *rc4.Cipher
 	dec                    *rc4.Cipher
-	out                    gwpacket.Out
+	out                    packet.Out
 	log                    zerolog.Logger
 	acc                    db.Account
 	hasLoggedInThisSession bool
@@ -59,7 +59,7 @@ func NewASConn(socket *net.TCPConn, logCtx zerolog.Logger) *ASConn {
 		socket:                 socket,
 		state:                  StateAwaitClientVersionInfo,
 		log:                    logCtx.With().Str("srv", "auth").Logger(),
-		out:                    gwpacket.NewOutRaw(),
+		out:                    packet.NewOutRaw(),
 		hasLoggedInThisSession: false,
 	}
 	return &conn
@@ -80,7 +80,7 @@ func (conn *ASConn) EncryptBytes(data []byte) {
 }
 
 func (conn *ASConn) HandleBytes(data []byte) (consumed int, err error) {
-	in := gwpacket.NewIn(data)
+	in := packet.NewIn(data)
 	op, err := in.Uint16()
 	if err != nil {
 		return 0, err
@@ -134,7 +134,7 @@ func (conn *ASConn) Read(buf []byte) (int, error) {
 	return conn.socket.Read(buf)
 }
 
-func (conn *ASConn) WritePacket(packet *gwpacket.Out) error {
+func (conn *ASConn) WritePacket(packet *packet.Out) error {
 	bts := packet.GetBytes()
 	conn.EncryptBytes(bts)
 	_, err := conn.socket.Write(bts)
@@ -150,7 +150,7 @@ func (conn *ASConn) Close() {
 	})
 }
 
-func (conn *ASConn) EnqueuePacket(packet gwpacket.Out) {
+func (conn *ASConn) EnqueuePacket(packet packet.Out) {
 	conn.out.Merge(packet)
 }
 

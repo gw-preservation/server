@@ -4,20 +4,20 @@ import (
 	"gw1/server/portalservice"
 	"testing"
 
-	"gw1/server/gwpacket"
+	"gw1/server/packet"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func handshakePacket(opcode int, build func(*gwpacket.Out)) []byte {
-	out := gwpacket.NewOut(opcode)
+func handshakePacket(opcode int, build func(*packet.Out)) []byte {
+	out := packet.NewOut(opcode)
 	build(&out)
 	return out.GetBytes()
 }
 
 func packet0400() []byte {
-	return handshakePacket(0x0400, func(out *gwpacket.Out) {
+	return handshakePacket(0x0400, func(out *packet.Out) {
 		out.Uint16(0)
 		out.Uint32(37600)
 		out.Uint32(0)
@@ -26,33 +26,33 @@ func packet0400() []byte {
 }
 
 func packet4200() []byte {
-	return handshakePacket(0x4200, func(out *gwpacket.Out) {
+	return handshakePacket(0x4200, func(out *packet.Out) {
 		out.Bytes(make([]byte, 64))
 	})
 }
 
 func packet8001() []byte {
-	return handshakePacket(0x8001, func(out *gwpacket.Out) {
+	return handshakePacket(0x8001, func(out *packet.Out) {
 		out.UTF16WithLengthPrefix("testuser")
 		out.UTF16WithLengthPrefix("testpc")
 	})
 }
 
 func packet8002() []byte {
-	return handshakePacket(0x8002, func(out *gwpacket.Out) {
+	return handshakePacket(0x8002, func(out *packet.Out) {
 		out.Uint32(37600)
 		out.Bytes(make([]byte, 16))
 	})
 }
 
 func packet8023() []byte {
-	return handshakePacket(0x8023, func(out *gwpacket.Out) {
+	return handshakePacket(0x8023, func(out *packet.Out) {
 		out.Uint32(0)
 	})
 }
 
 func packet8038(transactionId int, uuid1, token []byte) []byte {
-	return handshakePacket(0x8038, func(out *gwpacket.Out) {
+	return handshakePacket(0x8038, func(out *packet.Out) {
 		out.Uint32(transactionId)
 		out.Bytes(uuid1)
 		out.Bytes(token)
@@ -61,7 +61,7 @@ func packet8038(transactionId int, uuid1, token []byte) []byte {
 }
 
 func packet8009() []byte {
-	return handshakePacket(0x8009, func(out *gwpacket.Out) {
+	return handshakePacket(0x8009, func(out *packet.Out) {
 		out.Uint32(1)
 		out.UTF16WithLengthPrefix("Hero")
 		out.Uint16(0)

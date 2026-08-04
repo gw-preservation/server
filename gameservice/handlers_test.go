@@ -7,7 +7,7 @@ import (
 	"os"
 	"testing"
 
-	"gw1/server/gwpacket"
+	"gw1/server/packet"
 
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -58,7 +58,7 @@ func createTestAccount(t *testing.T) db.Account {
 }
 
 func packet0500(securityTag, instanceTag int, accountUUID, characterUUID []byte) []byte {
-	out := gwpacket.NewOut(0x0500)
+	out := packet.NewOut(0x0500)
 	out.Uint32(37600) // clientVersion
 	out.Uint16(0)     // unk3
 	out.Uint32(0)     // unk4
@@ -73,7 +73,7 @@ func packet0500(securityTag, instanceTag int, accountUUID, characterUUID []byte)
 }
 
 func packet4200() []byte {
-	out := gwpacket.NewOut(0x4200)
+	out := packet.NewOut(0x4200)
 	out.Bytes(make([]byte, 64))
 	return out.GetBytes()
 }
@@ -194,7 +194,7 @@ func TestHandleBytes_AcceptsClientSeed(t *testing.T) {
 	conn := &GSConn{
 		socket:     serverConn,
 		state:      StateAwaitClientSeed,
-		out:        gwpacket.NewOutRaw(),
+		out:        packet.NewOutRaw(),
 		log:        zerolog.Nop(),
 		done:       make(chan struct{}),
 		flushCh:    make(chan flushRequest, 1),
@@ -244,7 +244,7 @@ func TestOnClientSeed_NoInstanceDoesNotPanic(t *testing.T) {
 
 	conn := &GSConn{
 		socket:     serverConn,
-		out:        gwpacket.NewOutRaw(),
+		out:        packet.NewOutRaw(),
 		log:        zerolog.Nop(),
 		done:       make(chan struct{}),
 		flushCh:    make(chan flushRequest, 1),

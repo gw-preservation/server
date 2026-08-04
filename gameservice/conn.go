@@ -4,7 +4,7 @@ import (
 	"crypto/rc4"
 	"errors"
 	"fmt"
-	"gw1/server/gwpacket"
+	"gw1/server/packet"
 	"io"
 	"net"
 	"sync"
@@ -48,7 +48,7 @@ type GSConn struct {
 	state     State
 	enc       *rc4.Cipher
 	dec       *rc4.Cipher
-	out       gwpacket.Out
+	out       packet.Out
 	outMu     sync.Mutex
 	closed    atomic.Bool
 	log       zerolog.Logger
@@ -69,7 +69,7 @@ func NewGSConn(socket *net.TCPConn, logCtx zerolog.Logger) *GSConn {
 	conn := GSConn{
 		socket:     socket,
 		state:      StateAwaitVerifyClientConnection,
-		out:        gwpacket.NewOutRaw(),
+		out:        packet.NewOutRaw(),
 		log:        logCtx.With().Str("srv", "game").Logger(),
 		done:       make(chan struct{}),
 		flushCh:    make(chan flushRequest, 1),
@@ -240,7 +240,7 @@ func (conn *GSConn) processOne(data []byte) (consumed int, err error) {
 		return 0, nil
 	}
 
-	in := gwpacket.NewIn(data)
+	in := packet.NewIn(data)
 	op, _ := in.Uint16()
 
 	//conn.log.Info().Str("op", fmt.Sprintf("%04x", op)).Hex("data", data).Msg("received packet")
@@ -290,7 +290,7 @@ func (conn *GSConn) Read(buf []byte) (int, error) {
 	return conn.socket.Read(buf)
 }
 
-func (conn *GSConn) writeLocked(packet *gwpacket.Out) error {
+func (conn *GSConn) writeLocked(packet *packet.Out) error {
 	bts := packet.GetBytes()
 	if conn.enc != nil {
 		conn.enc.XORKeyStream(bts, bts)
@@ -299,13 +299,13 @@ func (conn *GSConn) writeLocked(packet *gwpacket.Out) error {
 	return err
 }
 
-func (conn *GSConn) WritePacket(packet *gwpacket.Out) error {
+func (conn *GSConn) WritePacket(packet *packet.Out) error {
 	conn.outMu.Lock()
 	defer conn.outMu.Unlock()
 	return conn.writeLocked(packet)
 }
 
-func (conn *GSConn) EnqueuePacket(packet gwpacket.Out) {
+func (conn *GSConn) EnqueuePacket(packet packet.Out) {
 	conn.outMu.Lock()
 	defer conn.outMu.Unlock()
 	conn.out.Merge(packet)

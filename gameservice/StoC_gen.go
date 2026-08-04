@@ -6,33 +6,33 @@ import (
 	"fmt"
 	"math"
 
-	"gw1/server/gwpacket"
+	"gw1/server/packet"
 	"unicode/utf8"
 )
 
-func MarshalAgentUpdateNPCName(agentId int, encName VarUTF16) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x9a)
+func MarshalAgentUpdateNPCName(agentId int, encName VarUTF16) (resp packet.Out) {
+	resp = packet.NewOut(0x9a)
 	resp.Uint32(agentId)
 	resp.Uint16(len(encName) / 2)
 	resp.Bytes(encName)
 	return
 }
 
-func MarshalServerPingRequest(unk1 int, unk2 int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0xc)
+func MarshalServerPingRequest(unk1 int, unk2 int) (resp packet.Out) {
+	resp = packet.NewOut(0xc)
 	resp.Uint16(unk1)
 	resp.Uint32(unk2)
 	return
 }
 
-func MarshalInstanceMovementTick(delta int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x1e)
+func MarshalInstanceMovementTick(delta int) (resp packet.Out) {
+	resp = packet.NewOut(0x1e)
 	resp.Uint32(delta)
 	return
 }
 
-func MarshalMoveToPointS2C(agentId int, x float32, y float32, plane int, currentPlane int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x29)
+func MarshalMoveToPointS2C(agentId int, x float32, y float32, plane int, currentPlane int) (resp packet.Out) {
+	resp = packet.NewOut(0x29)
 	resp.Uint32(agentId)
 	resp.Float32(x)
 	resp.Float32(y)
@@ -41,13 +41,13 @@ func MarshalMoveToPointS2C(agentId int, x float32, y float32, plane int, current
 	return
 }
 
-func MarshalPvPItemsEnd() (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x1b)
+func MarshalPvPItemsEnd() (resp packet.Out) {
+	resp = packet.NewOut(0x1b)
 	return
 }
 
-func MarshalCharCreationFinish(charUuid []byte, name string, mapId int, unk3 VarByte) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x187)
+func MarshalCharCreationFinish(charUuid []byte, name string, mapId int, unk3 VarByte) (resp packet.Out) {
+	resp = packet.NewOut(0x187)
 	if len(charUuid) != 16 {
 		panic(fmt.Errorf("length check failed for field 'charUuid' of struct 'CharCreationFinish': %d vs %d", len(charUuid), 16))
 	}
@@ -62,26 +62,26 @@ func MarshalCharCreationFinish(charUuid []byte, name string, mapId int, unk3 Var
 	return
 }
 
-func MarshalCharCreationStart() (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x188)
+func MarshalCharCreationStart() (resp packet.Out) {
+	resp = packet.NewOut(0x188)
 	return
 }
 
-func MarshalCharCreationError(errorCode int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x18a)
+func MarshalCharCreationError(errorCode int) (resp packet.Out) {
+	resp = packet.NewOut(0x18a)
 	resp.Uint32(errorCode)
 	return
 }
 
-func MarshalUpdateCurrentMapId(mapId int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x98)
+func MarshalUpdateCurrentMapId(mapId int) (resp packet.Out) {
+	resp = packet.NewOut(0x98)
 	resp.Uint16(mapId)
 	resp.Uint8(0)
 	return
 }
 
-func MarshalAgentUpdatePosition(agentId int, x float32, y float32, plane int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x2c)
+func MarshalAgentUpdatePosition(agentId int, x float32, y float32, plane int) (resp packet.Out) {
+	resp = packet.NewOut(0x2c)
 	resp.Uint32(agentId)
 	resp.Float32(x)
 	resp.Float32(y)
@@ -89,8 +89,8 @@ func MarshalAgentUpdatePosition(agentId int, x float32, y float32, plane int) (r
 	return
 }
 
-func MarshalAgentUpdateVisualEquipment(agentId int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x6d)
+func MarshalAgentUpdateVisualEquipment(agentId int) (resp packet.Out) {
+	resp = packet.NewOut(0x6d)
 	resp.Uint32(agentId)
 	resp.Uint32(0)
 	resp.Uint32(0)
@@ -104,16 +104,16 @@ func MarshalAgentUpdateVisualEquipment(agentId int) (resp gwpacket.Out) {
 	return
 }
 
-func MarshalAgentUpdateVisualEquipment2(agentId int, visualSlot int, itemLocalId int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x6e)
+func MarshalAgentUpdateVisualEquipment2(agentId int, visualSlot int, itemLocalId int) (resp packet.Out) {
+	resp = packet.NewOut(0x6e)
 	resp.Uint32(agentId)
 	resp.Uint32(visualSlot)
 	resp.Uint32(itemLocalId)
 	return
 }
 
-func MarshalAgentUpdateNPCProperties(agentId int, fileId int, primaryProfession int, level int, unk3 VarUTF16) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x55)
+func MarshalAgentUpdateNPCProperties(agentId int, fileId int, primaryProfession int, level int, unk3 VarUTF16) (resp packet.Out) {
+	resp = packet.NewOut(0x55)
 	resp.Uint32(agentId)
 	resp.Uint32(fileId)
 	resp.Uint32(0)
@@ -127,16 +127,16 @@ func MarshalAgentUpdateNPCProperties(agentId int, fileId int, primaryProfession 
 	return
 }
 
-func MarshalAgentUpdateNPCModel(npcId int, modelId int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x56)
+func MarshalAgentUpdateNPCModel(npcId int, modelId int) (resp packet.Out) {
+	resp = packet.NewOut(0x56)
 	resp.Uint32(npcId)
 	resp.Uint16(1)
 	resp.Uint32(modelId)
 	return
 }
 
-func MarshalAgentSpawned(agentId int, agentType int, unk1 int, unk2 int, posX float32, posY float32, plane int, facingX float32, facingY float32, speed float32, allegianceFlags int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x20)
+func MarshalAgentSpawned(agentId int, agentType int, unk1 int, unk2 int, posX float32, posY float32, plane int, facingX float32, facingY float32, speed float32, allegianceFlags int) (resp packet.Out) {
+	resp = packet.NewOut(0x20)
 	resp.Uint32(agentId)
 	resp.Uint32(agentType)
 	resp.Uint8(unk1)
@@ -168,14 +168,14 @@ func MarshalAgentSpawned(agentId int, agentType int, unk1 int, unk2 int, posX fl
 	return
 }
 
-func MarshalAgentDespawned(agentId int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x21)
+func MarshalAgentDespawned(agentId int) (resp packet.Out) {
+	resp = packet.NewOut(0x21)
 	resp.Uint32(agentId)
 	return
 }
 
-func MarshalInstanceLoadSpawnPoint(mapFileId int, posX float32, posY float32, plane int, isCinematic bool, unk2 []byte) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x194)
+func MarshalInstanceLoadSpawnPoint(mapFileId int, posX float32, posY float32, plane int, isCinematic bool, unk2 []byte) (resp packet.Out) {
+	resp = packet.NewOut(0x194)
 	resp.Uint32(mapFileId)
 	resp.Float32(posX)
 	resp.Float32(posY)
@@ -189,35 +189,35 @@ func MarshalInstanceLoadSpawnPoint(mapFileId int, posX float32, posY float32, pl
 	return
 }
 
-func MarshalInstanceManifestDone(unk1 int, unk2 int, unk3 int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x196)
+func MarshalInstanceManifestDone(unk1 int, unk2 int, unk3 int) (resp packet.Out) {
+	resp = packet.NewOut(0x196)
 	resp.Uint8(unk1)
 	resp.Uint16(unk2)
 	resp.Uint32(unk3)
 	return
 }
 
-func MarshalInstanceManifestData(data VarByte) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x195)
+func MarshalInstanceManifestData(data VarByte) (resp packet.Out) {
+	resp = packet.NewOut(0x195)
 	resp.Uint16(len(data))
 	resp.Bytes(data)
 	return
 }
 
-func MarshalInstanceManifestPhase(phase int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x197)
+func MarshalInstanceManifestPhase(phase int) (resp packet.Out) {
+	resp = packet.NewOut(0x197)
 	resp.Uint8(phase)
 	return
 }
 
-func MarshalReadyForMapSpawn() (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x1aa)
+func MarshalReadyForMapSpawn() (resp packet.Out) {
+	resp = packet.NewOut(0x1aa)
 	resp.Uint32(1818323813)
 	return
 }
 
-func MarshalHeroInfo() (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x30)
+func MarshalHeroInfo() (resp packet.Out) {
+	resp = packet.NewOut(0x30)
 	resp.Uint16(0)
 	resp.Uint32(0)
 	resp.Uint32(0)
@@ -228,8 +228,8 @@ func MarshalHeroInfo() (resp gwpacket.Out) {
 	return
 }
 
-func MarshalInstanceLoadInfo(playerId int, mapId int, isExplorable bool, district int, languageCode int, isObserver bool) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x198)
+func MarshalInstanceLoadInfo(playerId int, mapId int, isExplorable bool, district int, languageCode int, isObserver bool) (resp packet.Out) {
+	resp = packet.NewOut(0x198)
 	resp.Uint32(playerId)
 	resp.Uint16(mapId)
 	resp.Bool(isExplorable)
@@ -239,8 +239,8 @@ func MarshalInstanceLoadInfo(playerId int, mapId int, isExplorable bool, distric
 	return
 }
 
-func MarshalInstanceLoadPlayerName(name string) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x17c)
+func MarshalInstanceLoadPlayerName(name string) (resp packet.Out) {
+	resp = packet.NewOut(0x17c)
 	if utf8.RuneCountInString(name) > 20 {
 		name = string([]rune(name)[:20])
 	}
@@ -248,47 +248,47 @@ func MarshalInstanceLoadPlayerName(name string) (resp gwpacket.Out) {
 	return
 }
 
-func MarshalItemSetProfession(unk1 int, profession int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x159)
+func MarshalItemSetProfession(unk1 int, profession int) (resp packet.Out) {
+	resp = packet.NewOut(0x159)
 	resp.Uint32(unk1)
 	resp.Uint8(profession)
 	return
 }
 
-func MarshalAgentUpdateAttributePoints(agentId int, points1 int, points2 int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x37)
+func MarshalAgentUpdateAttributePoints(agentId int, points1 int, points2 int) (resp packet.Out) {
+	resp = packet.NewOut(0x37)
 	resp.Uint32(agentId)
 	resp.Uint8(points1)
 	resp.Uint8(points2)
 	return
 }
 
-func MarshalInstancePlayerDataStart() (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x185)
+func MarshalInstancePlayerDataStart() (resp packet.Out) {
+	resp = packet.NewOut(0x185)
 	return
 }
 
-func MarshalInstancePlayerDataDone() (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x189)
+func MarshalInstancePlayerDataDone() (resp packet.Out) {
+	resp = packet.NewOut(0x189)
 	return
 }
 
-func MarshalSkillsUnlocked() (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0xda)
+func MarshalSkillsUnlocked() (resp packet.Out) {
+	resp = packet.NewOut(0xda)
 	resp.Uint16(0)
 	return
 }
 
-func MarshalCartographyDataStart(width int, height int, accumMapInitOffset int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x8a)
+func MarshalCartographyDataStart(width int, height int, accumMapInitOffset int) (resp packet.Out) {
+	resp = packet.NewOut(0x8a)
 	resp.Uint32(width)
 	resp.Uint32(height)
 	resp.Uint32(accumMapInitOffset)
 	return
 }
 
-func MarshalCartographyData(data []uint32) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x89)
+func MarshalCartographyData(data []uint32) (resp packet.Out) {
+	resp = packet.NewOut(0x89)
 	resp.Uint16(len(data))
 	for _, i := range data {
 		resp.Uint32(int(i))
@@ -296,8 +296,8 @@ func MarshalCartographyData(data []uint32) (resp gwpacket.Out) {
 	return
 }
 
-func MarshalMapsUnlocked(missionsBonus []uint32, missionsFinished []uint32, missionsBonusHM []uint32, missionsFinishedHM []uint32, mapsUnlocked []uint32) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x93)
+func MarshalMapsUnlocked(missionsBonus []uint32, missionsFinished []uint32, missionsBonusHM []uint32, missionsFinishedHM []uint32, mapsUnlocked []uint32) (resp packet.Out) {
+	resp = packet.NewOut(0x93)
 	resp.Uint16(len(missionsBonus))
 	for _, i := range missionsBonus {
 		resp.Uint32(int(i))
@@ -321,27 +321,27 @@ func MarshalMapsUnlocked(missionsBonus []uint32, missionsFinished []uint32, miss
 	return
 }
 
-func MarshalQuestsInfo(data VarByte) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x4a)
+func MarshalQuestsInfo(data VarByte) (resp packet.Out) {
+	resp = packet.NewOut(0x4a)
 	resp.Uint16(len(data))
 	resp.Bytes(data)
 	return
 }
 
-func MarshalInstanceLoaded() (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0xf1)
+func MarshalInstanceLoaded() (resp packet.Out) {
+	resp = packet.NewOut(0xf1)
 	resp.Uint32(1886151033)
 	return
 }
 
-func MarshalVanquishProgress(progress int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0xf9)
+func MarshalVanquishProgress(progress int) (resp packet.Out) {
+	resp = packet.NewOut(0xf9)
 	resp.Uint16(progress)
 	return
 }
 
-func MarshalAgentCreatePlayer(playerId int, agentId int, appearanceBits int, name string) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x58)
+func MarshalAgentCreatePlayer(playerId int, agentId int, appearanceBits int, name string) (resp packet.Out) {
+	resp = packet.NewOut(0x58)
 	resp.Uint32(playerId)
 	resp.Uint32(agentId)
 	resp.Uint32(appearanceBits)
@@ -355,95 +355,95 @@ func MarshalAgentCreatePlayer(playerId int, agentId int, appearanceBits int, nam
 	return
 }
 
-func MarshalAgentInitialEffects(agentId int, effects int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0xef)
+func MarshalAgentInitialEffects(agentId int, effects int) (resp packet.Out) {
+	resp = packet.NewOut(0xef)
 	resp.Uint32(agentId)
 	resp.Uint32(effects)
 	return
 }
 
-func MarshalAgentDisplayCape(agentId int, isShown bool) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x47)
+func MarshalAgentDisplayCape(agentId int, isShown bool) (resp packet.Out) {
+	resp = packet.NewOut(0x47)
 	resp.Uint32(agentId)
 	resp.Bool(isShown)
 	return
 }
 
-func MarshalAgentSetPlayer(agentId int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x22)
+func MarshalAgentSetPlayer(agentId int) (resp packet.Out) {
+	resp = packet.NewOut(0x22)
 	resp.Uint32(agentId)
 	resp.Uint32(3)
 	return
 }
 
-func MarshalPostProcess() (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x6a)
+func MarshalPostProcess() (resp packet.Out) {
+	resp = packet.NewOut(0x6a)
 	resp.Uint8(0)
 	resp.Uint32(0)
 	return
 }
 
-func MarshalAgentUpdateProfession(agentId int, primaryProfession int, secondaryProfession int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0xa5)
+func MarshalAgentUpdateProfession(agentId int, primaryProfession int, secondaryProfession int) (resp packet.Out) {
+	resp = packet.NewOut(0xa5)
 	resp.Uint32(agentId)
 	resp.Uint8(primaryProfession)
 	resp.Uint8(secondaryProfession)
 	return
 }
 
-func MarshalPartyMemberStreamEnd(partyId int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x1d2)
+func MarshalPartyMemberStreamEnd(partyId int) (resp packet.Out) {
+	resp = packet.NewOut(0x1d2)
 	resp.Uint16(partyId)
 	return
 }
 
-func MarshalUpdatePartySize(playerId int, unk2 int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0xaf)
+func MarshalUpdatePartySize(playerId int, unk2 int) (resp packet.Out) {
+	resp = packet.NewOut(0xaf)
 	resp.Uint16(playerId)
 	resp.Uint8(unk2)
 	return
 }
 
-func MarshalPartyCreate(partyId int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x1d1)
+func MarshalPartyCreate(partyId int) (resp packet.Out) {
+	resp = packet.NewOut(0x1d1)
 	resp.Uint16(partyId)
 	return
 }
 
-func MarshalPartyPlayerAdd(partyId int, playerId int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x1ca)
+func MarshalPartyPlayerAdd(partyId int, playerId int) (resp packet.Out) {
+	resp = packet.NewOut(0x1ca)
 	resp.Uint16(partyId)
 	resp.Uint16(playerId)
 	resp.Uint8(1)
 	return
 }
 
-func MarshalInstanceLoadFinish() (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x18d)
+func MarshalInstanceLoadFinish() (resp packet.Out) {
+	resp = packet.NewOut(0x18d)
 	return
 }
 
-func MarshalPartySetDifficulty(isHardMode bool) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x1bd)
+func MarshalPartySetDifficulty(isHardMode bool) (resp packet.Out) {
+	resp = packet.NewOut(0x1bd)
 	resp.Bool(isHardMode)
 	return
 }
 
-func MarshalPartySearchSeek() (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x1dd)
+func MarshalPartySearchSeek() (resp packet.Out) {
+	resp = packet.NewOut(0x1dd)
 	resp.Uint16(0)
 	return
 }
 
-func MarshalItemStreamCreate(itemStreamId int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x143)
+func MarshalItemStreamCreate(itemStreamId int) (resp packet.Out) {
+	resp = packet.NewOut(0x143)
 	resp.Uint16(itemStreamId)
 	resp.Uint8(0)
 	return
 }
 
-func MarshalItemMovedToLocation(itemStreamId int, itemLocalId int, bagId int, slot int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x13d)
+func MarshalItemMovedToLocation(itemStreamId int, itemLocalId int, bagId int, slot int) (resp packet.Out) {
+	resp = packet.NewOut(0x13d)
 	resp.Uint16(itemStreamId)
 	resp.Uint32(itemLocalId)
 	resp.Uint16(bagId)
@@ -451,8 +451,8 @@ func MarshalItemMovedToLocation(itemStreamId int, itemLocalId int, bagId int, sl
 	return
 }
 
-func MarshalItemChangeLocation(itemStreamId int, itemLocalId int, bagId int, slot int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x14a)
+func MarshalItemChangeLocation(itemStreamId int, itemLocalId int, bagId int, slot int) (resp packet.Out) {
+	resp = packet.NewOut(0x14a)
 	resp.Uint16(itemStreamId)
 	resp.Uint32(itemLocalId)
 	resp.Uint16(bagId)
@@ -460,15 +460,15 @@ func MarshalItemChangeLocation(itemStreamId int, itemLocalId int, bagId int, slo
 	return
 }
 
-func MarshalActivateWeaponSet(itemStreamId int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x147)
+func MarshalActivateWeaponSet(itemStreamId int) (resp packet.Out) {
+	resp = packet.NewOut(0x147)
 	resp.Uint16(itemStreamId)
 	resp.Uint8(0)
 	return
 }
 
-func MarshalItemWeaponSet(itemStreamId int, weaponSetId int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x146)
+func MarshalItemWeaponSet(itemStreamId int, weaponSetId int) (resp packet.Out) {
+	resp = packet.NewOut(0x146)
 	resp.Uint16(itemStreamId)
 	resp.Uint8(weaponSetId)
 	resp.Uint32(0)
@@ -476,8 +476,8 @@ func MarshalItemWeaponSet(itemStreamId int, weaponSetId int) (resp gwpacket.Out)
 	return
 }
 
-func MarshalInventoryCreateBag(itemStreamId int, bagType int, bagModelId int, bagId int, capacity int, associatedItemId int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x13e)
+func MarshalInventoryCreateBag(itemStreamId int, bagType int, bagModelId int, bagId int, capacity int, associatedItemId int) (resp packet.Out) {
+	resp = packet.NewOut(0x13e)
 	resp.Uint16(itemStreamId)
 	resp.Uint8(bagType)
 	resp.Uint8(bagModelId)
@@ -487,8 +487,8 @@ func MarshalInventoryCreateBag(itemStreamId int, bagType int, bagModelId int, ba
 	return
 }
 
-func MarshalItemGeneralInfo(itemLocalId int, fileId int, itemType int, unk1 int, dyeColor int, materials int, unk2 int, itemFlags int, merchantPrice int, itemId int, quantity int, encName VarUTF16, modifiers NestedUint32) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x160)
+func MarshalItemGeneralInfo(itemLocalId int, fileId int, itemType int, unk1 int, dyeColor int, materials int, unk2 int, itemFlags int, merchantPrice int, itemId int, quantity int, encName VarUTF16, modifiers NestedUint32) (resp packet.Out) {
+	resp = packet.NewOut(0x160)
 	resp.Uint32(itemLocalId)
 	resp.Uint32(fileId)
 	resp.Uint8(itemType)
@@ -509,8 +509,8 @@ func MarshalItemGeneralInfo(itemLocalId int, fileId int, itemType int, unk1 int,
 	return
 }
 
-func MarshalItemUpdateName(itemId int, name string) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x139)
+func MarshalItemUpdateName(itemId int, name string) (resp packet.Out) {
+	resp = packet.NewOut(0x139)
 	resp.Uint32(itemId)
 	if utf8.RuneCountInString(name) > 32 {
 		name = string([]rune(name)[:32])
@@ -519,22 +519,22 @@ func MarshalItemUpdateName(itemId int, name string) (resp gwpacket.Out) {
 	return
 }
 
-func MarshalPlayerUnlockedProfessions(agentId int, unlocked int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0xb5)
+func MarshalPlayerUnlockedProfessions(agentId int, unlocked int) (resp packet.Out) {
+	resp = packet.NewOut(0xb5)
 	resp.Uint32(agentId)
 	resp.Uint32(unlocked)
 	return
 }
 
-func MarshalUnknown00b0(playerId1 int, playerId2 int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0xb0)
+func MarshalUnknown00b0(playerId1 int, playerId2 int) (resp packet.Out) {
+	resp = packet.NewOut(0xb0)
 	resp.Uint16(playerId1)
 	resp.Uint16(playerId2)
 	return
 }
 
-func MarshalSkillbarUpdate(agentId int, unk1 VarUint32, unk2 VarUint32) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0xd9)
+func MarshalSkillbarUpdate(agentId int, unk1 VarUint32, unk2 VarUint32) (resp packet.Out) {
+	resp = packet.NewOut(0xd9)
 	resp.Uint32(agentId)
 	if len(unk1) != 8 {
 		panic(fmt.Errorf("length check failed for field 'unk1' of struct 'SkillbarUpdate': %d vs %d", len(unk1), 8))
@@ -554,24 +554,24 @@ func MarshalSkillbarUpdate(agentId int, unk1 VarUint32, unk2 VarUint32) (resp gw
 	return
 }
 
-func MarshalAgentAttrUpdateInt(attributeId int, agentId int, val int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x9e)
+func MarshalAgentAttrUpdateInt(attributeId int, agentId int, val int) (resp packet.Out) {
+	resp = packet.NewOut(0x9e)
 	resp.Uint32(attributeId)
 	resp.Uint32(agentId)
 	resp.Uint32(val)
 	return
 }
 
-func MarshalAgentAttrUpdateFloat(attributeId int, agentId int, val float32) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0xa1)
+func MarshalAgentAttrUpdateFloat(attributeId int, agentId int, val float32) (resp packet.Out) {
+	resp = packet.NewOut(0xa1)
 	resp.Uint32(attributeId)
 	resp.Uint32(agentId)
 	resp.Float32(val)
 	return
 }
 
-func MarshalPlayerAttrSet(xp int, level int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0xe8)
+func MarshalPlayerAttrSet(xp int, level int) (resp packet.Out) {
+	resp = packet.NewOut(0xe8)
 	resp.Uint32(xp)
 	resp.Uint32(0)
 	resp.Uint32(0)
@@ -590,8 +590,8 @@ func MarshalPlayerAttrSet(xp int, level int) (resp gwpacket.Out) {
 	return
 }
 
-func MarshalPlayerUpdateProfession(agentId int, primaryProfessionId int, secondaryProfessionId int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0xb6)
+func MarshalPlayerUpdateProfession(agentId int, primaryProfessionId int, secondaryProfessionId int) (resp packet.Out) {
+	resp = packet.NewOut(0xb6)
 	resp.Uint32(agentId)
 	resp.Uint8(primaryProfessionId)
 	resp.Uint8(secondaryProfessionId)
@@ -599,8 +599,8 @@ func MarshalPlayerUpdateProfession(agentId int, primaryProfessionId int, seconda
 	return
 }
 
-func MarshalInstanceLoadHead() (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x17b)
+func MarshalInstanceLoadHead() (resp packet.Out) {
+	resp = packet.NewOut(0x17b)
 	resp.Uint8(2)
 	resp.Uint8(0)
 	resp.Uint8(0)
@@ -608,22 +608,22 @@ func MarshalInstanceLoadHead() (resp gwpacket.Out) {
 	return
 }
 
-func MarshalChatMessageServer(channel int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x5d)
+func MarshalChatMessageServer(channel int) (resp packet.Out) {
+	resp = packet.NewOut(0x5d)
 	resp.Uint16(0)
 	resp.Uint8(channel)
 	return
 }
 
-func MarshalChatMessageLocal(agentId int, channel int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x60)
+func MarshalChatMessageLocal(agentId int, channel int) (resp packet.Out) {
+	resp = packet.NewOut(0x60)
 	resp.Uint16(agentId)
 	resp.Uint8(channel)
 	return
 }
 
-func MarshalChatMessageCore(messsage string) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x5c)
+func MarshalChatMessageCore(messsage string) (resp packet.Out) {
+	resp = packet.NewOut(0x5c)
 	if utf8.RuneCountInString(messsage) > 122 {
 		messsage = string([]rune(messsage)[:122])
 	}
@@ -631,15 +631,15 @@ func MarshalChatMessageCore(messsage string) (resp gwpacket.Out) {
 	return
 }
 
-func MarshalUpdateDeathPenalty(agentId int, deathPenaltyBasis int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x9b)
+func MarshalUpdateDeathPenalty(agentId int, deathPenaltyBasis int) (resp packet.Out) {
+	resp = packet.NewOut(0x9b)
 	resp.Uint32(agentId)
 	resp.Uint32(deathPenaltyBasis)
 	return
 }
 
-func MarshalSetUnlockedHeroes(unk []uint16) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x18)
+func MarshalSetUnlockedHeroes(unk []uint16) (resp packet.Out) {
+	resp = packet.NewOut(0x18)
 	resp.Uint16(len(unk))
 	for _, i := range unk {
 		resp.Uint16(int(i))
@@ -647,8 +647,8 @@ func MarshalSetUnlockedHeroes(unk []uint16) (resp gwpacket.Out) {
 	return
 }
 
-func MarshalMessageOfTheDay(motd string) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x33)
+func MarshalMessageOfTheDay(motd string) (resp packet.Out) {
+	resp = packet.NewOut(0x33)
 	if utf8.RuneCountInString(motd) > 64 {
 		motd = string([]rune(motd)[:64])
 	}
@@ -656,8 +656,8 @@ func MarshalMessageOfTheDay(motd string) (resp gwpacket.Out) {
 	return
 }
 
-func MarshalTransferGameServerInfo(socketData []byte, instanceTag int, region int, mapId int, isExplorable bool, securityTag int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x1a4)
+func MarshalTransferGameServerInfo(socketData []byte, instanceTag int, region int, mapId int, isExplorable bool, securityTag int) (resp packet.Out) {
+	resp = packet.NewOut(0x1a4)
 	if len(socketData) != 24 {
 		panic(fmt.Errorf("length check failed for field 'socketData' of struct 'TransferGameServerInfo': %d vs %d", len(socketData), 24))
 	}
@@ -670,8 +670,8 @@ func MarshalTransferGameServerInfo(socketData []byte, instanceTag int, region in
 	return
 }
 
-func MarshalUnknown01ac(unk1 int, unk2 int, unk3 int, unk4 int, unk5 int, unk6 string) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x1ac)
+func MarshalUnknown01ac(unk1 int, unk2 int, unk3 int, unk4 int, unk5 int, unk6 string) (resp packet.Out) {
+	resp = packet.NewOut(0x1ac)
 	resp.Uint16(unk1)
 	resp.Uint32(unk2)
 	resp.Uint8(unk3)
@@ -684,36 +684,36 @@ func MarshalUnknown01ac(unk1 int, unk2 int, unk3 int, unk4 int, unk5 int, unk6 s
 	return
 }
 
-func MarshalJumboMessage(typ int, value int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x18f)
+func MarshalJumboMessage(typ int, value int) (resp packet.Out) {
+	resp = packet.NewOut(0x18f)
 	resp.Uint8(typ)
 	resp.Uint32(value)
 	return
 }
 
-func MarshalRemoveItem(itemStreamId int, itemLocalId int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x14c)
+func MarshalRemoveItem(itemStreamId int, itemLocalId int) (resp packet.Out) {
+	resp = packet.NewOut(0x14c)
 	resp.Uint16(itemStreamId)
 	resp.Uint32(itemLocalId)
 	return
 }
 
-func MarshalUnknownAfterDyeSuccess(itemLocalId1 int, itemLocalId1Repeat int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x15a)
+func MarshalUnknownAfterDyeSuccess(itemLocalId1 int, itemLocalId1Repeat int) (resp packet.Out) {
+	resp = packet.NewOut(0x15a)
 	resp.Uint32(itemLocalId1)
 	resp.Uint32(itemLocalId1Repeat)
 	return
 }
 
-func MarshalAgentUpdateSpeedBase(agentId int, speed float32) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x27)
+func MarshalAgentUpdateSpeedBase(agentId int, speed float32) (resp packet.Out) {
+	resp = packet.NewOut(0x27)
 	resp.Uint32(agentId)
 	resp.Float32(speed)
 	return
 }
 
-func MarshalSetUnlockedSkills(skills []uint32) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x1d)
+func MarshalSetUnlockedSkills(skills []uint32) (resp packet.Out) {
+	resp = packet.NewOut(0x1d)
 	resp.Uint16(len(skills))
 	for _, i := range skills {
 		resp.Uint32(int(i))
@@ -721,14 +721,14 @@ func MarshalSetUnlockedSkills(skills []uint32) (resp gwpacket.Out) {
 	return
 }
 
-func MarshalAgentStopMoving(agentId int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x28)
+func MarshalAgentStopMoving(agentId int) (resp packet.Out) {
+	resp = packet.NewOut(0x28)
 	resp.Uint32(agentId)
 	return
 }
 
-func MarshalAgentUpdateDirection(agentId int, facingX float32, facingY float32, moveTypeCardinal int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x25)
+func MarshalAgentUpdateDirection(agentId int, facingX float32, facingY float32, moveTypeCardinal int) (resp packet.Out) {
+	resp = packet.NewOut(0x25)
 	resp.Uint32(agentId)
 	resp.Float32(facingX)
 	resp.Float32(facingY)
@@ -736,8 +736,8 @@ func MarshalAgentUpdateDirection(agentId int, facingX float32, facingY float32, 
 	return
 }
 
-func MarshalAgentUpdateSpeed(agentId int, speed float32, moveTypeCardinal int) (resp gwpacket.Out) {
-	resp = gwpacket.NewOut(0x2b)
+func MarshalAgentUpdateSpeed(agentId int, speed float32, moveTypeCardinal int) (resp packet.Out) {
+	resp = packet.NewOut(0x2b)
 	resp.Uint32(agentId)
 	resp.Float32(speed)
 	resp.Uint8(moveTypeCardinal)

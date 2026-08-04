@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"gw1/server/gwpacket"
+	"gw1/server/packet"
 
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -63,7 +63,7 @@ func readResponse(t *testing.T, clientConn *net.TCPConn) (transactionId int, res
 	require.NoError(t, err)
 	require.GreaterOrEqual(t, n, 10) // opcode(2) + transactionId(4) + responseCode(4)
 
-	in := gwpacket.NewIn(buf[:n])
+	in := packet.NewIn(buf[:n])
 	op, err := in.Uint16()
 	require.NoError(t, err)
 	assert.Equal(t, 0x0003, op, "expected RequestResponse opcode 0x0003")

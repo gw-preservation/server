@@ -1,7 +1,7 @@
 package gameservice
 
 import (
-	"gw1/server/gwpacket"
+	"gw1/server/packet"
 	"gw1/server/pathing"
 	"sync"
 	"sync/atomic"
@@ -20,7 +20,7 @@ type headlessSink struct {
 	closed  atomic.Bool
 }
 
-func (s *headlessSink) EnqueuePacket(out gwpacket.Out) {
+func (s *headlessSink) EnqueuePacket(out packet.Out) {
 	packet := append([]byte(nil), out.GetBytes()...)
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -253,7 +253,7 @@ func TestBroadcastGenericReachesAllPlayers(t *testing.T) {
 	firstSink.reset()
 	secondSink.reset()
 
-	inst.BroadcastGeneric(gwpacket.NewOut(0x1234))
+	inst.BroadcastGeneric(packet.NewOut(0x1234))
 
 	assert.Contains(t, firstSink.opcodes(), 0x1234)
 	assert.Contains(t, secondSink.opcodes(), 0x1234)

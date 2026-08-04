@@ -2,7 +2,7 @@ package fileservice
 
 import (
 	"fmt"
-	"gw1/server/gwpacket"
+	"gw1/server/packet"
 	"net"
 
 	"github.com/rs/zerolog"
@@ -21,7 +21,7 @@ func NewFSConn(socket *net.TCPConn, logCtx zerolog.Logger) *FSConn {
 	return &fc
 }
 
-func (conn *FSConn) onHelloMessage(in *gwpacket.In) (int, error) {
+func (conn *FSConn) onHelloMessage(in *packet.In) (int, error) {
 	if in.Remaining() < 3 {
 		return 0, nil
 	}
@@ -29,7 +29,7 @@ func (conn *FSConn) onHelloMessage(in *gwpacket.In) (int, error) {
 	return in.Position(), nil
 }
 
-func (conn *FSConn) onInitialData(in *gwpacket.In) (int, error) {
+func (conn *FSConn) onInitialData(in *packet.In) (int, error) {
 	if in.Remaining() < 14 {
 		return 0, nil
 	}
@@ -37,7 +37,7 @@ func (conn *FSConn) onInitialData(in *gwpacket.In) (int, error) {
 	latestExeFileId := 0x5d2d0
 
 	latestDatFileId := 0x5cb62
-	resp := gwpacket.NewOut(0x02f1)
+	resp := packet.NewOut(0x02f1)
 	resp.Uint16(32)
 	// Lines
 
@@ -61,7 +61,7 @@ func (conn *FSConn) onInitialData(in *gwpacket.In) (int, error) {
 	return in.Position(), nil
 }
 
-func (conn *FSConn) onLoadingStatus(in *gwpacket.In) (int, error) {
+func (conn *FSConn) onLoadingStatus(in *packet.In) (int, error) {
 	if in.Remaining() < 2 {
 		return 0, nil
 	}
@@ -80,7 +80,7 @@ func (conn *FSConn) onLoadingStatus(in *gwpacket.In) (int, error) {
 	return in.Position(), nil
 }
 
-func (conn *FSConn) onHeartbeat(in *gwpacket.In) (int, error) {
+func (conn *FSConn) onHeartbeat(in *packet.In) (int, error) {
 	if in.Remaining() < 2 {
 		return 0, nil
 	}
@@ -88,14 +88,14 @@ func (conn *FSConn) onHeartbeat(in *gwpacket.In) (int, error) {
 	if err != nil {
 		return 0, fmt.Errorf("read unk: %w", err)
 	}
-	resp := gwpacket.NewOut(0x09f1)
+	resp := packet.NewOut(0x09f1)
 	resp.Uint16(unk)
 	conn.WritePacket(&resp)
 	return in.Position(), nil
 }
 
 func (conn *FSConn) HandleBytes(data []byte) (int, error) {
-	in := gwpacket.NewIn(data)
+	in := packet.NewIn(data)
 	op, err := in.Uint16()
 	if err != nil {
 		return 0, fmt.Errorf("read opcode: %w", err)
@@ -122,7 +122,7 @@ func (conn *FSConn) Close() {
 	conn.socket.Close()
 }
 
-func (conn *FSConn) WritePacket(packet *gwpacket.Out) error {
+func (conn *FSConn) WritePacket(packet *packet.Out) error {
 	bts := packet.GetBytes()
 	_, err := conn.socket.Write(bts)
 	return err

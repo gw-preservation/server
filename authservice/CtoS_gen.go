@@ -6,10 +6,10 @@ import (
 	"errors"
 	"fmt"
 
-	"gw1/server/gwpacket"
+	"gw1/server/packet"
 )
 
-func UnmarshalSetActiveCharacter(in *gwpacket.In) (resp SetActiveCharacter, err error) {
+func UnmarshalSetActiveCharacter(in *packet.In) (resp SetActiveCharacter, err error) {
 	if in.Opcode() != 0x800a {
 		err = errors.New("bad opcode")
 		return
@@ -26,7 +26,7 @@ func UnmarshalSetActiveCharacter(in *gwpacket.In) (resp SetActiveCharacter, err 
 	}
 	return
 }
-func UnmarshalLoginCharacter(in *gwpacket.In) (resp LoginCharacter, err error) {
+func UnmarshalLoginCharacter(in *packet.In) (resp LoginCharacter, err error) {
 	if in.Opcode() != 0x8029 {
 		err = errors.New("bad opcode")
 		return
@@ -63,7 +63,7 @@ func UnmarshalLoginCharacter(in *gwpacket.In) (resp LoginCharacter, err error) {
 	}
 	return
 }
-func UnmarshalAddAccessKey(in *gwpacket.In) (resp AddAccessKey, err error) {
+func UnmarshalAddAccessKey(in *packet.In) (resp AddAccessKey, err error) {
 	if in.Opcode() != 0x801c {
 		err = errors.New("bad opcode")
 		return
@@ -80,7 +80,7 @@ func UnmarshalAddAccessKey(in *gwpacket.In) (resp AddAccessKey, err error) {
 	}
 	return
 }
-func UnmarshalClientHashInfo(in *gwpacket.In) (resp ClientHashInfo, err error) {
+func UnmarshalClientHashInfo(in *packet.In) (resp ClientHashInfo, err error) {
 	if in.Opcode() != 0x8002 {
 		err = errors.New("bad opcode")
 		return
@@ -97,7 +97,7 @@ func UnmarshalClientHashInfo(in *gwpacket.In) (resp ClientHashInfo, err error) {
 	}
 	return
 }
-func UnmarshalClientVersionInfo(in *gwpacket.In) (resp ClientVersionInfo, err error) {
+func UnmarshalClientVersionInfo(in *packet.In) (resp ClientVersionInfo, err error) {
 	if in.Opcode() != 0x400 {
 		err = errors.New("bad opcode")
 		return
@@ -124,7 +124,7 @@ func UnmarshalClientVersionInfo(in *gwpacket.In) (resp ClientVersionInfo, err er
 	}
 	return
 }
-func UnmarshalClientHeartbeat(in *gwpacket.In) (resp ClientHeartbeat, err error) {
+func UnmarshalClientHeartbeat(in *packet.In) (resp ClientHeartbeat, err error) {
 	if in.Opcode() != 0x8000 {
 		err = errors.New("bad opcode")
 		return
@@ -136,7 +136,7 @@ func UnmarshalClientHeartbeat(in *gwpacket.In) (resp ClientHeartbeat, err error)
 	}
 	return
 }
-func UnmarshalComputerInfo(in *gwpacket.In) (resp ComputerInfo, err error) {
+func UnmarshalComputerInfo(in *packet.In) (resp ComputerInfo, err error) {
 	if in.Opcode() != 0x8001 {
 		err = errors.New("bad opcode")
 		return
@@ -153,7 +153,7 @@ func UnmarshalComputerInfo(in *gwpacket.In) (resp ComputerInfo, err error) {
 	}
 	return
 }
-func UnmarshalUnknown8023(in *gwpacket.In) (resp Unknown8023, err error) {
+func UnmarshalUnknown8023(in *packet.In) (resp Unknown8023, err error) {
 	if in.Opcode() != 0x8023 {
 		err = errors.New("bad opcode")
 		return
@@ -165,7 +165,7 @@ func UnmarshalUnknown8023(in *gwpacket.In) (resp Unknown8023, err error) {
 	}
 	return
 }
-func UnmarshalGetAccountInfo(in *gwpacket.In) (resp GetAccountInfo, err error) {
+func UnmarshalGetAccountInfo(in *packet.In) (resp GetAccountInfo, err error) {
 	if in.Opcode() != 0x8038 {
 		err = errors.New("bad opcode")
 		return
@@ -192,7 +192,7 @@ func UnmarshalGetAccountInfo(in *gwpacket.In) (resp GetAccountInfo, err error) {
 	}
 	return
 }
-func UnmarshalAskServerResponse(in *gwpacket.In) (resp AskServerResponse, err error) {
+func UnmarshalAskServerResponse(in *packet.In) (resp AskServerResponse, err error) {
 	if in.Opcode() != 0x8035 {
 		err = errors.New("bad opcode")
 		return
@@ -204,7 +204,7 @@ func UnmarshalAskServerResponse(in *gwpacket.In) (resp AskServerResponse, err er
 	}
 	return
 }
-func UnmarshalLanguageInfo(in *gwpacket.In) (resp LanguageInfo, err error) {
+func UnmarshalLanguageInfo(in *packet.In) (resp LanguageInfo, err error) {
 	if in.Opcode() != 0x8016 {
 		err = errors.New("bad opcode")
 		return
@@ -216,7 +216,7 @@ func UnmarshalLanguageInfo(in *gwpacket.In) (resp LanguageInfo, err error) {
 	}
 	return
 }
-func UnmarshalDisconnect(in *gwpacket.In) (resp Disconnect, err error) {
+func UnmarshalDisconnect(in *packet.In) (resp Disconnect, err error) {
 	if in.Opcode() != 0x800d {
 		err = errors.New("bad opcode")
 		return
@@ -228,7 +228,7 @@ func UnmarshalDisconnect(in *gwpacket.In) (resp Disconnect, err error) {
 	}
 	return
 }
-func UnmarshalSetPlayerOnlineVisibilityStatus(in *gwpacket.In) (resp SetPlayerOnlineVisibilityStatus, err error) {
+func UnmarshalSetPlayerOnlineVisibilityStatus(in *packet.In) (resp SetPlayerOnlineVisibilityStatus, err error) {
 	if in.Opcode() != 0x800e {
 		err = errors.New("bad opcode")
 		return
@@ -240,7 +240,7 @@ func UnmarshalSetPlayerOnlineVisibilityStatus(in *gwpacket.In) (resp SetPlayerOn
 	}
 	return
 }
-func UnmarshalClientSeed(in *gwpacket.In) (resp ClientSeed, err error) {
+func UnmarshalClientSeed(in *packet.In) (resp ClientSeed, err error) {
 	if in.Opcode() != 0x4200 {
 		err = errors.New("bad opcode")
 		return
@@ -252,7 +252,7 @@ func UnmarshalClientSeed(in *gwpacket.In) (resp ClientSeed, err error) {
 	}
 	return
 }
-func UnmarshalUpdateSettingsLength(in *gwpacket.In) (resp UpdateSettingsLength, err error) {
+func UnmarshalUpdateSettingsLength(in *packet.In) (resp UpdateSettingsLength, err error) {
 	if in.Opcode() != 0x8021 {
 		err = errors.New("bad opcode")
 		return
@@ -269,7 +269,7 @@ func UnmarshalUpdateSettingsLength(in *gwpacket.In) (resp UpdateSettingsLength, 
 	}
 	return
 }
-func UnmarshalUpdateSettings(in *gwpacket.In) (resp UpdateSettings, err error) {
+func UnmarshalUpdateSettings(in *packet.In) (resp UpdateSettings, err error) {
 	if in.Opcode() != 0x8020 {
 		err = errors.New("bad opcode")
 		return
@@ -291,7 +291,7 @@ func UnmarshalUpdateSettings(in *gwpacket.In) (resp UpdateSettings, err error) {
 	}
 	return
 }
-func UnmarshalDeleteCharacter(in *gwpacket.In) (resp DeleteCharacter, err error) {
+func UnmarshalDeleteCharacter(in *packet.In) (resp DeleteCharacter, err error) {
 	if in.Opcode() != 0x8007 {
 		err = errors.New("bad opcode")
 		return
@@ -308,7 +308,7 @@ func UnmarshalDeleteCharacter(in *gwpacket.In) (resp DeleteCharacter, err error)
 	}
 	return
 }
-func UnmarshalSetCharacterName(in *gwpacket.In) (resp SetCharacterName, err error) {
+func UnmarshalSetCharacterName(in *packet.In) (resp SetCharacterName, err error) {
 	if in.Opcode() != 0x8009 {
 		err = errors.New("bad opcode")
 		return
@@ -335,7 +335,7 @@ func UnmarshalSetCharacterName(in *gwpacket.In) (resp SetCharacterName, err erro
 	}
 	return
 }
-func UnmarshalRenameCharacter(in *gwpacket.In) (resp RenameCharacter, err error) {
+func UnmarshalRenameCharacter(in *packet.In) (resp RenameCharacter, err error) {
 	if in.Opcode() != 0x8037 {
 		err = errors.New("bad opcode")
 		return

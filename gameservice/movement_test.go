@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"gw1/server/gwpacket"
+	"gw1/server/packet"
 	"gw1/server/pathing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,15 +13,15 @@ import (
 
 // sinkPacket returns the first recorded packet with the given opcode, with the
 // opcode header already consumed, so fields can be decoded directly.
-func sinkPacket(sink *headlessSink, op int) (gwpacket.In, bool) {
+func sinkPacket(sink *headlessSink, op int) (packet.In, bool) {
 	for _, raw := range sink.packetsSent() {
 		if len(raw) >= 2 && int(raw[0])|(int(raw[1])<<8) == op {
-			in := gwpacket.NewIn(raw)
+			in := packet.NewIn(raw)
 			in.Uint16()
 			return in, true
 		}
 	}
-	return gwpacket.In{}, false
+	return packet.In{}, false
 }
 
 func TestSimulateMovementAdvancesAndArrives(t *testing.T) {

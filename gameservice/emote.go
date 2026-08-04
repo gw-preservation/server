@@ -1,6 +1,6 @@
 package gameservice
 
-import "gw1/server/gwpacket"
+import "gw1/server/packet"
 
 type EmoteDefinition struct {
 	datEmoteId  int
@@ -83,9 +83,9 @@ func GetEmoteByCommand(entry string) (EmoteDefinition, bool) {
 	return def, exists
 }
 
-func MarshalEmote(forPlayerId int, forAgentId int, emote EmoteDefinition) gwpacket.Out {
+func MarshalEmote(forPlayerId int, forAgentId int, emote EmoteDefinition) packet.Out {
 	// First, we send a chat message so the emote appears in the chat log.
-	resp := gwpacket.NewOut(0x5c)
+	resp := packet.NewOut(0x5c)
 	resp.Uint16(3)
 	resp.Uint16(emote.datStringId)
 	resp.Uint16(0x10d)
