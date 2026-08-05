@@ -2179,6 +2179,37 @@ var fogClearDataFactions = []uint32{
 
 var fogClearDataNightfall = fogClearDataFactions // same dimensions
 
+// GetInstanceMapFileIds returns a map of MapFileId to mapId for all instances
+// matching the given expansion. If expansion is empty, all instances are returned.
+func GetInstanceMapFileIds(expansion string) map[int]int {
+	result := make(map[int]int)
+	for mapId, def := range instanceDefinitions.Instances {
+		if expansion == "" || def.Expansion == expansion {
+			result[def.MapFileId] = mapId
+		}
+	}
+	return result
+}
+
+// GetMapIdsForMapFileId returns all mapIds that share a given MapFileId,
+// along with their names. Useful for generating comments in output.
+func GetMapIdsForMapFileId() map[int][]struct {
+	MapId int
+	Name  string
+} {
+	result := make(map[int][]struct {
+		MapId int
+		Name  string
+	})
+	for mapId, def := range instanceDefinitions.Instances {
+		result[def.MapFileId] = append(result[def.MapFileId], struct {
+			MapId int
+			Name  string
+		}{mapId, def.Name})
+	}
+	return result
+}
+
 var fogClearDataPresearing = []uint32{
 	0xFF000006,
 	0x03FFFFFF,

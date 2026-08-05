@@ -535,9 +535,9 @@ func TestCheckMapTransitionDirect(t *testing.T) {
 		old := mapTransitions
 		mapTransitions = map[int][]MapPortalDefinition{
 			3: {{
-				Quad:      MapQuad{X1: -100, Y1: -50, X2: 100, Y2: -50, X3: 100, Y3: -100, X4: -100, Y4: -100},
-				Plane:     0,
-				DestMapId: 2,
+				Quad:    MapQuad{X1: -100, Y1: -50, X2: 100, Y2: -50, X3: 100, Y3: -100, X4: -100, Y4: -100},
+				ToMapId: 2,
+				SpawnX:  500, SpawnY: 500,
 			}},
 		}
 		defer func() { mapTransitions = old }()
@@ -557,9 +557,9 @@ func TestKeyboardMoveTriggersTransition(t *testing.T) {
 		old := mapTransitions
 		mapTransitions = map[int][]MapPortalDefinition{
 			3: {{
-				Quad:      MapQuad{X1: -200, Y1: 50, X2: 200, Y2: 50, X3: 200, Y3: -200, X4: -200, Y4: -200},
-				Plane:     0,
-				DestMapId: 2,
+				Quad:    MapQuad{X1: -200, Y1: 50, X2: 200, Y2: 50, X3: 200, Y3: -200, X4: -200, Y4: -200},
+				ToMapId: 2,
+				SpawnX:  500, SpawnY: 500,
 			}},
 		}
 		defer func() { mapTransitions = old }()
@@ -584,9 +584,9 @@ func TestClickMoveTriggersTransition(t *testing.T) {
 		old := mapTransitions
 		mapTransitions = map[int][]MapPortalDefinition{
 			3: {{
-				Quad:      MapQuad{X1: -200, Y1: 50, X2: 200, Y2: 50, X3: 200, Y3: -100, X4: -200, Y4: -100},
-				Plane:     0,
-				DestMapId: 2,
+				Quad:    MapQuad{X1: -200, Y1: 50, X2: 200, Y2: 50, X3: 200, Y3: -100, X4: -200, Y4: -100},
+				ToMapId: 2,
+				SpawnX:  500, SpawnY: 500,
 			}},
 		}
 		defer func() { mapTransitions = old }()
@@ -606,37 +606,14 @@ func TestClickMoveTriggersTransition(t *testing.T) {
 	})
 }
 
-func TestTransitionIgnoredOnWrongPlane(t *testing.T) {
-	withTransitionNav(t, func(inst *Instance) {
-		old := mapTransitions
-		mapTransitions = map[int][]MapPortalDefinition{
-			3: {{
-				Quad:      MapQuad{X1: -200, Y1: 50, X2: 200, Y2: 50, X3: 200, Y3: -100, X4: -200, Y4: -100},
-				Plane:     1,
-				DestMapId: 2,
-			}},
-		}
-		defer func() { mapTransitions = old }()
-		inst.transitions = mapTransitions[3]
-
-		bot, _ := newTestPlayer("Bot")
-		inst.AddPlayer(bot)
-		bot.posX, bot.posY, bot.plane = 0, -50, 0
-		bot.baseSpeed = 288
-
-		inst.checkMapTransition(bot)
-		assert.False(t, bot.conn.IsClosed(), "no transition on wrong plane")
-	})
-}
-
 func TestNoTransitionOutsideTrapezoid(t *testing.T) {
 	withTransitionNav(t, func(inst *Instance) {
 		old := mapTransitions
 		mapTransitions = map[int][]MapPortalDefinition{
 			3: {{
-				Quad:      MapQuad{X1: -200, Y1: 50, X2: 200, Y2: 50, X3: 200, Y3: 20, X4: -200, Y4: 20},
-				Plane:     0,
-				DestMapId: 2,
+				Quad:    MapQuad{X1: -200, Y1: 50, X2: 200, Y2: 50, X3: 200, Y3: 20, X4: -200, Y4: 20},
+				ToMapId: 2,
+				SpawnX:  500, SpawnY: 500,
 			}},
 		}
 		defer func() { mapTransitions = old }()

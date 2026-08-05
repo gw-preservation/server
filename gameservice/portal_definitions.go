@@ -8,27 +8,10 @@ type MapQuad struct {
 }
 
 type MapPortalDefinition struct {
-	Quad       MapQuad
-	Plane      int
-	DestMapId  int
-	SpawnX     float32
-	SpawnY     float32
-	SpawnPlane int
-}
-
-var x = map[int][]MapPortalDefinition{
-	0x1b97d: {
-		{
-			Quad: MapQuad{
-				X1: -11078, Y1: -6424,
-				X2: -11060, Y2: -6052,
-				X3: -11260, Y3: -6042,
-				X4: -11278, Y4: -6414,
-			},
-			SpawnX: -10770,
-			SpawnY: -6252,
-		},
-	},
+	Quad     MapQuad
+	ToMapId  int
+	SpawnX   float32
+	SpawnY   float32
 }
 
 var mapTransitions = map[int][]MapPortalDefinition{
@@ -41,12 +24,9 @@ var mapTransitions = map[int][]MapPortalDefinition{
 				X3: -11260, Y3: -6042,
 				X4: -11278, Y4: -6414,
 			},
-			SpawnX: -10770,
-			SpawnY: -6252,
-
-			SpawnPlane: 0,
-			Plane:      0,
-			DestMapId:  146,
+			SpawnX:  -10770,
+			SpawnY:  -6252,
+			ToMapId: 146,
 		},
 	},
 	146: {
@@ -58,11 +38,9 @@ var mapTransitions = map[int][]MapPortalDefinition{
 				X3: -11260, Y3: -6042,
 				X4: -11278, Y4: -6414,
 			},
-			SpawnX:     -11768,
-			SpawnY:     -6203,
-			SpawnPlane: 0,
-			Plane:      0,
-			DestMapId:  164,
+			SpawnX:  -11768,
+			SpawnY:  -6203,
+			ToMapId: 164,
 		},
 		{
 			Quad: MapQuad{
@@ -71,11 +49,9 @@ var mapTransitions = map[int][]MapPortalDefinition{
 				-14327, -19872,
 				-13916, -19872,
 			},
-			Plane:      0,
-			DestMapId:  161,
-			SpawnX:     802,
-			SpawnY:     976,
-			SpawnPlane: 0,
+			ToMapId: 161,
+			SpawnX:  802,
+			SpawnY:  976,
 		},
 	},
 	139: {
@@ -87,10 +63,9 @@ var mapTransitions = map[int][]MapPortalDefinition{
 				X3: -14883, Y3: 254,
 				X4: -15210, Y4: 581,
 			},
-			SpawnX:    -15400,
-			SpawnY:    64,
-			Plane:     0,
-			DestMapId: 44,
+			SpawnX:  -15400,
+			SpawnY:  64,
+			ToMapId: 44,
 		},
 	},
 	44: {
@@ -102,10 +77,9 @@ var mapTransitions = map[int][]MapPortalDefinition{
 				X3: -14883, Y3: 254,
 				X4: -15210, Y4: 581,
 			},
-			SpawnX:    -14693,
-			SpawnY:    771,
-			Plane:     0,
-			DestMapId: 139,
+			SpawnX:  -14693,
+			SpawnY:  771,
+			ToMapId: 139,
 		},
 	},
 }

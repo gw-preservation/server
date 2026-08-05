@@ -94,13 +94,13 @@ func pointInMapQuad(t *MapQuad, x, y float32) bool {
 func (i *Instance) checkMapTransition(p *Player) {
 	for idx := range i.transitions {
 		t := &i.transitions[idx]
-		if t.Plane != p.plane {
-			continue
-		}
 		if pointInMapQuad(&t.Quad, p.posX, p.posY) {
-			p.SendChat(fmt.Sprintf("IN QUAD %f,%f", p.posX, p.posY), 3)
-			i.cancelPlayerMovement(p)
-			i.TransferPlayerToNewMap(p, t.DestMapId, t.SpawnX, t.SpawnY, t.SpawnPlane)
+			if t.ToMapId == 0 || t.SpawnX == 0 || t.SpawnY == 0 {
+				p.SendChat(fmt.Sprintf("incomplete portal: index=%d, curMapId=%d", idx, i.mapId), 3)
+			} else {
+				i.cancelPlayerMovement(p)
+				i.TransferPlayerToNewMap(p, t.ToMapId, t.SpawnX, t.SpawnY, 0)
+			}
 			return
 		}
 	}
