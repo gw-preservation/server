@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"gw1/server/db"
 	"gw1/server/geom"
-	"gw1/server/packet"
 	Item "gw1/server/item"
+	"gw1/server/packet"
 	"math/rand"
 
 	"github.com/rs/zerolog"
@@ -53,7 +53,7 @@ type Player struct {
 	target                  *UpdateTarget
 	loadSpawnRequested      bool
 	loadPlayers             *InstanceLoadRequestPlayers
-	pendingSpawn geom.Pos2P
+	pendingSpawn            geom.Pos2P
 	hasPendingSpawn         bool
 }
 
@@ -219,7 +219,7 @@ func (p *Player) applyDyeToItem(lid int, item Item.Item, color int) {
 func (p *Player) sendInstanceLoadSpawnPoint() {
 	p.log.Debug().Msg("InstanceLoadRequestSpawnPoint")
 	inst := p.connectedInstance
-	p.EnqueuePacket(MarshalInstanceLoadSpawnPoint(int(inst.definition.MapFileId), p.Pos.X, p.Pos.Y, p.Pos.Plane, false, []byte{0xcd, 0x49, 0x03, 0xcc, 0x17, 0xa7, 0xdb, 0x01}))
+	p.EnqueuePacket(MarshalInstanceLoadSpawnPoint(int(inst.definition.MapFileId), p.Pos, false, []byte{0xcd, 0x49, 0x03, 0xcc, 0x17, 0xa7, 0xdb, 0x01}))
 }
 
 func (p *Player) sendInstanceLoadRequestPlayers(payload InstanceLoadRequestPlayers) {
@@ -302,20 +302,15 @@ func (p *Player) spawnPlayerAgent() {
 	agentType := 0x30000000
 	agentType |= p.playerId
 	allegianceFlags := 0x706c6179
-	plane := 0
-	facingX := float32(0)
-	facingY := float32(0)
+	facing := geom.Vec2{X: 0, Y: 0}
 	speed := p.baseSpeed
 	p.EnqueuePacket(MarshalAgentSpawned(
 		p.agentId,
 		agentType,
 		1,
 		5,
-		p.Pos.X,
-		p.Pos.Y,
-		plane,
-		facingX,
-		facingY,
+		p.Pos,
+		facing,
 		speed,
 		allegianceFlags,
 	))

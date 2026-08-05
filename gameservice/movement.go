@@ -28,19 +28,18 @@ func vec2Length(dx, dy float32) float32 {
 	return float32(math.Sqrt(float64(dx*dx + dy*dy)))
 }
 
-func (p *Player) applyMovementFacing(fx, fy float32) {
-	n := vec2Length(fx, fy)
+func (p *Player) applyMovementFacing(facing geom.Vec2) {
+	n := vec2Length(facing.X, facing.Y)
 	if n > 0 {
-		p.facingX = fx / n
-		p.facingY = fy / n
+		p.Facing = geom.Vec2{X: facing.X / n, Y: facing.Y / n}
 	}
 }
 
 // applyDirMovement handles a keyboard MovementUpdate (0x803c): the mover is
 // client-authoritative, and observers are pointed at the virtual target.
-func (i *Instance) applyDirMovement(p *Player, pos geom.Pos2P, fx, fy float32, moveType int) {
+func (i *Instance) applyDirMovement(p *Player, pos geom.Pos2P, facing geom.Vec2, moveType int) {
 	i.assertActor()
-	p.applyMovementFacing(fx, fy)
+	p.applyMovementFacing(facing)
 	p.waypoints = nil
 	p.waypointIdx = 0
 	p.dirMove = true
@@ -59,14 +58,14 @@ func (i *Instance) applyDirMovement(p *Player, pos geom.Pos2P, fx, fy float32, m
 		if other == p {
 			continue
 		}
-		other.EnqueuePacket(MarshalAgentUpdateDirection(p.agentId, p.facingX, p.facingY, p.curMoveType))
+		other.EnqueuePacket(MarshalAgentUpdateDirection(p.agentId, p.Facing, p.curMoveType))
 		other.EnqueuePacket(MarshalAgentUpdateSpeed(p.agentId, p.speedMult(), p.curMoveType))
 	}
 }
 
 func (a *Agent) setDirTarget() {
-	a.Dest.X = a.Pos.X + a.facingX*virtualTargetDist
-	a.Dest.Y = a.Pos.Y + a.facingY*virtualTargetDist
+	a.Dest.X = a.Pos.X + a.Facing.X*virtualTargetDist
+	a.Dest.Y = a.Pos.Y + a.Facing.Y*virtualTargetDist
 	a.Dest.Plane = a.Pos.Plane
 }
 
@@ -75,7 +74,7 @@ func (i *Instance) broadcastMoveToPointOthers(a *Agent, except *Player) {
 		if other == except {
 			continue
 		}
-		other.EnqueuePacket(MarshalMoveToPointS2C(a.agentId, a.Dest.X, a.Dest.Y, a.Dest.Plane, a.Pos.Plane))
+		other.EnqueuePacket(MarshalMoveToPointS2C(a.agentId, a.Dest, a.Pos.Plane))
 	}
 }
 
@@ -110,8 +109,8 @@ func (i *Instance) checkMapTransition(p *Player) {
 }
 
 func (i *Instance) advanceDirClamped(a *Agent, dist float32) {
-	nx := a.Pos.X + a.facingX*dist
-	ny := a.Pos.Y + a.facingY*dist
+	nx := a.Pos.X + a.Facing.X*dist
+	ny := a.Pos.Y + a.Facing.Y*dist
 	if _, ok := i.path.TrapezoidAt(geom.Pos2P{X: nx, Y: ny, Plane: a.Pos.Plane}); ok {
 		a.Pos.X, a.Pos.Y = nx, ny
 		return
@@ -120,16 +119,16 @@ func (i *Instance) advanceDirClamped(a *Agent, dist float32) {
 	lo, hi := float32(0), dist
 	for k := 0; k < 12; k++ {
 		mid := (lo + hi) / 2
-		mx := a.Pos.X + a.facingX*mid
-		my := a.Pos.Y + a.facingY*mid
+		mx := a.Pos.X + a.Facing.X*mid
+		my := a.Pos.Y + a.Facing.Y*mid
 		if _, ok := i.path.TrapezoidAt(geom.Pos2P{X: mx, Y: my, Plane: a.Pos.Plane}); ok {
 			lo = mid
 		} else {
 			hi = mid
 		}
 	}
-	a.Pos.X += a.facingX * lo
-	a.Pos.Y += a.facingY * lo
+	a.Pos.X += a.Facing.X * lo
+	a.Pos.Y += a.Facing.Y * lo
 }
 
 func (i *Instance) checkDirMoveTimeouts(now time.Time) {
@@ -217,8 +216,8 @@ func (i *Instance) advanceAgent(p *Player, delta float32) {
 		}
 
 		if dist > 0 {
-			a.Pos.X += a.facingX * dist
-			a.Pos.Y += a.facingY * dist
+			a.Pos.X += a.Facing.X * dist
+			a.Pos.Y += a.Facing.Y * dist
 		}
 
 		if a.Pos.Plane == a.Dest.Plane && a.Pos.X == a.Dest.X && a.Pos.Y == a.Dest.Y {
@@ -249,7 +248,7 @@ func (i *Instance) startPlayerMove(p *Player, dst geom.Pos2P) bool {
 		} else {
 			i.log.Warn().Float32("x", dst.X).Float32("y", dst.Y).Int("plane", dst.Plane).Msg("no path to requested target")
 			i.broadcastPlayerPos(p)
-			p.EnqueuePacket(MarshalMoveToPointS2C(p.agentId, p.Pos.X, p.Pos.Y, p.Pos.Plane, p.Pos.Plane))
+			p.EnqueuePacket(MarshalMoveToPointS2C(p.agentId, p.Pos, p.Pos.Plane))
 			return false
 		}
 	}
@@ -289,6 +288,6 @@ func (i *Instance) applyLastPosCorrection(p *Player, dst geom.Pos2P) bool {
 
 func (i *Instance) broadcastMoveToPoint(a *Agent) {
 	for _, other := range i.players {
-		other.EnqueuePacket(MarshalMoveToPointS2C(a.agentId, a.Dest.X, a.Dest.Y, a.Dest.Plane, a.Pos.Plane))
+		other.EnqueuePacket(MarshalMoveToPointS2C(a.agentId, a.Dest, a.Pos.Plane))
 	}
 }

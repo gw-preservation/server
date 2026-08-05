@@ -207,7 +207,7 @@ func TestRemovedPlayerNotAdvancedBySim(t *testing.T) {
 	inst.RemovePlayer(player)
 	player.Pos = geom.Pos2P{X: 0, Y: 50, Plane: 0}
 	player.baseSpeed = 288
-		player.waypoints = []pathing.Waypoint{{Pos2P: geom.Pos2P{X: 0, Y: -50, Plane: 0}, TrapID: 1}}
+	player.waypoints = []pathing.Waypoint{{Pos2P: geom.Pos2P{X: 0, Y: -50, Plane: 0}, TrapID: 1}}
 	player.waypointIdx = 1
 	player.Dest = geom.Pos2P{X: 0, Y: -50, Plane: 0}
 	inst.lastMovementAdvanceAt = time.Now().Add(-500 * time.Millisecond)

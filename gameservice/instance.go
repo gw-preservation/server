@@ -283,8 +283,7 @@ func newInstance(mapId int, definition instanceDefinition) (*Instance, error) {
 			definitionIndex:     agentDefinition.DefinitionIndex,
 			name:                agentDefinition.Name,
 			Pos:                 geom.Pos2P{X: agentToSpawn.SpawnPoint[0], Y: agentToSpawn.SpawnPoint[1], Plane: int(agentToSpawn.SpawnPoint[2])},
-			facingX:             1.0,
-			facingY:             0.0,
+			Facing:              geom.Vec2{X: 1.0, Y: 0.0},
 			baseSpeed:           agentDefinition.Speed,
 			modelId:             agentDefinition.ModelId,
 			allegianceFlags:     agentDefinition.AllegianceFlags,
@@ -404,7 +403,7 @@ func (i *Instance) processPlayer(p *Player) bool {
 
 	if m := p.moveTo; m != nil {
 		p.moveTo = nil
-		i.startPlayerMove(p, geom.Pos2P{X: m.x, Y: m.y, Plane: m.plane})
+		i.startPlayerMove(p, geom.Pos2P{X: m.pos.X, Y: m.pos.Y, Plane: m.plane})
 	}
 
 	if p.cancelInteractRequested {
@@ -637,8 +636,8 @@ func (i *Instance) SendActiveAgents(to *Player) {
 			agentType,
 			1,
 			9,
-			ag.Pos.X, ag.Pos.Y, ag.Pos.Plane,
-			ag.facingX, ag.facingY,
+			ag.Pos,
+			ag.Facing,
 			ag.baseSpeed,
 			ag.allegianceFlags,
 		))
@@ -680,11 +679,8 @@ func (i *Instance) TransmitPlayer(to *Player, other *Player) {
 		agentType,
 		1,
 		5,
-		other.Pos.X,
-		other.Pos.Y,
-		other.Pos.Plane,
-		other.facingX,
-		other.facingY,
+		other.Pos,
+		other.Facing,
 		other.baseSpeed,
 		other.allegianceFlags,
 	))
@@ -693,7 +689,7 @@ func (i *Instance) TransmitPlayer(to *Player, other *Player) {
 
 func (i *Instance) broadcastPlayerPos(player *Player) {
 	for _, other := range i.players {
-		other.EnqueuePacket(MarshalAgentUpdatePosition(player.agentId, player.Pos.X, player.Pos.Y, player.Pos.Plane))
+		other.EnqueuePacket(MarshalAgentUpdatePosition(player.agentId, player.Pos))
 	}
 }
 

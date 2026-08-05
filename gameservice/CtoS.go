@@ -4,6 +4,8 @@
 
 package gameservice
 
+import "gw1/server/geom"
+
 type VarByte []byte
 type VarUTF16 []byte
 
@@ -86,8 +88,7 @@ type ChatMessage struct {
 
 // opcode: 0x803d
 type MoveToPoint struct {
-	x     float32
-	y     float32
+	pos   geom.Pos2
 	plane int //wire:uint32
 }
 
@@ -99,19 +100,16 @@ type RotateAgent struct {
 
 // opcode: 0x8046
 type LastPosBeforeMoveCancelled struct {
-	x    float32
-	y    float32
-	unk2 int // wire:uint32
+	pos   geom.Pos2
+	plane int //wire:uint32
 }
 
 // opcode: 0x803c
 type MovementUpdate struct {
-	posX    float32
-	posY    float32
-	unk1    int // wire:uint32
-	facingX float32
-	facingY float32
-	dir     int // wire:uint32
+	pos    geom.Pos2
+	unk1   int // wire:uint32
+	facing geom.Vec2
+	dir    int // wire:uint32
 }
 
 // opcode: 0x80c0

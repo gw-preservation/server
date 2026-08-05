@@ -1,11 +1,12 @@
 //lint:file-ignore U1000 Fields are not unused
-//go:generate go run ../cmd/codegen/main.go s2c fmt math
+//go:generate go run ../cmd/codegen/main.go s2c fmt math gw1/server/geom
 //go:generate go fmt
 
 package gameservice
 
 import (
 	"fmt"
+	"gw1/server/geom"
 	"gw1/server/packet"
 )
 
@@ -32,9 +33,7 @@ type InstanceMovementTick struct {
 // opcode: 0x0029
 type MoveToPointS2C struct {
 	agentId      int //wire:uint32
-	x            float32
-	y            float32
-	plane        int //wire:uint16
+	pos          geom.Pos2P
 	currentPlane int //wire:uint16
 }
 
@@ -77,9 +76,7 @@ type UpdateCurrentMapId struct {
 // opcode: 0x002c
 type AgentUpdatePosition struct {
 	agentId int // wire:uint32
-	x       float32
-	y       float32
-	plane   int // wire:uint16
+	pos     geom.Pos2P
 }
 
 // opcode: 0x006d
@@ -129,11 +126,8 @@ type AgentSpawned struct {
 	agentType       int //wire:uint32
 	unk1            int // wire:uint8
 	unk2            int // wire:uint8
-	posX            float32
-	posY            float32
-	plane           int //wire:uint16
-	facingX         float32
-	facingY         float32
+	pos             geom.Pos2P
+	facing          geom.Vec2
 	unk3            int //wire:uint8,val:1
 	speed           float32
 	unk4            float32 //val:1.0
@@ -163,9 +157,7 @@ type AgentDespawned struct {
 // opcode: 0x0194
 type InstanceLoadSpawnPoint struct {
 	mapFileId   int //wire:uint32
-	posX        float32
-	posY        float32
-	plane       int //wire:uint16
+	pos         geom.Pos2P
 	unk1        int //wire:uint8,val:58
 	isCinematic bool
 	unk2        []byte //len:8
@@ -602,8 +594,7 @@ type AgentStopMoving struct {
 // opcode: 0x0025
 type AgentUpdateDirection struct {
 	agentId          int // wire:uint32
-	facingX          float32
-	facingY          float32
+	facing           geom.Vec2
 	moveTypeCardinal int // wire:uint8
 }
 

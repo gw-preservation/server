@@ -8,8 +8,8 @@ import (
 	"gw1/server/crypt"
 	"gw1/server/db"
 	"gw1/server/geom"
-	"gw1/server/packet"
 	Item "gw1/server/item"
+	"gw1/server/packet"
 	"net"
 )
 
@@ -93,7 +93,7 @@ func (conn *GSConn) onMoveToPoint(payload *MoveToPoint) error {
 
 func (conn *GSConn) onMovementUpdate(payload *MovementUpdate) error {
 	if inst := conn.player.connectedInstance; inst != nil {
-		inst.applyDirMovement(conn.player, geom.Pos2P{X: payload.posX, Y: payload.posY}, payload.facingX, payload.facingY, payload.dir)
+		inst.applyDirMovement(conn.player, geom.Pos2P{X: payload.pos.X, Y: payload.pos.Y}, payload.facing, payload.dir)
 	}
 	return nil
 }
@@ -104,7 +104,7 @@ func (conn *GSConn) onRotateAgent(payload *RotateAgent) error {
 
 func (conn *GSConn) onLastPosBeforeMoveCancelled(payload *LastPosBeforeMoveCancelled) error {
 	if inst := conn.player.connectedInstance; inst != nil {
-		inst.applyLastPosCorrection(conn.player, geom.Pos2P{X: payload.x, Y: payload.y, Plane: payload.unk2})
+		inst.applyLastPosCorrection(conn.player, geom.Pos2P{X: payload.pos.X, Y: payload.pos.Y, Plane: payload.plane})
 	}
 	return nil
 }

@@ -144,12 +144,12 @@ func TestApplyLastPosCorrectionRejectsLargeJump(t *testing.T) {
 func TestApplyMovementFacing(t *testing.T) {
 	bot, _ := newTestPlayer("Bot")
 
-	bot.applyMovementFacing(3, 4)
-	assert.InDelta(t, float32(0.6), bot.facingX, 1e-6)
-	assert.InDelta(t, float32(0.8), bot.facingY, 1e-6)
+	bot.applyMovementFacing(geom.Vec2{X: 3, Y: 4})
+	assert.InDelta(t, float32(0.6), bot.Facing.X, 1e-6)
+	assert.InDelta(t, float32(0.8), bot.Facing.Y, 1e-6)
 
-	bot.applyMovementFacing(0, 0)
-	assert.InDelta(t, float32(0.6), bot.facingX, 1e-6)
+	bot.applyMovementFacing(geom.Vec2{X: 0, Y: 0})
+	assert.InDelta(t, float32(0.6), bot.Facing.X, 1e-6)
 }
 
 func TestApplyDirMovementStartsDirectionalMovement(t *testing.T) {
@@ -163,12 +163,12 @@ func TestApplyDirMovementStartsDirectionalMovement(t *testing.T) {
 		botSink.reset()
 		watcherSink.reset()
 
-		inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 50}, 0, -1, 1)
+		inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 50}, geom.Vec2{X: 0, Y: -1}, 1)
 
 		assert.True(t, bot.dirMove)
 		assert.Empty(t, bot.waypoints)
-		assert.Equal(t, float32(0), bot.facingX)
-		assert.Equal(t, float32(-1), bot.facingY)
+		assert.Equal(t, float32(0), bot.Facing.X)
+		assert.Equal(t, float32(-1), bot.Facing.Y)
 		assert.Equal(t, 1, bot.curMoveType)
 		assert.Equal(t, float32(0), bot.Dest.X)
 		assert.Equal(t, float32(50-5000), bot.Dest.Y)
@@ -189,14 +189,14 @@ func TestDirMoveSpeedByMoveType(t *testing.T) {
 		bot.baseSpeed = 288
 
 		for _, dir := range []int{1, 2, 3, 7, 8} {
-			inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 50}, 0, -1, dir)
+			inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 50}, geom.Vec2{X: 0, Y: -1}, dir)
 			assert.Equal(t, dir, bot.curMoveType)
 			assert.InDelta(t, float32(288), bot.effectiveSpeed(), 1e-6)
 		}
 
 		// Backward / backward-strafe dirs move at 0.66x base.
 		for _, dir := range []int{4, 5, 6} {
-			inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 50}, 0, -1, dir)
+			inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 50}, geom.Vec2{X: 0, Y: -1}, dir)
 			assert.Equal(t, dir, bot.curMoveType)
 			assert.InDelta(t, float32(288*0.66), bot.effectiveSpeed(), 1e-6)
 			assert.InDelta(t, float32(0.66), bot.speedMult(), 1e-6)
@@ -214,7 +214,7 @@ func TestDirMoveBroadcastBackwardSpeed(t *testing.T) {
 		bot.baseSpeed = 288
 		watcherSink.reset()
 
-		inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 50}, 0, -1, 4)
+		inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 50}, geom.Vec2{X: 0, Y: -1}, 4)
 
 		dir, ok := sinkPacket(watcherSink, 0x25)
 		require.True(t, ok, "expected MarshalAgentUpdateDirection")
@@ -246,7 +246,7 @@ func TestStopClearsMoveTypeButKeepsEnvMultiplier(t *testing.T) {
 		bot.baseSpeed = 288
 		bot.speedMultiplier = 2.0 // hypothetical environment effect
 
-		inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 50}, 0, -1, 4)
+		inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 50}, geom.Vec2{X: 0, Y: -1}, 4)
 		assert.Equal(t, 4, bot.curMoveType)
 		assert.InDelta(t, float32(288*2*0.66), bot.effectiveSpeed(), 1e-6)
 
@@ -265,7 +265,7 @@ func TestClickMoveClearsMoveType(t *testing.T) {
 		bot.Pos = geom.Pos2P{X: 0, Y: 50, Plane: 0}
 		bot.baseSpeed = 288
 
-		inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 50}, 0, -1, 4)
+		inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 50}, geom.Vec2{X: 0, Y: -1}, 4)
 		assert.Equal(t, 4, bot.curMoveType)
 
 		assert.True(t, inst.startPlayerMove(bot, geom.Pos2P{X: 0, Y: -50, Plane: 0}))
@@ -282,7 +282,7 @@ func TestDirMoveTimeoutClearsMoveType(t *testing.T) {
 		bot.Pos = geom.Pos2P{X: 0, Y: 50, Plane: 0}
 		bot.baseSpeed = 288
 
-		inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 50}, 0, -1, 4)
+		inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 50}, geom.Vec2{X: 0, Y: -1}, 4)
 		bot.lastDirUpdate = time.Now().Add(-3 * time.Second)
 
 		inst.tickMovement()
@@ -299,17 +299,17 @@ func TestApplyDirMovementSnapsWithinTolerance(t *testing.T) {
 		bot.Pos = geom.Pos2P{X: 0, Y: 50, Plane: 0}
 		bot.baseSpeed = 288
 
-		inst.applyDirMovement(bot, geom.Pos2P{X: 5, Y: 45}, 0, 1, 1)
+		inst.applyDirMovement(bot, geom.Pos2P{X: 5, Y: 45}, geom.Vec2{X: 0, Y: 1}, 1)
 		assert.Equal(t, float32(5), bot.Pos.X)
 		assert.Equal(t, float32(45), bot.Pos.Y)
 		assert.True(t, bot.dirMove)
 
-		inst.applyDirMovement(bot, geom.Pos2P{X: 200, Y: 250}, 0, 1, 1)
+		inst.applyDirMovement(bot, geom.Pos2P{X: 200, Y: 250}, geom.Vec2{X: 0, Y: 1}, 1)
 		assert.Equal(t, float32(200), bot.Pos.X)
 		assert.Equal(t, float32(250), bot.Pos.Y)
 		assert.True(t, bot.dirMove)
 
-		inst.applyDirMovement(bot, geom.Pos2P{X: 50000, Y: 50000}, 0, 1, 1)
+		inst.applyDirMovement(bot, geom.Pos2P{X: 50000, Y: 50000}, geom.Vec2{X: 0, Y: 1}, 1)
 		assert.Equal(t, float32(200), bot.Pos.X)
 		assert.Equal(t, float32(250), bot.Pos.Y)
 	})
@@ -322,7 +322,7 @@ func TestAdvanceDirMovement(t *testing.T) {
 		bot.Pos = geom.Pos2P{X: 0, Y: 50, Plane: 0}
 		bot.baseSpeed = 288
 
-		inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 50}, 0, -1, 1)
+		inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 50}, geom.Vec2{X: 0, Y: -1}, 1)
 
 		inst.lastMovementAdvanceAt = time.Now().Add(-500 * time.Millisecond)
 		inst.flushMovement(time.Now())
@@ -341,7 +341,7 @@ func TestAdvanceDirMovementRefreshesVirtualTarget(t *testing.T) {
 		bot.Pos = geom.Pos2P{X: 0, Y: 50, Plane: 0}
 		bot.baseSpeed = 288
 
-		inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 50}, 0, -1, 1)
+		inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 50}, geom.Vec2{X: 0, Y: -1}, 1)
 		watcherSink.reset()
 
 		bot.Dest.Y = -50
@@ -380,7 +380,7 @@ func TestAdvanceDirMovementClampsAtWall(t *testing.T) {
 	bot.Pos = geom.Pos2P{X: 0, Y: 5, Plane: 0}
 	bot.baseSpeed = 288
 
-	inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 5}, 0, -1, 1)
+	inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 5}, geom.Vec2{X: 0, Y: -1}, 1)
 	assert.True(t, bot.dirMove)
 
 	// A full 500ms step (144 units south) would exit the trap; the clamp stops
@@ -398,7 +398,7 @@ func TestDirMoveTimeout(t *testing.T) {
 		bot.Pos = geom.Pos2P{X: 0, Y: 50, Plane: 0}
 		bot.baseSpeed = 288
 
-		inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 50}, 0, -1, 1)
+		inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 50}, geom.Vec2{X: 0, Y: -1}, 1)
 		bot.lastDirUpdate = time.Now().Add(-3 * time.Second)
 		botSink.reset()
 
@@ -416,7 +416,7 @@ func TestStartPlayerMoveClearsDirMove(t *testing.T) {
 		bot.Pos = geom.Pos2P{X: 0, Y: 50, Plane: 0}
 		bot.baseSpeed = 288
 
-		inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 50}, 0, -1, 1)
+		inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 50}, geom.Vec2{X: 0, Y: -1}, 1)
 		assert.True(t, bot.dirMove)
 
 		assert.True(t, inst.startPlayerMove(bot, geom.Pos2P{X: 0, Y: -50, Plane: 0}))
@@ -432,7 +432,7 @@ func TestCancelClearsDirMove(t *testing.T) {
 		bot.Pos = geom.Pos2P{X: 0, Y: 50, Plane: 0}
 		bot.baseSpeed = 288
 
-		inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 50}, 0, -1, 1)
+		inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 50}, geom.Vec2{X: 0, Y: -1}, 1)
 		assert.True(t, bot.dirMove)
 
 		assert.True(t, inst.applyLastPosCorrection(bot, geom.Pos2P{X: 5, Y: 45, Plane: 0}))
@@ -563,7 +563,7 @@ func TestKeyboardMoveTriggersTransition(t *testing.T) {
 		bot.Pos = geom.Pos2P{X: 0, Y: 10, Plane: 0}
 		bot.baseSpeed = 288
 
-		inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 10}, 0, -1, 1)
+		inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 10}, geom.Vec2{X: 0, Y: -1}, 1)
 
 		inst.lastMovementAdvanceAt = time.Now().Add(-500 * time.Millisecond)
 		inst.flushMovement(time.Now())

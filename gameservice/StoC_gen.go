@@ -4,6 +4,7 @@ package gameservice
 
 import (
 	"fmt"
+	"gw1/server/geom"
 	"math"
 
 	"gw1/server/packet"
@@ -31,12 +32,10 @@ func MarshalInstanceMovementTick(delta int) (resp packet.Out) {
 	return
 }
 
-func MarshalMoveToPointS2C(agentId int, x float32, y float32, plane int, currentPlane int) (resp packet.Out) {
+func MarshalMoveToPointS2C(agentId int, pos geom.Pos2P, currentPlane int) (resp packet.Out) {
 	resp = packet.NewOut(0x29)
 	resp.Uint32(agentId)
-	resp.Float32(x)
-	resp.Float32(y)
-	resp.Uint16(plane)
+	resp.Pos2P(pos)
 	resp.Uint16(currentPlane)
 	return
 }
@@ -80,12 +79,10 @@ func MarshalUpdateCurrentMapId(mapId int) (resp packet.Out) {
 	return
 }
 
-func MarshalAgentUpdatePosition(agentId int, x float32, y float32, plane int) (resp packet.Out) {
+func MarshalAgentUpdatePosition(agentId int, pos geom.Pos2P) (resp packet.Out) {
 	resp = packet.NewOut(0x2c)
 	resp.Uint32(agentId)
-	resp.Float32(x)
-	resp.Float32(y)
-	resp.Uint16(plane)
+	resp.Pos2P(pos)
 	return
 }
 
@@ -135,17 +132,14 @@ func MarshalAgentUpdateNPCModel(npcId int, modelId int) (resp packet.Out) {
 	return
 }
 
-func MarshalAgentSpawned(agentId int, agentType int, unk1 int, unk2 int, posX float32, posY float32, plane int, facingX float32, facingY float32, speed float32, allegianceFlags int) (resp packet.Out) {
+func MarshalAgentSpawned(agentId int, agentType int, unk1 int, unk2 int, pos geom.Pos2P, facing geom.Vec2, speed float32, allegianceFlags int) (resp packet.Out) {
 	resp = packet.NewOut(0x20)
 	resp.Uint32(agentId)
 	resp.Uint32(agentType)
 	resp.Uint8(unk1)
 	resp.Uint8(unk2)
-	resp.Float32(posX)
-	resp.Float32(posY)
-	resp.Uint16(plane)
-	resp.Float32(facingX)
-	resp.Float32(facingY)
+	resp.Pos2P(pos)
+	resp.Vec2(facing)
 	resp.Uint8(1)
 	resp.Float32(speed)
 	resp.Float32(1.0)
@@ -174,12 +168,10 @@ func MarshalAgentDespawned(agentId int) (resp packet.Out) {
 	return
 }
 
-func MarshalInstanceLoadSpawnPoint(mapFileId int, posX float32, posY float32, plane int, isCinematic bool, unk2 []byte) (resp packet.Out) {
+func MarshalInstanceLoadSpawnPoint(mapFileId int, pos geom.Pos2P, isCinematic bool, unk2 []byte) (resp packet.Out) {
 	resp = packet.NewOut(0x194)
 	resp.Uint32(mapFileId)
-	resp.Float32(posX)
-	resp.Float32(posY)
-	resp.Uint16(plane)
+	resp.Pos2P(pos)
 	resp.Uint8(58)
 	resp.Bool(isCinematic)
 	if len(unk2) != 8 {
@@ -727,11 +719,10 @@ func MarshalAgentStopMoving(agentId int) (resp packet.Out) {
 	return
 }
 
-func MarshalAgentUpdateDirection(agentId int, facingX float32, facingY float32, moveTypeCardinal int) (resp packet.Out) {
+func MarshalAgentUpdateDirection(agentId int, facing geom.Vec2, moveTypeCardinal int) (resp packet.Out) {
 	resp = packet.NewOut(0x25)
 	resp.Uint32(agentId)
-	resp.Float32(facingX)
-	resp.Float32(facingY)
+	resp.Vec2(facing)
 	resp.Uint8(moveTypeCardinal)
 	return
 }

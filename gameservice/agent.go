@@ -13,8 +13,7 @@ type Agent struct {
 	isPlayer            bool
 	name                string
 	Pos                 geom.Pos2P
-	facingX             float32
-	facingY             float32
+	Facing              geom.Vec2
 	modelId             int
 	allegianceFlags     int
 	encName             string
@@ -45,8 +44,7 @@ func (a *Agent) setDestination(wp pathing.Waypoint) {
 	dy := a.Dest.Y - a.Pos.Y
 	norm := vec2Length(dx, dy)
 	if norm > 0 {
-		a.facingX = dx / norm
-		a.facingY = dy / norm
+		a.Facing = geom.Vec2{X: dx / norm, Y: dy / norm}
 	}
 }
 

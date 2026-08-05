@@ -6,6 +6,8 @@ import (
 	"io"
 	"math"
 	"unicode/utf16"
+
+	"gw1/server/geom"
 )
 
 /*
@@ -159,6 +161,39 @@ func (p In) String() string {
 	return fmt.Sprintf("[%04x] with %d bytes", p.Opcode(), len(p.data))
 }
 
+func (p *In) Pos2() (out geom.Pos2, err error) {
+	out.X, err = p.Float32()
+	if err != nil {
+		return
+	}
+	out.Y, err = p.Float32()
+	return
+}
+
+func (p *In) Vec2() (out geom.Vec2, err error) {
+	out.X, err = p.Float32()
+	if err != nil {
+		return
+	}
+	out.Y, err = p.Float32()
+	return
+}
+
+func (p *In) Pos2P() (out geom.Pos2P, err error) {
+	out.X, err = p.Float32()
+	if err != nil {
+		return
+	}
+	out.Y, err = p.Float32()
+	if err != nil {
+		return
+	}
+	var plane int
+	plane, err = p.Uint16()
+	out.Plane = plane
+	return
+}
+
 /*
 ===============================================================================
     Out
@@ -236,4 +271,20 @@ func (p *Out) Merge(src Out) {
 
 func (p *Out) Reset() {
 	p.buf = &bytes.Buffer{}
+}
+
+func (p *Out) Pos2(v geom.Pos2) {
+	p.Float32(v.X)
+	p.Float32(v.Y)
+}
+
+func (p *Out) Vec2(v geom.Vec2) {
+	p.Float32(v.X)
+	p.Float32(v.Y)
+}
+
+func (p *Out) Pos2P(v geom.Pos2P) {
+	p.Float32(v.X)
+	p.Float32(v.Y)
+	p.Uint16(v.Plane)
 }

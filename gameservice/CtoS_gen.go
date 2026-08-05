@@ -274,14 +274,9 @@ func UnmarshalMoveToPoint(in *packet.In) (resp MoveToPoint, err error) {
 		err = errors.New("bad opcode")
 		return
 	}
-	resp.x, err = in.Float32()
+	resp.pos, err = in.Pos2()
 	if err != nil {
-		err = fmt.Errorf("read x: %w", err)
-		return
-	}
-	resp.y, err = in.Float32()
-	if err != nil {
-		err = fmt.Errorf("read y: %w", err)
+		err = fmt.Errorf("read pos: %w", err)
 		return
 	}
 	resp.plane, err = in.Uint32()
@@ -313,19 +308,14 @@ func UnmarshalLastPosBeforeMoveCancelled(in *packet.In) (resp LastPosBeforeMoveC
 		err = errors.New("bad opcode")
 		return
 	}
-	resp.x, err = in.Float32()
+	resp.pos, err = in.Pos2()
 	if err != nil {
-		err = fmt.Errorf("read x: %w", err)
+		err = fmt.Errorf("read pos: %w", err)
 		return
 	}
-	resp.y, err = in.Float32()
+	resp.plane, err = in.Uint32()
 	if err != nil {
-		err = fmt.Errorf("read y: %w", err)
-		return
-	}
-	resp.unk2, err = in.Uint32()
-	if err != nil {
-		err = fmt.Errorf("read unk2: %w", err)
+		err = fmt.Errorf("read plane: %w", err)
 		return
 	}
 	return
@@ -335,14 +325,9 @@ func UnmarshalMovementUpdate(in *packet.In) (resp MovementUpdate, err error) {
 		err = errors.New("bad opcode")
 		return
 	}
-	resp.posX, err = in.Float32()
+	resp.pos, err = in.Pos2()
 	if err != nil {
-		err = fmt.Errorf("read posX: %w", err)
-		return
-	}
-	resp.posY, err = in.Float32()
-	if err != nil {
-		err = fmt.Errorf("read posY: %w", err)
+		err = fmt.Errorf("read pos: %w", err)
 		return
 	}
 	resp.unk1, err = in.Uint32()
@@ -350,14 +335,9 @@ func UnmarshalMovementUpdate(in *packet.In) (resp MovementUpdate, err error) {
 		err = fmt.Errorf("read unk1: %w", err)
 		return
 	}
-	resp.facingX, err = in.Float32()
+	resp.facing, err = in.Vec2()
 	if err != nil {
-		err = fmt.Errorf("read facingX: %w", err)
-		return
-	}
-	resp.facingY, err = in.Float32()
-	if err != nil {
-		err = fmt.Errorf("read facingY: %w", err)
+		err = fmt.Errorf("read facing: %w", err)
 		return
 	}
 	resp.dir, err = in.Uint32()

@@ -49,7 +49,7 @@ package %s
 
 import (
 	%s
-%s	"gw1/server/gwpacket"
+%s	"gw1/server/packet"
 )
 
 `, os.Getenv("GOPACKAGE"), extraImportsLines, utf8Import)
@@ -163,7 +163,7 @@ func WriteUnmarshalFunction(name string, structType *ast.StructType, docs []*ast
 		fields = append(fields, fd)
 	}
 
-	out = fmt.Sprintf("func Unmarshal%s(in *gwpacket.In) (resp %s, err error){\n", name, name)
+	out = fmt.Sprintf("func Unmarshal%s(in *packet.In) (resp %s, err error){\n", name, name)
 
 	opcode := GetOpcode(name, docs)
 	out += fmt.Sprintf("if in.Opcode() != 0x%x {\n", opcode)
@@ -196,6 +196,12 @@ func WriteUnmarshalFunction(name string, structType *ast.StructType, docs []*ast
 			out += "return\n"
 			out += "}\n"
 			out += fmt.Sprintf("resp.%s, err = in.Bytes(%sLen)\n", fd.name, fd.name)
+		case "Pos2P":
+			out += fmt.Sprintf("resp.%s, err = in.Pos2P()\n", fd.name)
+		case "Pos2":
+			out += fmt.Sprintf("resp.%s, err = in.Pos2()\n", fd.name)
+		case "Vec2":
+			out += fmt.Sprintf("resp.%s, err = in.Vec2()\n", fd.name)
 		case "[]byte":
 			length, ok := GetWireLength(structType, fd.name)
 			if !ok {
@@ -234,6 +240,12 @@ func ExtractCustomIdentity(field *ast.Field) (identity string) {
 	switch t := fieldType.(type) {
 	case *ast.Ident:
 		identity = t.Name
+	case *ast.SelectorExpr:
+		if x, ok := t.X.(*ast.Ident); ok && x.Name == "geom" {
+			identity = t.Sel.Name
+		} else {
+			panic(fmt.Errorf("unhandled selector type in field '%s': %s.%s", field.Names[0].Name, x.Name, t.Sel.Name))
+		}
 	case *ast.ArrayType:
 		if _, ok := t.Elt.(*ast.Ident); ok && t.Elt.(*ast.Ident).Name == "byte" {
 			identity = "[]byte"
@@ -277,13 +289,19 @@ func WriteMarshalFunction(name string, structType *ast.StructType, docs []*ast.C
 		switch fd.identity {
 		case "uint8", "uint16", "uint32":
 			reqType = "int"
+		case "Pos2P":
+			reqType = "geom.Pos2P"
+		case "Pos2":
+			reqType = "geom.Pos2"
+		case "Vec2":
+			reqType = "geom.Vec2"
 		}
 		out += fmt.Sprintf("%s %s, ", fd.name, reqType)
 	}
-	out += ") (resp gwpacket.Out) {"
+	out += ") (resp packet.Out) {"
 
 	opcode := GetOpcode(name, docs)
-	out += fmt.Sprintf("resp = gwpacket.NewOut(0x%x)\n", opcode)
+	out += fmt.Sprintf("resp = packet.NewOut(0x%x)\n", opcode)
 
 	for _, fd := range fields {
 		valToWrite := fd.name
@@ -320,6 +338,12 @@ func WriteMarshalFunction(name string, structType *ast.StructType, docs []*ast.C
 				out += fmt.Sprintf("resp.Uint16(len(%s))\n", valToWrite)
 				out += fmt.Sprintf("resp.Bytes(%s)\n", valToWrite)
 			}
+		case "Pos2P":
+			out += fmt.Sprintf("resp.Pos2P(%s)\n", valToWrite)
+		case "Pos2":
+			out += fmt.Sprintf("resp.Pos2(%s)\n", valToWrite)
+		case "Vec2":
+			out += fmt.Sprintf("resp.Vec2(%s)\n", valToWrite)
 		case "[]uint16":
 			out += fmt.Sprintf("resp.Uint16(len(%s))\n", valToWrite)
 			out += fmt.Sprintf("for _, i := range %s {\n", valToWrite)
