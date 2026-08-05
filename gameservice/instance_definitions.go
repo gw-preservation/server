@@ -637,6 +637,9 @@ var instanceDefinitions = struct {
 			Name:      "Ventari's Refuge",
 			Expansion: "prophecies",
 			MapFileId: 0x9f5e,
+			SpawnPoints: [][]float32{
+				{-14468, 872, 0},
+			},
 		},
 		140: {
 			Name:      "Druid's OVerlook",
@@ -719,6 +722,12 @@ var instanceDefinitions = struct {
 			Name:      "Copperhammer Mines",
 			Expansion: "prophecies",
 			MapFileId: 0xb60a,
+		},
+		161: {
+			Name:       "Wizard's Folly",
+			Expansion:  "presearing",
+			MapFileId:  0x100,
+			Explorable: true,
 		},
 		162: {
 			Name:      "Regent Valley",

@@ -32,9 +32,10 @@ const (
 	noIndex            = -1
 )
 
-type riffChunk struct {
-	id   uint32
-	data []byte
+// RiffChunk is a parsed RIFF chunk with its ID and payload.
+type RiffChunk struct {
+	ID   uint32
+	Data []byte
 }
 
 type cursor struct {
@@ -92,17 +93,17 @@ func ParsePathData(content []byte) (*PathData, error) {
 		return nil, fmt.Errorf("not a map file (riff type %d)", riffType)
 	}
 
-	chunks, err := parseRiffChunks(content)
+	chunks, err := ParseRiffChunks(content)
 	if err != nil {
 		return nil, err
 	}
-	chunk := findChunk(chunks, pathChunkID)
+	chunk := FindChunk(chunks, pathChunkID)
 	if chunk == nil {
 		return nil, fmt.Errorf("no path chunk (0x%08x)", pathChunkID)
 	}
 
 	sd := &PathData{}
-	if err := importPathData(sd, chunk.data); err != nil {
+	if err := importPathData(sd, chunk.Data); err != nil {
 		return nil, err
 	}
 	return sd, nil
@@ -122,28 +123,30 @@ func riffType(content []byte) (uint8, bool) {
 	return t, true
 }
 
-func parseRiffChunks(content []byte) ([]riffChunk, error) {
+// ParseRiffChunks splits a decompressed RIFF "ffna" file into its chunks.
+func ParseRiffChunks(content []byte) ([]RiffChunk, error) {
 	if len(content) < 5 || string(content[:4]) != riffSignature || content[4] >= riffTypes {
 		return nil, fmt.Errorf("bad riff header")
 	}
 	data := content[5:]
-	var chunks []riffChunk
+	var chunks []RiffChunk
 	for len(data) >= 8 {
 		id := binary.LittleEndian.Uint32(data[0:4])
 		size := binary.LittleEndian.Uint32(data[4:8])
 		if uint64(len(data)) < 8+uint64(size) {
 			return nil, fmt.Errorf("truncated riff chunk")
 		}
-		chunks = append(chunks, riffChunk{id: id, data: data[8 : 8+size]})
+		chunks = append(chunks, RiffChunk{ID: id, Data: data[8 : 8+size]})
 		data = data[8+size:]
 	}
-	sort.Slice(chunks, func(i, j int) bool { return chunks[i].id < chunks[j].id })
+	sort.Slice(chunks, func(i, j int) bool { return chunks[i].ID < chunks[j].ID })
 	return chunks, nil
 }
 
-func findChunk(chunks []riffChunk, id uint32) *riffChunk {
-	i := sort.Search(len(chunks), func(i int) bool { return chunks[i].id >= id })
-	if i < len(chunks) && chunks[i].id == id {
+// FindChunk returns the first chunk with the given ID, or nil if not found.
+func FindChunk(chunks []RiffChunk, id uint32) *RiffChunk {
+	i := sort.Search(len(chunks), func(i int) bool { return chunks[i].ID >= id })
+	if i < len(chunks) && chunks[i].ID == id {
 		return &chunks[i]
 	}
 	return nil

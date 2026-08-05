@@ -16,35 +16,96 @@ type MapPortalDefinition struct {
 	SpawnPlane int
 }
 
-var mapTransitions = map[int][]MapPortalDefinition{
-	164: {
+var x = map[int][]MapPortalDefinition{
+	0x1b97d: {
 		{
 			Quad: MapQuad{
-				X1: -11265.0, Y1: -6093.0,
-				X2: -11150.0, Y2: -6093,
-				X3: -11150, Y3: -6360,
-				X4: -11265, Y4: -6360,
+				X1: -11078, Y1: -6424,
+				X2: -11060, Y2: -6052,
+				X3: -11260, Y3: -6042,
+				X4: -11278, Y4: -6414,
 			},
+			SpawnX: -10770,
+			SpawnY: -6252,
+		},
+	},
+}
+
+var mapTransitions = map[int][]MapPortalDefinition{
+	164: {
+		// Ashford Abbey -> Lakeside County
+		{
+			Quad: MapQuad{
+				X1: -11078, Y1: -6424,
+				X2: -11060, Y2: -6052,
+				X3: -11260, Y3: -6042,
+				X4: -11278, Y4: -6414,
+			},
+			SpawnX: -10770,
+			SpawnY: -6252,
+
+			SpawnPlane: 0,
 			Plane:      0,
 			DestMapId:  146,
-			SpawnX:     -10822,
-			SpawnY:     -6274,
-			SpawnPlane: 0,
 		},
 	},
 	146: {
+		// Lakeside County -> Ashford Abbey
 		{
 			Quad: MapQuad{
-				X1: -11411, Y1: -6079,
-				X2: -11275, Y2: -6092,
-				X3: -11275, Y3: -6355,
-				X4: -11373, Y4: -6355,
+				X1: -11478, Y1: -6404,
+				X2: -11460, Y2: -6032,
+				X3: -11260, Y3: -6042,
+				X4: -11278, Y4: -6414,
 			},
+			SpawnX:     -11768,
+			SpawnY:     -6203,
+			SpawnPlane: 0,
 			Plane:      0,
 			DestMapId:  164,
-			SpawnX:     -11500,
-			SpawnY:     -6295,
+		},
+		{
+			Quad: MapQuad{
+				-13934, -20256,
+				-14340, -20256,
+				-14327, -19872,
+				-13916, -19872,
+			},
+			Plane:      0,
+			DestMapId:  161,
+			SpawnX:     802,
+			SpawnY:     976,
 			SpawnPlane: 0,
+		},
+	},
+	139: {
+		// Ventari's Refuge -> Ettin's Back
+		{
+			Quad: MapQuad{
+				X1: -15351, Y1: 440,
+				X2: -15024, Y2: 113,
+				X3: -14883, Y3: 254,
+				X4: -15210, Y4: 581,
+			},
+			SpawnX:    -15400,
+			SpawnY:    64,
+			Plane:     0,
+			DestMapId: 44,
+		},
+	},
+	44: {
+		// Ettin's Back -> Ventari's Refuge
+		{
+			Quad: MapQuad{
+				X1: -15069, Y1: 723,
+				X2: -14741, Y2: 395,
+				X3: -14883, Y3: 254,
+				X4: -15210, Y4: 581,
+			},
+			SpawnX:    -14693,
+			SpawnY:    771,
+			Plane:     0,
+			DestMapId: 139,
 		},
 	},
 }

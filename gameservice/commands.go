@@ -24,6 +24,8 @@ func HandleCommand(p *Player, command string, fullInput string, args []string) b
 		handler = handleTravelCommand
 	case "pos":
 		handler = handlePosCommand
+	case "tele":
+		handler = handleTeleCommand
 	}
 	if handler != nil {
 		return handler(p, args)
@@ -120,6 +122,29 @@ func handleTravelCommand(p *Player, args []string) bool {
 		p.log.Error().Err(err).Int("newMapId", newMapId).Msg("failed to transfer player to new map")
 		return false
 	}
+	return true
+}
+
+func handleTeleCommand(p *Player, args []string) bool {
+	if p.connectedInstance == nil {
+		p.SendChatWarning("You are not in a game instance")
+		return false
+	}
+	if len(args) < 1 {
+		p.SendChatWarning("Usage: /tele <x>,<y>")
+		return false
+	}
+	var x, y float32
+	nParsed, err := fmt.Sscanf(args[0], "%f,%f", &x, &y)
+	if nParsed != 2 || err != nil {
+		p.SendChatWarning("Usage: /tele <x>,<y>")
+		return false
+	}
+	p.posX = x
+	p.posY = y
+	p.plane = 0
+	p.connectedInstance.broadcastPlayerPos(p)
+	p.SendChatInfo(fmt.Sprintf("Teleported to %.1f, %.1f", x, y))
 	return true
 }
 

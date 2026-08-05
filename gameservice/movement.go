@@ -1,6 +1,7 @@
 package gameservice
 
 import (
+	"fmt"
 	"math"
 	"time"
 
@@ -97,6 +98,7 @@ func (i *Instance) checkMapTransition(p *Player) {
 			continue
 		}
 		if pointInMapQuad(&t.Quad, p.posX, p.posY) {
+			p.SendChat(fmt.Sprintf("IN QUAD %f,%f", p.posX, p.posY), 3)
 			i.cancelPlayerMovement(p)
 			i.TransferPlayerToNewMap(p, t.DestMapId, t.SpawnX, t.SpawnY, t.SpawnPlane)
 			return
