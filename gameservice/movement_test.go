@@ -460,8 +460,8 @@ func TestGameTickAdvancesMovementAndBroadcastsSimTick(t *testing.T) {
 	})
 }
 
-func TestPointInTransitionTrapezoid(t *testing.T) {
-	trap := &TransitionTrapezoid{
+func TestPointInMapQuad(t *testing.T) {
+	trap := &MapQuad{
 		X1: -50, Y1: 100,
 		X2: 50, Y2: 100,
 		X3: 100, Y3: 0,
@@ -481,7 +481,7 @@ func TestPointInTransitionTrapezoid(t *testing.T) {
 		{0, 100, "top center"},
 	}
 	for _, tc := range inside {
-		assert.True(t, pointInTransitionTrapezoid(trap, tc.x, tc.y), tc.name)
+		assert.True(t, pointInMapQuad(trap, tc.x, tc.y), tc.name)
 	}
 
 	outside := []struct {
@@ -498,23 +498,23 @@ func TestPointInTransitionTrapezoid(t *testing.T) {
 		{0, 1000, "far above"},
 	}
 	for _, tc := range outside {
-		assert.False(t, pointInTransitionTrapezoid(trap, tc.x, tc.y), tc.name)
+		assert.False(t, pointInMapQuad(trap, tc.x, tc.y), tc.name)
 	}
 }
 
-func TestPointInTransitionTrapezoidRectangle(t *testing.T) {
-	trap := &TransitionTrapezoid{
+func TestPointInMapQuadRectangle(t *testing.T) {
+	trap := &MapQuad{
 		X1: -50, Y1: 100,
 		X2: 50, Y2: 100,
 		X3: 50, Y3: 0,
 		X4: -50, Y4: 0,
 	}
 
-	assert.True(t, pointInTransitionTrapezoid(trap, 0, 50))
-	assert.True(t, pointInTransitionTrapezoid(trap, -50, 0))
-	assert.True(t, pointInTransitionTrapezoid(trap, 50, 100))
-	assert.False(t, pointInTransitionTrapezoid(trap, -51, 50))
-	assert.False(t, pointInTransitionTrapezoid(trap, 51, 50))
+	assert.True(t, pointInMapQuad(trap, 0, 50))
+	assert.True(t, pointInMapQuad(trap, -50, 0))
+	assert.True(t, pointInMapQuad(trap, 50, 100))
+	assert.False(t, pointInMapQuad(trap, -51, 50))
+	assert.False(t, pointInMapQuad(trap, 51, 50))
 }
 
 func withTransitionNav(t *testing.T, fn func(inst *Instance)) {
@@ -533,9 +533,9 @@ func withTransitionNav(t *testing.T, fn func(inst *Instance)) {
 func TestCheckMapTransitionDirect(t *testing.T) {
 	withTransitionNav(t, func(inst *Instance) {
 		old := mapTransitions
-		mapTransitions = map[int][]TransitionDefinition{
+		mapTransitions = map[int][]MapPortalDefinition{
 			3: {{
-				Trapezoid: TransitionTrapezoid{X1: -100, Y1: -50, X2: 100, Y2: -50, X3: 100, Y3: -100, X4: -100, Y4: -100},
+				Quad:      MapQuad{X1: -100, Y1: -50, X2: 100, Y2: -50, X3: 100, Y3: -100, X4: -100, Y4: -100},
 				Plane:     0,
 				DestMapId: 2,
 			}},
@@ -555,9 +555,9 @@ func TestCheckMapTransitionDirect(t *testing.T) {
 func TestKeyboardMoveTriggersTransition(t *testing.T) {
 	withTransitionNav(t, func(inst *Instance) {
 		old := mapTransitions
-		mapTransitions = map[int][]TransitionDefinition{
+		mapTransitions = map[int][]MapPortalDefinition{
 			3: {{
-				Trapezoid: TransitionTrapezoid{X1: -200, Y1: 50, X2: 200, Y2: 50, X3: 200, Y3: -200, X4: -200, Y4: -200},
+				Quad:      MapQuad{X1: -200, Y1: 50, X2: 200, Y2: 50, X3: 200, Y3: -200, X4: -200, Y4: -200},
 				Plane:     0,
 				DestMapId: 2,
 			}},
@@ -582,9 +582,9 @@ func TestKeyboardMoveTriggersTransition(t *testing.T) {
 func TestClickMoveTriggersTransition(t *testing.T) {
 	withTransitionNav(t, func(inst *Instance) {
 		old := mapTransitions
-		mapTransitions = map[int][]TransitionDefinition{
+		mapTransitions = map[int][]MapPortalDefinition{
 			3: {{
-				Trapezoid: TransitionTrapezoid{X1: -200, Y1: 50, X2: 200, Y2: 50, X3: 200, Y3: -100, X4: -200, Y4: -100},
+				Quad:      MapQuad{X1: -200, Y1: 50, X2: 200, Y2: 50, X3: 200, Y3: -100, X4: -200, Y4: -100},
 				Plane:     0,
 				DestMapId: 2,
 			}},
@@ -609,9 +609,9 @@ func TestClickMoveTriggersTransition(t *testing.T) {
 func TestTransitionIgnoredOnWrongPlane(t *testing.T) {
 	withTransitionNav(t, func(inst *Instance) {
 		old := mapTransitions
-		mapTransitions = map[int][]TransitionDefinition{
+		mapTransitions = map[int][]MapPortalDefinition{
 			3: {{
-				Trapezoid: TransitionTrapezoid{X1: -200, Y1: 50, X2: 200, Y2: 50, X3: 200, Y3: -100, X4: -200, Y4: -100},
+				Quad:      MapQuad{X1: -200, Y1: 50, X2: 200, Y2: 50, X3: 200, Y3: -100, X4: -200, Y4: -100},
 				Plane:     1,
 				DestMapId: 2,
 			}},
@@ -632,9 +632,9 @@ func TestTransitionIgnoredOnWrongPlane(t *testing.T) {
 func TestNoTransitionOutsideTrapezoid(t *testing.T) {
 	withTransitionNav(t, func(inst *Instance) {
 		old := mapTransitions
-		mapTransitions = map[int][]TransitionDefinition{
+		mapTransitions = map[int][]MapPortalDefinition{
 			3: {{
-				Trapezoid: TransitionTrapezoid{X1: -200, Y1: 50, X2: 200, Y2: 50, X3: 200, Y3: 20, X4: -200, Y4: 20},
+				Quad:      MapQuad{X1: -200, Y1: 50, X2: 200, Y2: 50, X3: 200, Y3: 20, X4: -200, Y4: 20},
 				Plane:     0,
 				DestMapId: 2,
 			}},

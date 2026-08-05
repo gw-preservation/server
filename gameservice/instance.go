@@ -22,7 +22,6 @@ var ServerIP [4]byte
 
 func init() {
 	log = zerolog.New(zerolog.NewConsoleWriter())
-	log = log.Level(zerolog.InfoLevel)
 	log = log.With().Timestamp().Logger()
 }
 
@@ -169,7 +168,7 @@ type Instance struct {
 	mapId                  int
 	definition             instanceDefinition
 	path                   *pathing.PathData // navmesh for this map, shared read-only; never nil (NewInstance fails without one)
-	transitions            []TransitionDefinition
+	transitions            []MapPortalDefinition
 	alive                  bool
 	agents                 []Agent
 	gracefulShutdownSignal chan bool

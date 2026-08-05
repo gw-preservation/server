@@ -81,7 +81,7 @@ func transitionCross(ax, ay, bx, by, px, py float32) float32 {
 	return (bx-ax)*(py-ay) - (by-ay)*(px-ax)
 }
 
-func pointInTransitionTrapezoid(t *TransitionTrapezoid, x, y float32) bool {
+func pointInMapQuad(t *MapQuad, x, y float32) bool {
 	s1 := transitionCross(t.X1, t.Y1, t.X2, t.Y2, x, y)
 	s2 := transitionCross(t.X2, t.Y2, t.X3, t.Y3, x, y)
 	s3 := transitionCross(t.X3, t.Y3, t.X4, t.Y4, x, y)
@@ -96,7 +96,7 @@ func (i *Instance) checkMapTransition(p *Player) {
 		if t.Plane != p.plane {
 			continue
 		}
-		if pointInTransitionTrapezoid(&t.Trapezoid, p.posX, p.posY) {
+		if pointInMapQuad(&t.Quad, p.posX, p.posY) {
 			i.cancelPlayerMovement(p)
 			i.TransferPlayerToNewMap(p, t.DestMapId, t.SpawnX, t.SpawnY, t.SpawnPlane)
 			return

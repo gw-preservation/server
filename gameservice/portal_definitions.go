@@ -1,14 +1,14 @@
 package gameservice
 
-type TransitionTrapezoid struct {
+type MapQuad struct {
 	X1, Y1 float32
 	X2, Y2 float32
 	X3, Y3 float32
 	X4, Y4 float32
 }
 
-type TransitionDefinition struct {
-	Trapezoid  TransitionTrapezoid
+type MapPortalDefinition struct {
+	Quad       MapQuad
 	Plane      int
 	DestMapId  int
 	SpawnX     float32
@@ -16,10 +16,10 @@ type TransitionDefinition struct {
 	SpawnPlane int
 }
 
-var mapTransitions = map[int][]TransitionDefinition{
+var mapTransitions = map[int][]MapPortalDefinition{
 	164: {
 		{
-			Trapezoid: TransitionTrapezoid{
+			Quad: MapQuad{
 				X1: -11265.0, Y1: -6093.0,
 				X2: -11150.0, Y2: -6093,
 				X3: -11150, Y3: -6360,
@@ -34,7 +34,7 @@ var mapTransitions = map[int][]TransitionDefinition{
 	},
 	146: {
 		{
-			Trapezoid: TransitionTrapezoid{
+			Quad: MapQuad{
 				X1: -11411, Y1: -6079,
 				X2: -11275, Y2: -6092,
 				X3: -11275, Y3: -6355,

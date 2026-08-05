@@ -18,7 +18,6 @@ var database *gorm.DB
 
 func Initialize() error {
 	log = zerolog.New(zerolog.NewConsoleWriter())
-	log = log.Level(zerolog.InfoLevel)
 	log = log.With().Str("origin", "db").Logger()
 	log = log.With().Timestamp().Logger()
 	var err error

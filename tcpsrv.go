@@ -28,10 +28,9 @@ type Transport interface {
 }
 
 func init() {
-	// Set up the root logger (output to console @ trace level)
+	// Set up the root logger (output to console)
 	writer := zerolog.NewConsoleWriter()
 	logger = zerolog.New(writer)
-	logger = logger.Level(zerolog.InfoLevel)
 	logger = logger.With().Timestamp().Logger()
 }
 

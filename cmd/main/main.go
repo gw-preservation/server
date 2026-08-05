@@ -11,15 +11,31 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
+
+	"github.com/rs/zerolog"
 )
 
 const serverIP = "192.168.1.124"
 
 var gwDatPath = flag.String("gwdat", "./Gw.dat", "path to the Guild Wars Gw.dat archive (pathing data)")
+var logLevel = flag.String("log", "info", "log level: debug, info, warn, error, disabled")
 
 func main() {
 	flag.Parse()
+	switch strings.ToLower(*logLevel) {
+	case "debug":
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	case "warn":
+		zerolog.SetGlobalLevel(zerolog.WarnLevel)
+	case "error":
+		zerolog.SetGlobalLevel(zerolog.ErrorLevel)
+	case "disabled":
+		zerolog.SetGlobalLevel(zerolog.Disabled)
+	default:
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	}
 	if err := db.Initialize(); err != nil {
 		panic(err)
 	}
