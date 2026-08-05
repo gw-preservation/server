@@ -95,11 +95,13 @@ func (i *Instance) checkMapTransition(p *Player) {
 	for idx := range i.transitions {
 		t := &i.transitions[idx]
 		if pointInMapQuad(&t.Quad, p.posX, p.posY) {
-			if t.ToMapId == 0 || t.SpawnX == 0 || t.SpawnY == 0 {
-				p.SendChat(fmt.Sprintf("incomplete portal: index=%d, curMapId=%d", idx, i.mapId), 3)
+			if t.ToMapId == 0 || t.Spawn.IsEmpty() {
+				p.SendChat(fmt.Sprintf("incomplete portal: portalIndex=%d to: %d x: %f y:%f side=%s, curMapId=%d", t.OriginalPortalIndex, t.ToMapId, t.Spawn.X, t.Spawn.Y, t.ZoneSide, i.mapId), 3)
 			} else {
-				i.cancelPlayerMovement(p)
-				i.TransferPlayerToNewMap(p, t.ToMapId, t.SpawnX, t.SpawnY, 0)
+				if t.FromMapId == i.mapId && t.ToMapId != i.mapId {
+					i.cancelPlayerMovement(p)
+					i.TransferPlayerToNewMap(p, t.ToMapId, t.Spawn.X, t.Spawn.Y, t.Spawn.Plane)
+				}
 			}
 			return
 		}

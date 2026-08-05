@@ -532,16 +532,11 @@ func withTransitionNav(t *testing.T, fn func(inst *Instance)) {
 
 func TestCheckMapTransitionDirect(t *testing.T) {
 	withTransitionNav(t, func(inst *Instance) {
-		old := mapTransitions
-		mapTransitions = map[int][]MapPortalDefinition{
-			3: {{
-				Quad:    MapQuad{X1: -100, Y1: -50, X2: 100, Y2: -50, X3: 100, Y3: -100, X4: -100, Y4: -100},
-				ToMapId: 2,
-				SpawnX:  500, SpawnY: 500,
-			}},
-		}
-		defer func() { mapTransitions = old }()
-		inst.transitions = mapTransitions[3]
+		inst.transitions = []MapPortalZone{{
+			Quad:    MapQuad{X1: -100, Y1: -50, X2: 100, Y2: -50, X3: 100, Y3: -100, X4: -100, Y4: -100},
+			ToMapId: 2,
+			SpawnX:  500, SpawnY: 500,
+		}}
 
 		bot, _ := newTestPlayer("Bot")
 		inst.AddPlayer(bot)
@@ -554,16 +549,11 @@ func TestCheckMapTransitionDirect(t *testing.T) {
 
 func TestKeyboardMoveTriggersTransition(t *testing.T) {
 	withTransitionNav(t, func(inst *Instance) {
-		old := mapTransitions
-		mapTransitions = map[int][]MapPortalDefinition{
-			3: {{
-				Quad:    MapQuad{X1: -200, Y1: 50, X2: 200, Y2: 50, X3: 200, Y3: -200, X4: -200, Y4: -200},
-				ToMapId: 2,
-				SpawnX:  500, SpawnY: 500,
-			}},
-		}
-		defer func() { mapTransitions = old }()
-		inst.transitions = mapTransitions[3]
+		inst.transitions = []MapPortalZone{{
+			Quad:    MapQuad{X1: -200, Y1: 50, X2: 200, Y2: 50, X3: 200, Y3: -200, X4: -200, Y4: -200},
+			ToMapId: 2,
+			SpawnX:  500, SpawnY: 500,
+		}}
 
 		bot, _ := newTestPlayer("Bot")
 		inst.AddPlayer(bot)
@@ -581,16 +571,11 @@ func TestKeyboardMoveTriggersTransition(t *testing.T) {
 
 func TestClickMoveTriggersTransition(t *testing.T) {
 	withTransitionNav(t, func(inst *Instance) {
-		old := mapTransitions
-		mapTransitions = map[int][]MapPortalDefinition{
-			3: {{
-				Quad:    MapQuad{X1: -200, Y1: 50, X2: 200, Y2: 50, X3: 200, Y3: -100, X4: -200, Y4: -100},
-				ToMapId: 2,
-				SpawnX:  500, SpawnY: 500,
-			}},
-		}
-		defer func() { mapTransitions = old }()
-		inst.transitions = mapTransitions[3]
+		inst.transitions = []MapPortalZone{{
+			Quad:    MapQuad{X1: -200, Y1: 50, X2: 200, Y2: 50, X3: 200, Y3: -100, X4: -200, Y4: -100},
+			ToMapId: 2,
+			SpawnX:  500, SpawnY: 500,
+		}}
 
 		bot, _ := newTestPlayer("Bot")
 		inst.AddPlayer(bot)
@@ -608,16 +593,11 @@ func TestClickMoveTriggersTransition(t *testing.T) {
 
 func TestNoTransitionOutsideTrapezoid(t *testing.T) {
 	withTransitionNav(t, func(inst *Instance) {
-		old := mapTransitions
-		mapTransitions = map[int][]MapPortalDefinition{
-			3: {{
-				Quad:    MapQuad{X1: -200, Y1: 50, X2: 200, Y2: 50, X3: 200, Y3: 20, X4: -200, Y4: 20},
-				ToMapId: 2,
-				SpawnX:  500, SpawnY: 500,
-			}},
-		}
-		defer func() { mapTransitions = old }()
-		inst.transitions = mapTransitions[3]
+		inst.transitions = []MapPortalZone{{
+			Quad:    MapQuad{X1: -200, Y1: 50, X2: 200, Y2: 50, X3: 200, Y3: 20, X4: -200, Y4: 20},
+			ToMapId: 2,
+			SpawnX:  500, SpawnY: 500,
+		}}
 
 		bot, _ := newTestPlayer("Bot")
 		inst.AddPlayer(bot)

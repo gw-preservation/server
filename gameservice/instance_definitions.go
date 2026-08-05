@@ -726,7 +726,7 @@ var instanceDefinitions = struct {
 		161: {
 			Name:       "Wizard's Folly",
 			Expansion:  "presearing",
-			MapFileId:  0x100,
+			MapFileId:  0x1bacb,
 			Explorable: true,
 		},
 		162: {

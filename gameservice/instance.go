@@ -54,8 +54,8 @@ type agentDefinition struct {
 	DefinitionIndex    int
 }
 
-// InitializeInstances assigns agent definition indices and prepares lazy
-// pathing.
+// InitializeInstances assigns agent definition indices, prepares lazy
+// pathing, and derives portal zones.
 func InitializeInstances(gwdatPath string) error {
 	index := 0
 	for name := range instanceDefinitions.Agents {
@@ -64,7 +64,14 @@ func InitializeInstances(gwdatPath string) error {
 		instanceDefinitions.Agents[name] = def
 		index++
 	}
-	return initializePathing(gwdatPath)
+	if err := initializePathing(gwdatPath); err != nil {
+		return err
+	}
+	mapZones = make(map[int][]MapPortalZone, len(portals))
+	for id, ps := range portals {
+		mapZones[id] = derivePortalZones(ps)
+	}
+	return nil
 }
 
 func GetMapIdForNameCaseInsensitive(name string) (int, bool) {
@@ -168,7 +175,7 @@ type Instance struct {
 	mapId                  int
 	definition             instanceDefinition
 	path                   *pathing.PathData // navmesh for this map, shared read-only; never nil (NewInstance fails without one)
-	transitions            []MapPortalDefinition
+	transitions            []MapPortalZone
 	alive                  bool
 	agents                 []Agent
 	gracefulShutdownSignal chan bool
@@ -258,7 +265,7 @@ func newInstance(mapId int, definition instanceDefinition) (*Instance, error) {
 		pendingJoins:           make(chan *Player, 16),
 		done:                   make(chan struct{}),
 	}
-	i.transitions = mapTransitions[mapId]
+	i.transitions = mapZones[definition.MapFileId]
 	i.log = log.With().Uint64("uuid", i.uuid).Int("mapId", i.mapId).Logger()
 	if i.definition.Explorable {
 		i.log.Debug().Msg("created a new explorable instance")
