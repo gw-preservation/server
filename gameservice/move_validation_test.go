@@ -1,6 +1,7 @@
 package gameservice
 
 import (
+	"gw1/server/geom"
 	"gw1/server/pathing"
 	"testing"
 
@@ -59,15 +60,15 @@ func TestStartPlayerMoveValidMove(t *testing.T) {
 		watcher, watcherSink := newTestPlayer("Watcher")
 		inst.AddPlayer(bot)
 		inst.AddPlayer(watcher)
-		bot.posX, bot.posY, bot.plane = 0, 50, 0
+		bot.Pos = geom.Pos2P{X: 0, Y: 50, Plane: 0}
 		bot.baseSpeed = 288
 		botSink.reset()
 		watcherSink.reset()
 
-		assert.True(t, inst.startPlayerMove(bot, 50, 50, 0))
-		assert.Equal(t, float32(50), bot.destX)
-		assert.Equal(t, float32(50), bot.destY)
-		assert.Equal(t, 0, bot.destPlane)
+		assert.True(t, inst.startPlayerMove(bot, geom.Pos2P{X: 50, Y: 50, Plane: 0}))
+		assert.Equal(t, float32(50), bot.Dest.X)
+		assert.Equal(t, float32(50), bot.Dest.Y)
+		assert.Equal(t, 0, bot.Dest.Plane)
 		assert.NotEmpty(t, bot.waypoints)
 		assert.True(t, botSink.hasOpcode(0x29), "expected MarshalMoveToPointS2C in mover sink")
 		assert.True(t, watcherSink.hasOpcode(0x29), "expected MarshalMoveToPointS2C in watcher sink")
@@ -78,12 +79,12 @@ func TestStartPlayerMoveValidMoveDownCorridor(t *testing.T) {
 	withMoveNav(t, func(inst *Instance) {
 		bot, _ := newTestPlayer("Bot")
 		inst.AddPlayer(bot)
-		bot.posX, bot.posY, bot.plane = 0, 50, 0
+		bot.Pos = geom.Pos2P{X: 0, Y: 50, Plane: 0}
 		bot.baseSpeed = 288
 
-		assert.True(t, inst.startPlayerMove(bot, 0, -50, 0))
+		assert.True(t, inst.startPlayerMove(bot, geom.Pos2P{X: 0, Y: -50, Plane: 0}))
 		assert.NotEmpty(t, bot.waypoints)
-		assert.Equal(t, float32(-50), bot.destY)
+		assert.Equal(t, float32(-50), bot.Dest.Y)
 	})
 }
 
@@ -93,14 +94,14 @@ func TestStartPlayerMoveRejectsWallMove(t *testing.T) {
 		watcher, watcherSink := newTestPlayer("Watcher")
 		inst.AddPlayer(bot)
 		inst.AddPlayer(watcher)
-		bot.posX, bot.posY, bot.plane = 0, 50, 0
+		bot.Pos = geom.Pos2P{X: 0, Y: 50, Plane: 0}
 		bot.baseSpeed = 288
 		watcherSink.reset()
 
-		assert.False(t, inst.startPlayerMove(bot, 400, 50, 0))
+		assert.False(t, inst.startPlayerMove(bot, geom.Pos2P{X: 400, Y: 50, Plane: 0}))
 		assert.Empty(t, bot.waypoints)
-		assert.Equal(t, float32(0), bot.posX)
-		assert.Equal(t, float32(50), bot.posY)
+		assert.Equal(t, float32(0), bot.Pos.X)
+		assert.Equal(t, float32(50), bot.Pos.Y)
 		assert.True(t, watcherSink.hasOpcode(0x2c), "reject should rebroadcast current position")
 	})
 }
@@ -109,11 +110,11 @@ func TestStartPlayerMoveAcceptsDetourMove(t *testing.T) {
 	withObstacleNav(t, func(inst *Instance) {
 		bot, _ := newTestPlayer("Bot")
 		inst.AddPlayer(bot)
-		bot.posX, bot.posY, bot.plane = -80, 50, 0
+		bot.Pos = geom.Pos2P{X: -80, Y: 50, Plane: 0}
 		bot.baseSpeed = 288
 
-		assert.False(t, inst.path.LineOfSight(-80, 50, 80, 50, 0), "straight line must cross the wall")
-		assert.True(t, inst.startPlayerMove(bot, 80, 50, 0))
+		assert.False(t, inst.path.LineOfSight(geom.Pos2P{X: -80, Y: 50}, geom.Pos2P{X: 80, Y: 50}), "straight line must cross the wall")
+		assert.True(t, inst.startPlayerMove(bot, geom.Pos2P{X: 80, Y: 50, Plane: 0}))
 		assert.Greater(t, len(bot.waypoints), 1, "detour should produce multiple waypoints")
 	})
 }
@@ -154,10 +155,10 @@ func TestStartPlayerMoveRejectsOffGridTarget(t *testing.T) {
 	withMoveNav(t, func(inst *Instance) {
 		bot, _ := newTestPlayer("Bot")
 		inst.AddPlayer(bot)
-		bot.posX, bot.posY, bot.plane = 0, 50, 0
+		bot.Pos = geom.Pos2P{X: 0, Y: 50, Plane: 0}
 		bot.baseSpeed = 288
 
-		assert.False(t, inst.startPlayerMove(bot, 0, 150, 0))
+		assert.False(t, inst.startPlayerMove(bot, geom.Pos2P{X: 0, Y: 150, Plane: 0}))
 		assert.Empty(t, bot.waypoints)
 	})
 }
@@ -167,13 +168,13 @@ func TestStartPlayerMoveAllowsOffGridStart(t *testing.T) {
 		bot, _ := newTestPlayer("Bot")
 		inst.AddPlayer(bot)
 		// Off the navmesh (spawn): moves allowed so spawns don't lock players in.
-		bot.posX, bot.posY, bot.plane = 0, 150, 0
+		bot.Pos = geom.Pos2P{X: 0, Y: 150, Plane: 0}
 		bot.baseSpeed = 288
 
-		assert.True(t, inst.startPlayerMove(bot, 50, 50, 0))
+		assert.True(t, inst.startPlayerMove(bot, geom.Pos2P{X: 50, Y: 50, Plane: 0}))
 		assert.Equal(t, 1, len(bot.waypoints))
-		assert.Equal(t, float32(50), bot.destX)
-		assert.Equal(t, float32(50), bot.destY)
+		assert.Equal(t, float32(50), bot.Dest.X)
+		assert.Equal(t, float32(50), bot.Dest.Y)
 	})
 }
 
@@ -235,12 +236,12 @@ func TestStartPlayerMoveAllowsPortalTraversal(t *testing.T) {
 		watcher, watcherSink := newTestPlayer("Watcher")
 		inst.AddPlayer(bot)
 		inst.AddPlayer(watcher)
-		bot.posX, bot.posY, bot.plane = 0, 50, 0
+		bot.Pos = geom.Pos2P{X: 0, Y: 50, Plane: 0}
 		bot.baseSpeed = 288
 		botSink.reset()
 		watcherSink.reset()
 
-		assert.True(t, inst.startPlayerMove(bot, 0, 50, 1))
+		assert.True(t, inst.startPlayerMove(bot, geom.Pos2P{X: 0, Y: 50, Plane: 1}))
 		assert.NotEmpty(t, bot.waypoints)
 		assert.Equal(t, 1, bot.waypoints[len(bot.waypoints)-1].Plane, "final waypoint on the destination plane")
 		assert.True(t, watcherSink.hasOpcode(0x29), "expected MarshalMoveToPointS2C in watcher sink")
@@ -252,13 +253,13 @@ func TestStartPlayerMoveRejectsUnreachablePlane(t *testing.T) {
 	withPortalNav(t, func(inst *Instance) {
 		bot, _ := newTestPlayer("Bot")
 		inst.AddPlayer(bot)
-		bot.posX, bot.posY, bot.plane = 0, 50, 0
+		bot.Pos = geom.Pos2P{X: 0, Y: 50, Plane: 0}
 		bot.baseSpeed = 288
 
-		assert.False(t, inst.startPlayerMove(bot, 0, 50, 2))
+		assert.False(t, inst.startPlayerMove(bot, geom.Pos2P{X: 0, Y: 50, Plane: 2}))
 		assert.Empty(t, bot.waypoints)
-		assert.Equal(t, float32(0), bot.posX)
-		assert.Equal(t, float32(50), bot.posY)
-		assert.Equal(t, 0, bot.plane)
+		assert.Equal(t, float32(0), bot.Pos.X)
+		assert.Equal(t, float32(50), bot.Pos.Y)
+		assert.Equal(t, 0, bot.Pos.Plane)
 	})
 }

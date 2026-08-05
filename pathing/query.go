@@ -1,5 +1,7 @@
 package pathing
 
+import "gw1/server/geom"
+
 import "math"
 
 // noPortal = 0xFFFF in the dat.
@@ -16,11 +18,11 @@ const (
 	trapEdgeLeft
 )
 
-func (d *PathData) TrapezoidAt(x, y float32, plane int) (int, bool) {
-	if plane < 0 || plane >= len(d.Planes) {
+func (d *PathData) TrapezoidAt(p geom.Pos2P) (int, bool) {
+	if p.Plane < 0 || p.Plane >= len(d.Planes) {
 		return -1, false
 	}
-	return trapezoidAt(&d.Planes[plane], x, y)
+	return trapezoidAt(&d.Planes[p.Plane], p.X, p.Y)
 }
 
 func trapezoidAt(pl *Plane, x, y float32) (int, bool) {
@@ -136,19 +138,19 @@ func finite32(f float32) bool {
 }
 
 // LineOfSight reports whether the segment stays in the walkable trapezoids; both endpoints must be on the navmesh.
-func (d *PathData) LineOfSight(x1, y1, x2, y2 float32, plane int) bool {
-	if plane < 0 || plane >= len(d.Planes) {
+func (d *PathData) LineOfSight(from, to geom.Pos2P) bool {
+	if from.Plane < 0 || from.Plane >= len(d.Planes) {
 		return false
 	}
-	pl := &d.Planes[plane]
+	pl := &d.Planes[from.Plane]
 	if len(pl.Trapezoids) == 0 {
 		return false
 	}
-	start, ok := trapezoidAt(pl, x1, y1)
+	start, ok := trapezoidAt(pl, from.X, from.Y)
 	if !ok {
 		return false
 	}
-	end, ok := trapezoidAt(pl, x2, y2)
+	end, ok := trapezoidAt(pl, to.X, to.Y)
 	if !ok {
 		return false
 	}
@@ -157,10 +159,10 @@ func (d *PathData) LineOfSight(x1, y1, x2, y2 float32, plane int) bool {
 	}
 
 	// The walk always advances, so it cannot cycle; enterX/enterY and prev stop re-crossing the entry edge.
-	enterX, enterY := x1, y1
+	enterX, enterY := from.X, from.Y
 	prev := -1
 	for step := 0; step <= len(pl.Trapezoids); step++ {
-		ex, ey, e1, e2, n, ok := trapExit(&pl.Trapezoids[start], x1, y1, x2, y2, enterX, enterY)
+		ex, ey, e1, e2, n, ok := trapExit(&pl.Trapezoids[start], from.X, from.Y, to.X, to.Y, enterX, enterY)
 		if !ok {
 			return start == end
 		}
@@ -187,21 +189,21 @@ func (d *PathData) LineOfSight(x1, y1, x2, y2 float32, plane int) bool {
 }
 
 // Reachable reports whether (x1,y1,fromPlane) reaches (x2,y2,toPlane) via the walkable graph (neighbors plus unblocked portals).
-func (d *PathData) Reachable(x1, y1 float32, fromPlane int, x2, y2 float32, toPlane int) bool {
-	if fromPlane < 0 || fromPlane >= len(d.Planes) || toPlane < 0 || toPlane >= len(d.Planes) {
+func (d *PathData) Reachable(from, to geom.Pos2P) bool {
+	if from.Plane < 0 || from.Plane >= len(d.Planes) || to.Plane < 0 || to.Plane >= len(d.Planes) {
 		return false
 	}
-	startPlane := &d.Planes[fromPlane]
-	start, ok := trapezoidAt(startPlane, x1, y1)
+	startPlane := &d.Planes[from.Plane]
+	start, ok := trapezoidAt(startPlane, from.X, from.Y)
 	if !ok {
 		return false
 	}
-	endPlane := &d.Planes[toPlane]
-	end, ok := trapezoidAt(endPlane, x2, y2)
+	endPlane := &d.Planes[to.Plane]
+	end, ok := trapezoidAt(endPlane, to.X, to.Y)
 	if !ok {
 		return false
 	}
-	if fromPlane == toPlane && start == end {
+	if from.Plane == to.Plane && start == end {
 		return true
 	}
 
@@ -209,12 +211,12 @@ func (d *PathData) Reachable(x1, y1 float32, fromPlane int, x2, y2 float32, toPl
 		plane, trap int
 	}
 	visited := make(map[cell]bool)
-	visited[cell{fromPlane, start}] = true
-	queue := []cell{{fromPlane, start}}
+	visited[cell{from.Plane, start}] = true
+	queue := []cell{{from.Plane, start}}
 	for len(queue) > 0 {
 		cur := queue[0]
 		queue = queue[1:]
-		if cur == (cell{toPlane, end}) {
+		if cur == (cell{to.Plane, end}) {
 			return true
 		}
 

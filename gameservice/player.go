@@ -3,6 +3,7 @@ package gameservice
 import (
 	"fmt"
 	"gw1/server/db"
+	"gw1/server/geom"
 	"gw1/server/packet"
 	Item "gw1/server/item"
 	"math/rand"
@@ -52,9 +53,7 @@ type Player struct {
 	target                  *UpdateTarget
 	loadSpawnRequested      bool
 	loadPlayers             *InstanceLoadRequestPlayers
-	pendingSpawnX           float32
-	pendingSpawnY           float32
-	pendingSpawnPlane       int
+	pendingSpawn geom.Pos2P
 	hasPendingSpawn         bool
 }
 
@@ -220,7 +219,7 @@ func (p *Player) applyDyeToItem(lid int, item Item.Item, color int) {
 func (p *Player) sendInstanceLoadSpawnPoint() {
 	p.log.Debug().Msg("InstanceLoadRequestSpawnPoint")
 	inst := p.connectedInstance
-	p.EnqueuePacket(MarshalInstanceLoadSpawnPoint(int(inst.definition.MapFileId), p.posX, p.posY, p.plane, false, []byte{0xcd, 0x49, 0x03, 0xcc, 0x17, 0xa7, 0xdb, 0x01}))
+	p.EnqueuePacket(MarshalInstanceLoadSpawnPoint(int(inst.definition.MapFileId), p.Pos.X, p.Pos.Y, p.Pos.Plane, false, []byte{0xcd, 0x49, 0x03, 0xcc, 0x17, 0xa7, 0xdb, 0x01}))
 }
 
 func (p *Player) sendInstanceLoadRequestPlayers(payload InstanceLoadRequestPlayers) {
@@ -312,8 +311,8 @@ func (p *Player) spawnPlayerAgent() {
 		agentType,
 		1,
 		5,
-		p.posX,
-		p.posY,
+		p.Pos.X,
+		p.Pos.Y,
 		plane,
 		facingX,
 		facingY,

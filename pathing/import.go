@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"math"
 	"sort"
+
+	"gw1/server/geom"
 )
 
 // RIFF container (map files are RIFF with signature "ffna").
@@ -266,7 +268,7 @@ func importPlane(sd *PathData, c *cursor, pairs map[uint32]portalRef) error {
 	}
 
 	plane := Plane{PlaneID: planeID, NumXNodes: xnodeCount, NumYNodes: ynodeCount}
-	plane.Vectors = make([]Vec2f, vectorCount)
+	plane.Vectors = make([]geom.Vec2, vectorCount)
 	plane.Trapezoids = make([]Trapezoid, trapCount)
 	plane.Nodes = make([]Node, int(xnodeCount)+int(ynodeCount)+int(sinkCount))
 	plane.Portals = make([]Portal, portalCount)
@@ -295,7 +297,7 @@ func importPlane(sd *PathData, c *cursor, pairs map[uint32]portalRef) error {
 	for i := range plane.Vectors {
 		x, _ := c.f32()
 		y, _ := c.f32()
-		plane.Vectors[i] = Vec2f{X: x, Y: y}
+		plane.Vectors[i] = geom.Vec2{X: x, Y: y}
 	}
 
 	if length, err := readTagged(c, 2); err != nil {

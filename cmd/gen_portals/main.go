@@ -14,6 +14,7 @@ import (
 	"sort"
 
 	"gw1/server/gameservice"
+	"gw1/server/geom"
 	"gw1/server/pathing"
 )
 
@@ -192,8 +193,8 @@ func extractPortals(archive *pathing.Archive, mapFileId uint32) ([]gameservice.P
 		}
 
 		portals = append(portals, gameservice.Portal{
-			Pos:           gameservice.Pos2D{X: prop.X, Y: prop.Z},
-			Facing:        gameservice.Pos2D{X: prop.SinAngle, Y: prop.CosAngle},
+			Pos:           geom.Pos2{X: prop.X, Y: prop.Z},
+			Facing:        geom.Vec2{X: prop.SinAngle, Y: prop.CosAngle},
 			ScalingFactor: prop.ScalingFactor,
 		})
 	}
@@ -278,7 +279,7 @@ func main() {
 			fmt.Fprintf(f, "\t0x%x: {\n", e.fileId)
 		}
 		for _, p := range e.portals {
-			fmt.Fprintf(f, "\t\t{Pos: Pos2D{X: %g, Y: %g}, Facing: Pos2D{X: %g, Y: %g}, ScalingFactor: %g},\n",
+			fmt.Fprintf(f, "\t\t{Pos: geom.Pos2{X: %g, Y: %g}, Facing: geom.Vec2{X: %g, Y: %g}, ScalingFactor: %g},\n",
 				p.Pos.X, p.Pos.Y, p.Facing.X, p.Facing.Y, p.ScalingFactor)
 		}
 		fmt.Fprintf(f, "\t},\n")

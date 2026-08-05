@@ -1,6 +1,9 @@
 package pathing
 
-import "testing"
+import (
+	"gw1/server/geom"
+	"testing"
+)
 
 var benchWaypoints []Waypoint
 
@@ -10,7 +13,7 @@ func BenchmarkFindPathSameTrap(b *testing.B) {
 	var wps []Waypoint
 	var ok bool
 	for b.Loop() {
-		wps, ok = d.FindPath(0, 50, 0, 50, 40, 0)
+		wps, ok = d.FindPath(geom.Pos2P{X: 0, Y: 50, Plane: 0}, geom.Pos2P{X: 50, Y: 40, Plane: 0})
 	}
 	benchWaypoints, _ = wps, ok
 }
@@ -21,7 +24,7 @@ func BenchmarkFindPathStraightCorridor(b *testing.B) {
 	var wps []Waypoint
 	var ok bool
 	for b.Loop() {
-		wps, ok = d.FindPath(0, 50, 0, 0, -250, 0)
+		wps, ok = d.FindPath(geom.Pos2P{X: 0, Y: 50, Plane: 0}, geom.Pos2P{X: 0, Y: -250, Plane: 0})
 	}
 	benchWaypoints, _ = wps, ok
 }
@@ -32,7 +35,7 @@ func BenchmarkFindPathDetour(b *testing.B) {
 	var wps []Waypoint
 	var ok bool
 	for b.Loop() {
-		wps, ok = d.FindPath(-50, 150, 0, 50, 150, 0)
+		wps, ok = d.FindPath(geom.Pos2P{X: -50, Y: 150, Plane: 0}, geom.Pos2P{X: 50, Y: 150, Plane: 0})
 	}
 	benchWaypoints, _ = wps, ok
 }
@@ -43,7 +46,7 @@ func BenchmarkFindPathAcrossPortal(b *testing.B) {
 	var wps []Waypoint
 	var ok bool
 	for b.Loop() {
-		wps, ok = d.FindPath(0, 50, 0, 0, 50, 1)
+		wps, ok = d.FindPath(geom.Pos2P{X: 0, Y: 50, Plane: 0}, geom.Pos2P{X: 0, Y: 50, Plane: 1})
 	}
 	benchWaypoints, _ = wps, ok
 }
@@ -53,7 +56,7 @@ func BenchmarkFindPathUnreachable(b *testing.B) {
 	assignTrapIDs(d)
 	var ok bool
 	for b.Loop() {
-		_, ok = d.FindPath(0, 50, 0, 0, 50, 2)
+		_, ok = d.FindPath(geom.Pos2P{X: 0, Y: 50, Plane: 0}, geom.Pos2P{X: 0, Y: 50, Plane: 2})
 	}
 	sinkBool = ok
 }
@@ -107,7 +110,7 @@ func BenchmarkFindPathLargeShort(b *testing.B) {
 	var wps []Waypoint
 	var ok bool
 	for b.Loop() {
-		wps, ok = d.FindPath(5, 495, 0, 45, 455, 0)
+		wps, ok = d.FindPath(geom.Pos2P{X: 5, Y: 495, Plane: 0}, geom.Pos2P{X: 45, Y: 455, Plane: 0})
 	}
 	benchWaypoints, _ = wps, ok
 }
@@ -118,7 +121,7 @@ func BenchmarkFindPathLargeDiagonal(b *testing.B) {
 	var wps []Waypoint
 	var ok bool
 	for b.Loop() {
-		wps, ok = d.FindPath(5, 145, 0, 145, 5, 0)
+		wps, ok = d.FindPath(geom.Pos2P{X: 5, Y: 145, Plane: 0}, geom.Pos2P{X: 145, Y: 5, Plane: 0})
 	}
 	benchWaypoints, _ = wps, ok
 }
@@ -128,7 +131,7 @@ func BenchmarkFindPathLargeUnreachable(b *testing.B) {
 	assignTrapIDs(d)
 	var ok bool
 	for b.Loop() {
-		_, ok = d.FindPath(5, 145, 0, 145, 5, 1)
+		_, ok = d.FindPath(geom.Pos2P{X: 5, Y: 145, Plane: 0}, geom.Pos2P{X: 145, Y: 5, Plane: 1})
 	}
 	sinkBool = ok
 }

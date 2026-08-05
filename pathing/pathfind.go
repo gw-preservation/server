@@ -1,12 +1,14 @@
 package pathing
 
-import "math"
+import (
+	"gw1/server/geom"
+	"math"
+)
 
 // Waypoint is a point on a path produced by FindPath; TrapID is the containing
 // trapezoid's global id.
 type Waypoint struct {
-	X, Y   float32
-	Plane  int
+	geom.Pos2P
 	TrapID uint32
 }
 
@@ -484,30 +486,30 @@ func (h *binaryHeap) siftDown(i int) {
 // FindPath runs A* over the trapezoid navmesh using a custom binary heap
 // (no interface{} boxing) and a reduced-sqrt heuristic, and returns a waypoint
 // list.
-func (d *PathData) FindPath(sx, sy float32, sPlane int, dx, dy float32, dPlane int) ([]Waypoint, bool) {
+func (d *PathData) FindPath(src, dst geom.Pos2P) ([]Waypoint, bool) {
 	const maxCost = 10000.0
 
-	srcTrapIdx, ok := d.TrapezoidAt(sx, sy, sPlane)
+	srcTrapIdx, ok := d.TrapezoidAt(src)
 	if !ok {
 		return nil, false
 	}
-	dstTrapIdx, ok := d.TrapezoidAt(dx, dy, dPlane)
+	dstTrapIdx, ok := d.TrapezoidAt(dst)
 	if !ok {
 		return nil, false
 	}
 
-	srcTrap := &d.Planes[sPlane].Trapezoids[srcTrapIdx]
-	dstTrap := &d.Planes[dPlane].Trapezoids[dstTrapIdx]
+	srcTrap := &d.Planes[src.Plane].Trapezoids[srcTrapIdx]
+	dstTrap := &d.Planes[dst.Plane].Trapezoids[dstTrapIdx]
 
 	if srcTrap == dstTrap {
-		return []Waypoint{{X: dx, Y: dy, Plane: dPlane, TrapID: dstTrap.TrapID}}, true
+		return []Waypoint{{Pos2P: dst, TrapID: dstTrap.TrapID}}, true
 	}
 
 	nc := d.pathNodeCount()
 	ctx := pathContext{d: d, nodes: make([]pathNode, nc)}
 	ctx.prioq.reset(nc)
 
-	ctx.addNode(nil, srcTrap, sx, sy, sPlane, 0, float32(math.Inf(1)))
+	ctx.addNode(nil, srcTrap, src.X, src.Y, src.Plane, 0, float32(math.Inf(1)))
 
 	for ctx.prioq.len() > 0 {
 		top := ctx.prioq.pop()
@@ -520,8 +522,8 @@ func (d *PathData) FindPath(sx, sy float32, sPlane int, dx, dy float32, dPlane i
 
 		if currTrap == dstTrap {
 			reversePath(curr)
-			srcPoint := pathPoint{x: sx, y: sy, plane: sPlane, trap: srcTrap}
-			dstPoint := pathPoint{x: dx, y: dy, plane: dPlane, trap: dstTrap}
+			srcPoint := pathPoint{x: src.X, y: src.Y, plane: src.Plane, trap: srcTrap}
+			dstPoint := pathPoint{x: dst.X, y: dst.Y, plane: dst.Plane, trap: dstTrap}
 			return ctx.createWaypoints(srcPoint, dstPoint), true
 		}
 
@@ -531,7 +533,7 @@ func (d *PathData) FindPath(sx, sy float32, sPlane int, dx, dy float32, dPlane i
 				continue
 			}
 			if !ctx.nodes[pl.Trapezoids[nb].TrapID].closed {
-				ctx.visitAbove(curr, dx, dy, &pl.Trapezoids[nb], maxCost)
+				ctx.visitAbove(curr, dst.X, dst.Y, &pl.Trapezoids[nb], maxCost)
 			}
 		}
 		for _, nb := range [2]int{currTrap.NeighborBL, currTrap.NeighborBR} {
@@ -539,14 +541,14 @@ func (d *PathData) FindPath(sx, sy float32, sPlane int, dx, dy float32, dPlane i
 				continue
 			}
 			if !ctx.nodes[pl.Trapezoids[nb].TrapID].closed {
-				ctx.visitBelow(curr, dx, dy, &pl.Trapezoids[nb], maxCost)
+				ctx.visitBelow(curr, dst.X, dst.Y, &pl.Trapezoids[nb], maxCost)
 			}
 		}
 		if currTrap.PortalLeft != noPortal && int(currTrap.PortalLeft) < len(pl.Portals) {
-			ctx.visitPortalLeft(curr, dx, dy, currTrap.PortalLeft, maxCost)
+			ctx.visitPortalLeft(curr, dst.X, dst.Y, currTrap.PortalLeft, maxCost)
 		}
 		if currTrap.PortalRight != noPortal && int(currTrap.PortalRight) < len(pl.Portals) {
-			ctx.visitPortalRight(curr, dx, dy, currTrap.PortalRight, maxCost)
+			ctx.visitPortalRight(curr, dst.X, dst.Y, currTrap.PortalRight, maxCost)
 		}
 	}
 
@@ -604,7 +606,7 @@ func (h *pathBuildHelper) buildAddWaypointAndReduce(newPoint pathPoint, fromX, f
 			if n := len(h.waypoints); n != 0 && h.waypoints[n-1].X == bx && h.waypoints[n-1].Y == by {
 				h.waypoints = h.waypoints[:n-1]
 			}
-			h.waypoints = append(h.waypoints, Waypoint{X: bx, Y: by, Plane: step.plane, TrapID: step.nextTrap.TrapID})
+			h.waypoints = append(h.waypoints, Waypoint{Pos2P: geom.Pos2P{X: bx, Y: by, Plane: step.plane}, TrapID: step.nextTrap.TrapID})
 		}
 	}
 
@@ -614,7 +616,7 @@ func (h *pathBuildHelper) buildAddWaypointAndReduce(newPoint pathPoint, fromX, f
 		if n := len(h.waypoints); n != 0 && h.waypoints[n-1].X == newPoint.x && h.waypoints[n-1].Y == newPoint.y {
 			h.waypoints = h.waypoints[:n-1]
 		}
-		h.waypoints = append(h.waypoints, Waypoint{X: newPoint.x, Y: newPoint.y, Plane: newPoint.plane, TrapID: newPoint.trap.TrapID})
+		h.waypoints = append(h.waypoints, Waypoint{Pos2P: geom.Pos2P{X: newPoint.x, Y: newPoint.y, Plane: newPoint.plane}, TrapID: newPoint.trap.TrapID})
 	}
 }
 

@@ -1,6 +1,7 @@
 package pathing
 
 import (
+	"gw1/server/geom"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -35,52 +36,52 @@ func testPathData() *PathData {
 func TestTrapezoidAt(t *testing.T) {
 	d := testPathData()
 
-	idx, ok := d.TrapezoidAt(0, 50, 0)
+	idx, ok := d.TrapezoidAt(geom.Pos2P{X: 0, Y: 50, Plane: 0})
 	assert.True(t, ok)
 	assert.Equal(t, 0, idx)
 
-	idx, ok = d.TrapezoidAt(400, 50, 0)
+	idx, ok = d.TrapezoidAt(geom.Pos2P{X: 400, Y: 50, Plane: 0})
 	assert.True(t, ok)
 	assert.Equal(t, 1, idx, "island trap")
 
-	_, ok = d.TrapezoidAt(-5, 150, 0)
+	_, ok = d.TrapezoidAt(geom.Pos2P{X: -5, Y: 150, Plane: 0})
 	assert.False(t, ok, "wall gap between top islands")
 
-	_, ok = d.TrapezoidAt(0, 250, 0)
+	_, ok = d.TrapezoidAt(geom.Pos2P{X: 0, Y: 250, Plane: 0})
 	assert.False(t, ok, "above the navmesh")
 
-	_, ok = d.TrapezoidAt(0, 50, 1)
+	_, ok = d.TrapezoidAt(geom.Pos2P{X: 0, Y: 50, Plane: 1})
 	assert.False(t, ok, "unknown plane")
 }
 
 func TestLineOfSightSameTrap(t *testing.T) {
 	d := testPathData()
-	assert.True(t, d.LineOfSight(-50, 20, 80, 40, 0), "both points in trap 0")
+	assert.True(t, d.LineOfSight(geom.Pos2P{X: -50, Y: 20, Plane: 0}, geom.Pos2P{X: 80, Y: 40, Plane: 0}), "both points in trap 0")
 }
 
 func TestLineOfSightDownTheCorridor(t *testing.T) {
 	d := testPathData()
-	assert.True(t, d.LineOfSight(0, 50, 0, -250, 0))
-	assert.True(t, d.LineOfSight(-90, 50, 90, -250, 0), "diagonal across the corridor")
+	assert.True(t, d.LineOfSight(geom.Pos2P{X: 0, Y: 50, Plane: 0}, geom.Pos2P{X: 0, Y: -250, Plane: 0}))
+	assert.True(t, d.LineOfSight(geom.Pos2P{X: -90, Y: 50, Plane: 0}, geom.Pos2P{X: 90, Y: -250, Plane: 0}), "diagonal across the corridor")
 }
 
 func TestLineOfSightBlockedByWall(t *testing.T) {
 	d := testPathData()
-	assert.False(t, d.LineOfSight(0, 50, 400, 50, 0))
+	assert.False(t, d.LineOfSight(geom.Pos2P{X: 0, Y: 50, Plane: 0}, geom.Pos2P{X: 400, Y: 50, Plane: 0}))
 }
 
 func TestLineOfSightEndpointsOffGrid(t *testing.T) {
 	d := testPathData()
-	assert.False(t, d.LineOfSight(0, 250, 0, -250, 0), "start off-grid")
-	assert.False(t, d.LineOfSight(0, 50, 0, 250, 0), "target off-grid")
-	assert.False(t, d.LineOfSight(0, 50, 0, -250, 1), "bad plane")
+	assert.False(t, d.LineOfSight(geom.Pos2P{X: 0, Y: 250, Plane: 0}, geom.Pos2P{X: 0, Y: -250, Plane: 0}), "start off-grid")
+	assert.False(t, d.LineOfSight(geom.Pos2P{X: 0, Y: 50, Plane: 0}, geom.Pos2P{X: 0, Y: 250, Plane: 0}), "target off-grid")
+	assert.False(t, d.LineOfSight(geom.Pos2P{X: 0, Y: 50, Plane: 99}, geom.Pos2P{X: 0, Y: -250, Plane: 99}), "bad plane")
 }
 
 func TestLineOfSightTopLeftRightSplit(t *testing.T) {
 	d := testPathData()
-	assert.True(t, d.LineOfSight(-50, 50, -50, 150, 0))
-	assert.True(t, d.LineOfSight(50, 50, 50, 150, 0))
-	assert.False(t, d.LineOfSight(-50, 150, 50, 150, 0))
+	assert.True(t, d.LineOfSight(geom.Pos2P{X: -50, Y: 50, Plane: 0}, geom.Pos2P{X: -50, Y: 150, Plane: 0}))
+	assert.True(t, d.LineOfSight(geom.Pos2P{X: 50, Y: 50, Plane: 0}, geom.Pos2P{X: 50, Y: 150, Plane: 0}))
+	assert.False(t, d.LineOfSight(geom.Pos2P{X: -50, Y: 150, Plane: 0}, geom.Pos2P{X: 50, Y: 150, Plane: 0}))
 }
 
 func TestLineOfSightDegenerateTrap(t *testing.T) {
@@ -92,8 +93,8 @@ func TestLineOfSightDegenerateTrap(t *testing.T) {
 			buildRectangularTrapezoid(50, 0, -100, 100, 1, -1, -1, -1),   // 2
 		},
 	}}}
-	assert.True(t, d.LineOfSight(0, 75, 0, 25, 0), "through the zero-height cell")
-	assert.False(t, d.LineOfSight(0, 75, 0, 25, 1), "bad plane")
+	assert.True(t, d.LineOfSight(geom.Pos2P{X: 0, Y: 75, Plane: 0}, geom.Pos2P{X: 0, Y: 25, Plane: 0}), "through the zero-height cell")
+	assert.False(t, d.LineOfSight(geom.Pos2P{X: 0, Y: 75, Plane: 99}, geom.Pos2P{X: 0, Y: 25, Plane: 99}), "bad plane")
 }
 
 func portalData() *PathData {
@@ -129,24 +130,24 @@ func portalData() *PathData {
 
 func TestReachableAcrossPortal(t *testing.T) {
 	d := portalData()
-	assert.True(t, d.Reachable(0, 50, 0, 0, 50, 1), "cross-plane via portal")
-	assert.True(t, d.Reachable(0, 50, 1, 0, 50, 0), "and back")
-	assert.True(t, d.Reachable(0, 50, 0, 0, 50, 0), "same plane, same trap")
-	assert.False(t, d.Reachable(0, 50, 0, 0, 50, 2), "plane 2 is not connected")
+	assert.True(t, d.Reachable(geom.Pos2P{X: 0, Y: 50, Plane: 0}, geom.Pos2P{X: 0, Y: 50, Plane: 1}), "cross-plane via portal")
+	assert.True(t, d.Reachable(geom.Pos2P{X: 0, Y: 50, Plane: 1}, geom.Pos2P{X: 0, Y: 50, Plane: 0}), "and back")
+	assert.True(t, d.Reachable(geom.Pos2P{X: 0, Y: 50, Plane: 0}, geom.Pos2P{X: 0, Y: 50, Plane: 0}), "same plane, same trap")
+	assert.False(t, d.Reachable(geom.Pos2P{X: 0, Y: 50, Plane: 0}, geom.Pos2P{X: 0, Y: 50, Plane: 2}), "plane 2 is not connected")
 }
 
 func TestReachableBlockedPortal(t *testing.T) {
 	d := portalData()
 	d.Planes[0].Portals[0].Flags |= 0x4
-	assert.False(t, d.Reachable(0, 50, 0, 0, 50, 1), "blocked portal must not be traversable")
+	assert.False(t, d.Reachable(geom.Pos2P{X: 0, Y: 50, Plane: 0}, geom.Pos2P{X: 0, Y: 50, Plane: 1}), "blocked portal must not be traversable")
 }
 
 func TestReachableOffGrid(t *testing.T) {
 	d := portalData()
-	assert.False(t, d.Reachable(0, 150, 0, 0, 50, 1), "start off-grid")
-	assert.False(t, d.Reachable(0, 50, 0, 0, 150, 1), "target off-grid")
-	assert.False(t, d.Reachable(0, 50, 3, 0, 50, 1), "bad start plane")
-	assert.False(t, d.Reachable(0, 50, 0, 0, 50, 3), "bad target plane")
+	assert.False(t, d.Reachable(geom.Pos2P{X: 0, Y: 150, Plane: 0}, geom.Pos2P{X: 0, Y: 50, Plane: 1}), "start off-grid")
+	assert.False(t, d.Reachable(geom.Pos2P{X: 0, Y: 50, Plane: 0}, geom.Pos2P{X: 0, Y: 150, Plane: 1}), "target off-grid")
+	assert.False(t, d.Reachable(geom.Pos2P{X: 0, Y: 50, Plane: 3}, geom.Pos2P{X: 0, Y: 50, Plane: 1}), "bad start plane")
+	assert.False(t, d.Reachable(geom.Pos2P{X: 0, Y: 50, Plane: 0}, geom.Pos2P{X: 0, Y: 50, Plane: 3}), "bad target plane")
 }
 
 func TestTrapezoidAtIndexed(t *testing.T) {
@@ -170,7 +171,7 @@ func TestTrapezoidAtIndexed(t *testing.T) {
 		{50, 10},   // on a cell boundary (y=10)
 	} {
 		want, wantOK := trapezoidAt(&pl, c[0], c[1])
-		got, gotOK := d.TrapezoidAt(c[0], c[1], 0)
+		got, gotOK := d.TrapezoidAt(geom.Pos2P{X: c[0], Y: c[1], Plane: 0})
 		assert.Equal(t, wantOK, gotOK, "point %v ok mismatch", c)
 		assert.Equal(t, want, got, "point %v index mismatch", c)
 	}

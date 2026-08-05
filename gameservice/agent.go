@@ -3,6 +3,7 @@ package gameservice
 import (
 	"time"
 
+	"gw1/server/geom"
 	"gw1/server/pathing"
 )
 
@@ -11,9 +12,7 @@ type Agent struct {
 	definitionIndex     int
 	isPlayer            bool
 	name                string
-	posX                float32
-	posY                float32
-	plane               int
+	Pos                 geom.Pos2P
 	facingX             float32
 	facingY             float32
 	modelId             int
@@ -28,9 +27,7 @@ type Agent struct {
 
 	// Movement state: path mode (waypoints + dest* leg target) or keyboard mode
 	// (dirMove in facing; dest* is a broadcast-only virtual target).
-	destX         float32
-	destY         float32
-	destPlane     int
+	Dest          geom.Pos2P
 	waypoints     []pathing.Waypoint
 	waypointIdx   int
 	dirMove       bool
@@ -43,9 +40,9 @@ type Agent struct {
 }
 
 func (a *Agent) setDestination(wp pathing.Waypoint) {
-	a.destX, a.destY, a.destPlane = wp.X, wp.Y, wp.Plane
-	dx := a.destX - a.posX
-	dy := a.destY - a.posY
+	a.Dest = wp.Pos2P
+	dx := a.Dest.X - a.Pos.X
+	dy := a.Dest.Y - a.Pos.Y
 	norm := vec2Length(dx, dy)
 	if norm > 0 {
 		a.facingX = dx / norm

@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"gw1/server/geom"
 	"gw1/server/packet"
 	"gw1/server/pathing"
 
@@ -28,18 +29,18 @@ func TestSimulateMovementAdvancesAndArrives(t *testing.T) {
 	withMoveNav(t, func(inst *Instance) {
 		bot, _ := newTestPlayer("Bot")
 		inst.AddPlayer(bot)
-		bot.posX, bot.posY, bot.plane = 0, 50, 0
+		bot.Pos = geom.Pos2P{X: 0, Y: 50, Plane: 0}
 		bot.baseSpeed = 288
 
-		assert.True(t, inst.startPlayerMove(bot, 0, -50, 0))
+		assert.True(t, inst.startPlayerMove(bot, geom.Pos2P{X: 0, Y: -50, Plane: 0}))
 		assert.NotEmpty(t, bot.waypoints)
 
 		// Advance a full 500ms sim step (288 u/s * 0.5s = 144 units).
 		inst.lastMovementAdvanceAt = time.Now().Add(-500 * time.Millisecond)
 		inst.flushMovement(time.Now())
 
-		assert.Equal(t, float32(0), bot.posX)
-		assert.Equal(t, float32(-50), bot.posY)
+		assert.Equal(t, float32(0), bot.Pos.X)
+		assert.Equal(t, float32(-50), bot.Pos.Y)
 		assert.Empty(t, bot.waypoints, "movement must end on arrival")
 		assert.Equal(t, 0, bot.waypointIdx)
 	})
@@ -49,16 +50,16 @@ func TestSimulateMovementPartialStep(t *testing.T) {
 	withMoveNav(t, func(inst *Instance) {
 		bot, _ := newTestPlayer("Bot")
 		inst.AddPlayer(bot)
-		bot.posX, bot.posY, bot.plane = 0, 50, 0
+		bot.Pos = geom.Pos2P{X: 0, Y: 50, Plane: 0}
 		bot.baseSpeed = 288
 
-		inst.startPlayerMove(bot, 0, -50, 0)
+		inst.startPlayerMove(bot, geom.Pos2P{X: 0, Y: -50, Plane: 0})
 
 		inst.lastMovementAdvanceAt = time.Now().Add(-100 * time.Millisecond)
 		inst.flushMovement(time.Now())
 
-		assert.Equal(t, float32(0), bot.posX)
-		assert.InDelta(t, float32(50-28.8), bot.posY, 0.01)
+		assert.Equal(t, float32(0), bot.Pos.X)
+		assert.InDelta(t, float32(50-28.8), bot.Pos.Y, 0.01)
 		assert.NotEmpty(t, bot.waypoints, "still moving")
 	})
 }
@@ -67,21 +68,21 @@ func TestTickMovementRespectsCadence(t *testing.T) {
 	withMoveNav(t, func(inst *Instance) {
 		bot, botSink := newTestPlayer("Bot")
 		inst.AddPlayer(bot)
-		bot.posX, bot.posY, bot.plane = 0, 50, 0
+		bot.Pos = geom.Pos2P{X: 0, Y: 50, Plane: 0}
 		bot.baseSpeed = 288
 
-		inst.startPlayerMove(bot, 0, -50, 0)
+		inst.startPlayerMove(bot, geom.Pos2P{X: 0, Y: -50, Plane: 0})
 		botSink.reset()
 
 		inst.lastMovementAdvanceAt = time.Now().Add(-250 * time.Millisecond)
 		inst.tickMovement()
 		assert.False(t, botSink.hasOpcode(0x1e), "no tick below cadence")
-		assert.Equal(t, float32(50), bot.posY)
+		assert.Equal(t, float32(50), bot.Pos.Y)
 
 		inst.lastMovementAdvanceAt = time.Now().Add(-500 * time.Millisecond)
 		inst.tickMovement()
 		assert.True(t, botSink.hasOpcode(0x1e), "expected MarshalInstanceMovementTick")
-		assert.Equal(t, float32(-50), bot.posY, "player should have arrived")
+		assert.Equal(t, float32(-50), bot.Pos.Y, "player should have arrived")
 		assert.Empty(t, bot.waypoints)
 	})
 }
@@ -90,17 +91,17 @@ func TestStartPlayerMoveFlushesPriorMovement(t *testing.T) {
 	withMoveNav(t, func(inst *Instance) {
 		bot, _ := newTestPlayer("Bot")
 		inst.AddPlayer(bot)
-		bot.posX, bot.posY, bot.plane = 0, 50, 0
+		bot.Pos = geom.Pos2P{X: 0, Y: 50, Plane: 0}
 		bot.baseSpeed = 288
 
-		inst.startPlayerMove(bot, 0, -50, 0)
+		inst.startPlayerMove(bot, geom.Pos2P{X: 0, Y: -50, Plane: 0})
 
 		inst.lastMovementAdvanceAt = time.Now().Add(-250 * time.Millisecond)
-		assert.True(t, inst.startPlayerMove(bot, 50, 50, 0))
+		assert.True(t, inst.startPlayerMove(bot, geom.Pos2P{X: 50, Y: 50, Plane: 0}))
 
-		assert.InDelta(t, float32(50-72), bot.posY, 0.01, "prior leg advanced 72 units before retarget")
-		assert.Equal(t, float32(50), bot.destX)
-		assert.Equal(t, float32(50), bot.destY)
+		assert.InDelta(t, float32(50-72), bot.Pos.Y, 0.01, "prior leg advanced 72 units before retarget")
+		assert.Equal(t, float32(50), bot.Dest.X)
+		assert.Equal(t, float32(50), bot.Dest.Y)
 	})
 }
 
@@ -110,16 +111,16 @@ func TestApplyLastPosCorrection(t *testing.T) {
 		watcher, watcherSink := newTestPlayer("Watcher")
 		inst.AddPlayer(bot)
 		inst.AddPlayer(watcher)
-		bot.posX, bot.posY, bot.plane = 0, 50, 0
+		bot.Pos = geom.Pos2P{X: 0, Y: 50, Plane: 0}
 		bot.baseSpeed = 288
 
-		inst.startPlayerMove(bot, 0, -50, 0)
+		inst.startPlayerMove(bot, geom.Pos2P{X: 0, Y: -50, Plane: 0})
 		botSink.reset()
 		watcherSink.reset()
 
-		assert.True(t, inst.applyLastPosCorrection(bot, 5, 45, 0))
-		assert.Equal(t, float32(5), bot.posX)
-		assert.Equal(t, float32(45), bot.posY)
+		assert.True(t, inst.applyLastPosCorrection(bot, geom.Pos2P{X: 5, Y: 45, Plane: 0}))
+		assert.Equal(t, float32(5), bot.Pos.X)
+		assert.Equal(t, float32(45), bot.Pos.Y)
 		assert.Empty(t, bot.waypoints, "movement must be cancelled")
 		assert.True(t, watcherSink.hasOpcode(0x2c), "expected position rebroadcast")
 	})
@@ -129,14 +130,14 @@ func TestApplyLastPosCorrectionRejectsLargeJump(t *testing.T) {
 	withMoveNav(t, func(inst *Instance) {
 		bot, _ := newTestPlayer("Bot")
 		inst.AddPlayer(bot)
-		bot.posX, bot.posY, bot.plane = 0, 50, 0
+		bot.Pos = geom.Pos2P{X: 0, Y: 50, Plane: 0}
 		bot.baseSpeed = 288
 
-		assert.False(t, inst.applyLastPosCorrection(bot, 500, 500, 0))
-		assert.Equal(t, float32(0), bot.posX)
-		assert.Equal(t, float32(50), bot.posY)
+		assert.False(t, inst.applyLastPosCorrection(bot, geom.Pos2P{X: 500, Y: 500, Plane: 0}))
+		assert.Equal(t, float32(0), bot.Pos.X)
+		assert.Equal(t, float32(50), bot.Pos.Y)
 
-		assert.False(t, inst.applyLastPosCorrection(bot, 0, 50, 1))
+		assert.False(t, inst.applyLastPosCorrection(bot, geom.Pos2P{X: 0, Y: 50, Plane: 1}))
 	})
 }
 
@@ -157,20 +158,20 @@ func TestApplyDirMovementStartsDirectionalMovement(t *testing.T) {
 		watcher, watcherSink := newTestPlayer("Watcher")
 		inst.AddPlayer(bot)
 		inst.AddPlayer(watcher)
-		bot.posX, bot.posY, bot.plane = 0, 50, 0
+		bot.Pos = geom.Pos2P{X: 0, Y: 50, Plane: 0}
 		bot.baseSpeed = 288
 		botSink.reset()
 		watcherSink.reset()
 
-		inst.applyDirMovement(bot, 0, 50, 0, -1, 1)
+		inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 50}, 0, -1, 1)
 
 		assert.True(t, bot.dirMove)
 		assert.Empty(t, bot.waypoints)
 		assert.Equal(t, float32(0), bot.facingX)
 		assert.Equal(t, float32(-1), bot.facingY)
 		assert.Equal(t, 1, bot.curMoveType)
-		assert.Equal(t, float32(0), bot.destX)
-		assert.Equal(t, float32(50-5000), bot.destY)
+		assert.Equal(t, float32(0), bot.Dest.X)
+		assert.Equal(t, float32(50-5000), bot.Dest.Y)
 		assert.True(t, watcherSink.hasOpcode(0x29), "expected MarshalMoveToPointS2C in watcher sink")
 		assert.True(t, watcherSink.hasOpcode(0x25), "expected MarshalAgentUpdateDirection in watcher sink")
 		assert.True(t, watcherSink.hasOpcode(0x2b), "expected MarshalAgentUpdateSpeed in watcher sink")
@@ -184,18 +185,18 @@ func TestDirMoveSpeedByMoveType(t *testing.T) {
 	withMoveNav(t, func(inst *Instance) {
 		bot, _ := newTestPlayer("Bot")
 		inst.AddPlayer(bot)
-		bot.posX, bot.posY, bot.plane = 0, 50, 0
+		bot.Pos = geom.Pos2P{X: 0, Y: 50, Plane: 0}
 		bot.baseSpeed = 288
 
 		for _, dir := range []int{1, 2, 3, 7, 8} {
-			inst.applyDirMovement(bot, 0, 50, 0, -1, dir)
+			inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 50}, 0, -1, dir)
 			assert.Equal(t, dir, bot.curMoveType)
 			assert.InDelta(t, float32(288), bot.effectiveSpeed(), 1e-6)
 		}
 
 		// Backward / backward-strafe dirs move at 0.66x base.
 		for _, dir := range []int{4, 5, 6} {
-			inst.applyDirMovement(bot, 0, 50, 0, -1, dir)
+			inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 50}, 0, -1, dir)
 			assert.Equal(t, dir, bot.curMoveType)
 			assert.InDelta(t, float32(288*0.66), bot.effectiveSpeed(), 1e-6)
 			assert.InDelta(t, float32(0.66), bot.speedMult(), 1e-6)
@@ -209,11 +210,11 @@ func TestDirMoveBroadcastBackwardSpeed(t *testing.T) {
 		watcher, watcherSink := newTestPlayer("Watcher")
 		inst.AddPlayer(bot)
 		inst.AddPlayer(watcher)
-		bot.posX, bot.posY, bot.plane = 0, 50, 0
+		bot.Pos = geom.Pos2P{X: 0, Y: 50, Plane: 0}
 		bot.baseSpeed = 288
 		watcherSink.reset()
 
-		inst.applyDirMovement(bot, 0, 50, 0, -1, 4)
+		inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 50}, 0, -1, 4)
 
 		dir, ok := sinkPacket(watcherSink, 0x25)
 		require.True(t, ok, "expected MarshalAgentUpdateDirection")
@@ -241,15 +242,15 @@ func TestStopClearsMoveTypeButKeepsEnvMultiplier(t *testing.T) {
 	withMoveNav(t, func(inst *Instance) {
 		bot, _ := newTestPlayer("Bot")
 		inst.AddPlayer(bot)
-		bot.posX, bot.posY, bot.plane = 0, 50, 0
+		bot.Pos = geom.Pos2P{X: 0, Y: 50, Plane: 0}
 		bot.baseSpeed = 288
 		bot.speedMultiplier = 2.0 // hypothetical environment effect
 
-		inst.applyDirMovement(bot, 0, 50, 0, -1, 4)
+		inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 50}, 0, -1, 4)
 		assert.Equal(t, 4, bot.curMoveType)
 		assert.InDelta(t, float32(288*2*0.66), bot.effectiveSpeed(), 1e-6)
 
-		assert.True(t, inst.applyLastPosCorrection(bot, 5, 45, 0))
+		assert.True(t, inst.applyLastPosCorrection(bot, geom.Pos2P{X: 5, Y: 45, Plane: 0}))
 		assert.False(t, bot.dirMove)
 		assert.Equal(t, 0, bot.curMoveType, "stop must clear the move type")
 		assert.InDelta(t, float32(2.0), bot.speedMultiplier, 1e-6, "environment multiplier must persist")
@@ -261,13 +262,13 @@ func TestClickMoveClearsMoveType(t *testing.T) {
 	withMoveNav(t, func(inst *Instance) {
 		bot, _ := newTestPlayer("Bot")
 		inst.AddPlayer(bot)
-		bot.posX, bot.posY, bot.plane = 0, 50, 0
+		bot.Pos = geom.Pos2P{X: 0, Y: 50, Plane: 0}
 		bot.baseSpeed = 288
 
-		inst.applyDirMovement(bot, 0, 50, 0, -1, 4)
+		inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 50}, 0, -1, 4)
 		assert.Equal(t, 4, bot.curMoveType)
 
-		assert.True(t, inst.startPlayerMove(bot, 0, -50, 0))
+		assert.True(t, inst.startPlayerMove(bot, geom.Pos2P{X: 0, Y: -50, Plane: 0}))
 		assert.False(t, bot.dirMove)
 		assert.Equal(t, 0, bot.curMoveType)
 		assert.InDelta(t, float32(288), bot.effectiveSpeed(), 1e-6, "click-move advances at base speed")
@@ -278,10 +279,10 @@ func TestDirMoveTimeoutClearsMoveType(t *testing.T) {
 	withMoveNav(t, func(inst *Instance) {
 		bot, _ := newTestPlayer("Bot")
 		inst.AddPlayer(bot)
-		bot.posX, bot.posY, bot.plane = 0, 50, 0
+		bot.Pos = geom.Pos2P{X: 0, Y: 50, Plane: 0}
 		bot.baseSpeed = 288
 
-		inst.applyDirMovement(bot, 0, 50, 0, -1, 4)
+		inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 50}, 0, -1, 4)
 		bot.lastDirUpdate = time.Now().Add(-3 * time.Second)
 
 		inst.tickMovement()
@@ -295,22 +296,22 @@ func TestApplyDirMovementSnapsWithinTolerance(t *testing.T) {
 	withMoveNav(t, func(inst *Instance) {
 		bot, _ := newTestPlayer("Bot")
 		inst.AddPlayer(bot)
-		bot.posX, bot.posY, bot.plane = 0, 50, 0
+		bot.Pos = geom.Pos2P{X: 0, Y: 50, Plane: 0}
 		bot.baseSpeed = 288
 
-		inst.applyDirMovement(bot, 5, 45, 0, 1, 1)
-		assert.Equal(t, float32(5), bot.posX)
-		assert.Equal(t, float32(45), bot.posY)
+		inst.applyDirMovement(bot, geom.Pos2P{X: 5, Y: 45}, 0, 1, 1)
+		assert.Equal(t, float32(5), bot.Pos.X)
+		assert.Equal(t, float32(45), bot.Pos.Y)
 		assert.True(t, bot.dirMove)
 
-		inst.applyDirMovement(bot, 200, 250, 0, 1, 1)
-		assert.Equal(t, float32(200), bot.posX)
-		assert.Equal(t, float32(250), bot.posY)
+		inst.applyDirMovement(bot, geom.Pos2P{X: 200, Y: 250}, 0, 1, 1)
+		assert.Equal(t, float32(200), bot.Pos.X)
+		assert.Equal(t, float32(250), bot.Pos.Y)
 		assert.True(t, bot.dirMove)
 
-		inst.applyDirMovement(bot, 50000, 50000, 0, 1, 1)
-		assert.Equal(t, float32(200), bot.posX)
-		assert.Equal(t, float32(250), bot.posY)
+		inst.applyDirMovement(bot, geom.Pos2P{X: 50000, Y: 50000}, 0, 1, 1)
+		assert.Equal(t, float32(200), bot.Pos.X)
+		assert.Equal(t, float32(250), bot.Pos.Y)
 	})
 }
 
@@ -318,15 +319,15 @@ func TestAdvanceDirMovement(t *testing.T) {
 	withMoveNav(t, func(inst *Instance) {
 		bot, _ := newTestPlayer("Bot")
 		inst.AddPlayer(bot)
-		bot.posX, bot.posY, bot.plane = 0, 50, 0
+		bot.Pos = geom.Pos2P{X: 0, Y: 50, Plane: 0}
 		bot.baseSpeed = 288
 
-		inst.applyDirMovement(bot, 0, 50, 0, -1, 1)
+		inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 50}, 0, -1, 1)
 
 		inst.lastMovementAdvanceAt = time.Now().Add(-500 * time.Millisecond)
 		inst.flushMovement(time.Now())
-		assert.Equal(t, float32(0), bot.posX)
-		assert.InDelta(t, float32(50-144), bot.posY, 0.1)
+		assert.Equal(t, float32(0), bot.Pos.X)
+		assert.InDelta(t, float32(50-144), bot.Pos.Y, 0.1)
 		assert.True(t, bot.dirMove)
 	})
 }
@@ -337,20 +338,20 @@ func TestAdvanceDirMovementRefreshesVirtualTarget(t *testing.T) {
 		watcher, watcherSink := newTestPlayer("Watcher")
 		inst.AddPlayer(bot)
 		inst.AddPlayer(watcher)
-		bot.posX, bot.posY, bot.plane = 0, 50, 0
+		bot.Pos = geom.Pos2P{X: 0, Y: 50, Plane: 0}
 		bot.baseSpeed = 288
 
-		inst.applyDirMovement(bot, 0, 50, 0, -1, 1)
+		inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 50}, 0, -1, 1)
 		watcherSink.reset()
 
-		bot.destY = -50
+		bot.Dest.Y = -50
 
 		inst.lastMovementAdvanceAt = time.Now().Add(-500 * time.Millisecond)
 		inst.flushMovement(time.Now())
 
 		assert.True(t, watcherSink.hasOpcode(0x29), "refresh should re-broadcast move-to-point")
-		assert.Equal(t, float32(0), bot.destX)
-		assert.Equal(t, float32(bot.posY-5000), bot.destY, "virtual target recomputed from current position")
+		assert.Equal(t, float32(0), bot.Dest.X)
+		assert.Equal(t, float32(bot.Pos.Y-5000), bot.Dest.Y, "virtual target recomputed from current position")
 	})
 }
 
@@ -376,17 +377,17 @@ func TestAdvanceDirMovementClampsAtWall(t *testing.T) {
 	inst := newHeadlessInstance(t, 3)
 	bot, _ := newTestPlayer("Bot")
 	inst.AddPlayer(bot)
-	bot.posX, bot.posY, bot.plane = 0, 5, 0
+	bot.Pos = geom.Pos2P{X: 0, Y: 5, Plane: 0}
 	bot.baseSpeed = 288
 
-	inst.applyDirMovement(bot, 0, 5, 0, -1, 1)
+	inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 5}, 0, -1, 1)
 	assert.True(t, bot.dirMove)
 
 	// A full 500ms step (144 units south) would exit the trap; the clamp stops
 	// it at the navmesh edge (y = 0, within tolerance).
 	inst.lastMovementAdvanceAt = time.Now().Add(-500 * time.Millisecond)
 	inst.flushMovement(time.Now())
-	assert.InDelta(t, float32(0), bot.posY, 2, "dir movement must clamp at the navmesh edge")
+	assert.InDelta(t, float32(0), bot.Pos.Y, 2, "dir movement must clamp at the navmesh edge")
 	assert.True(t, bot.dirMove, "clamping does not end keyboard movement; the next sync reconciles")
 }
 
@@ -394,10 +395,10 @@ func TestDirMoveTimeout(t *testing.T) {
 	withMoveNav(t, func(inst *Instance) {
 		bot, botSink := newTestPlayer("Bot")
 		inst.AddPlayer(bot)
-		bot.posX, bot.posY, bot.plane = 0, 50, 0
+		bot.Pos = geom.Pos2P{X: 0, Y: 50, Plane: 0}
 		bot.baseSpeed = 288
 
-		inst.applyDirMovement(bot, 0, 50, 0, -1, 1)
+		inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 50}, 0, -1, 1)
 		bot.lastDirUpdate = time.Now().Add(-3 * time.Second)
 		botSink.reset()
 
@@ -412,13 +413,13 @@ func TestStartPlayerMoveClearsDirMove(t *testing.T) {
 	withMoveNav(t, func(inst *Instance) {
 		bot, _ := newTestPlayer("Bot")
 		inst.AddPlayer(bot)
-		bot.posX, bot.posY, bot.plane = 0, 50, 0
+		bot.Pos = geom.Pos2P{X: 0, Y: 50, Plane: 0}
 		bot.baseSpeed = 288
 
-		inst.applyDirMovement(bot, 0, 50, 0, -1, 1)
+		inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 50}, 0, -1, 1)
 		assert.True(t, bot.dirMove)
 
-		assert.True(t, inst.startPlayerMove(bot, 0, -50, 0))
+		assert.True(t, inst.startPlayerMove(bot, geom.Pos2P{X: 0, Y: -50, Plane: 0}))
 		assert.False(t, bot.dirMove)
 		assert.NotEmpty(t, bot.waypoints)
 	})
@@ -428,16 +429,16 @@ func TestCancelClearsDirMove(t *testing.T) {
 	withMoveNav(t, func(inst *Instance) {
 		bot, _ := newTestPlayer("Bot")
 		inst.AddPlayer(bot)
-		bot.posX, bot.posY, bot.plane = 0, 50, 0
+		bot.Pos = geom.Pos2P{X: 0, Y: 50, Plane: 0}
 		bot.baseSpeed = 288
 
-		inst.applyDirMovement(bot, 0, 50, 0, -1, 1)
+		inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 50}, 0, -1, 1)
 		assert.True(t, bot.dirMove)
 
-		assert.True(t, inst.applyLastPosCorrection(bot, 5, 45, 0))
+		assert.True(t, inst.applyLastPosCorrection(bot, geom.Pos2P{X: 5, Y: 45, Plane: 0}))
 		assert.False(t, bot.dirMove)
-		assert.Equal(t, float32(5), bot.posX)
-		assert.Equal(t, float32(45), bot.posY)
+		assert.Equal(t, float32(5), bot.Pos.X)
+		assert.Equal(t, float32(45), bot.Pos.Y)
 	})
 }
 
@@ -445,17 +446,17 @@ func TestGameTickAdvancesMovementAndBroadcastsSimTick(t *testing.T) {
 	withMoveNav(t, func(inst *Instance) {
 		bot, botSink := newTestPlayer("Bot")
 		inst.AddPlayer(bot)
-		bot.posX, bot.posY, bot.plane = 0, 50, 0
+		bot.Pos = geom.Pos2P{X: 0, Y: 50, Plane: 0}
 		bot.baseSpeed = 288
 
-		inst.startPlayerMove(bot, 0, -50, 0)
+		inst.startPlayerMove(bot, geom.Pos2P{X: 0, Y: -50, Plane: 0})
 		botSink.reset()
 
 		inst.lastMovementAdvanceAt = time.Now().Add(-500 * time.Millisecond)
 		inst.gameTick()
 
 		assert.True(t, botSink.hasOpcode(0x1e), "expected MarshalInstanceMovementTick")
-		assert.Equal(t, float32(-50), bot.posY, "player should have arrived")
+		assert.Equal(t, float32(-50), bot.Pos.Y, "player should have arrived")
 		assert.Empty(t, bot.waypoints)
 	})
 }
@@ -533,14 +534,15 @@ func withTransitionNav(t *testing.T, fn func(inst *Instance)) {
 func TestCheckMapTransitionDirect(t *testing.T) {
 	withTransitionNav(t, func(inst *Instance) {
 		inst.transitions = []MapPortalZone{{
-			Quad:    MapQuad{X1: -100, Y1: -50, X2: 100, Y2: -50, X3: 100, Y3: -100, X4: -100, Y4: -100},
-			ToMapId: 2,
-			SpawnX:  500, SpawnY: 500,
+			Quad:      MapQuad{X1: -100, Y1: -50, X2: 100, Y2: -50, X3: 100, Y3: -100, X4: -100, Y4: -100},
+			FromMapId: 3,
+			ToMapId:   2,
+			Spawn:     geom.Pos2P{X: 500, Y: 500},
 		}}
 
 		bot, _ := newTestPlayer("Bot")
 		inst.AddPlayer(bot)
-		bot.posX, bot.posY, bot.plane = 0, -75, 0
+		bot.Pos = geom.Pos2P{X: 0, Y: -75, Plane: 0}
 
 		inst.checkMapTransition(bot)
 		assert.True(t, bot.conn.IsClosed(), "player in transition zone should be disconnected")
@@ -550,17 +552,18 @@ func TestCheckMapTransitionDirect(t *testing.T) {
 func TestKeyboardMoveTriggersTransition(t *testing.T) {
 	withTransitionNav(t, func(inst *Instance) {
 		inst.transitions = []MapPortalZone{{
-			Quad:    MapQuad{X1: -200, Y1: 50, X2: 200, Y2: 50, X3: 200, Y3: -200, X4: -200, Y4: -200},
-			ToMapId: 2,
-			SpawnX:  500, SpawnY: 500,
+			Quad:      MapQuad{X1: -200, Y1: 50, X2: 200, Y2: 50, X3: 200, Y3: -200, X4: -200, Y4: -200},
+			FromMapId: 3,
+			ToMapId:   2,
+			Spawn:     geom.Pos2P{X: 500, Y: 500},
 		}}
 
 		bot, _ := newTestPlayer("Bot")
 		inst.AddPlayer(bot)
-		bot.posX, bot.posY, bot.plane = 0, 10, 0
+		bot.Pos = geom.Pos2P{X: 0, Y: 10, Plane: 0}
 		bot.baseSpeed = 288
 
-		inst.applyDirMovement(bot, 0, 10, 0, -1, 1)
+		inst.applyDirMovement(bot, geom.Pos2P{X: 0, Y: 10}, 0, -1, 1)
 
 		inst.lastMovementAdvanceAt = time.Now().Add(-500 * time.Millisecond)
 		inst.flushMovement(time.Now())
@@ -572,17 +575,18 @@ func TestKeyboardMoveTriggersTransition(t *testing.T) {
 func TestClickMoveTriggersTransition(t *testing.T) {
 	withTransitionNav(t, func(inst *Instance) {
 		inst.transitions = []MapPortalZone{{
-			Quad:    MapQuad{X1: -200, Y1: 50, X2: 200, Y2: 50, X3: 200, Y3: -100, X4: -200, Y4: -100},
-			ToMapId: 2,
-			SpawnX:  500, SpawnY: 500,
+			Quad:      MapQuad{X1: -200, Y1: 50, X2: 200, Y2: 50, X3: 200, Y3: -100, X4: -200, Y4: -100},
+			FromMapId: 3,
+			ToMapId:   2,
+			Spawn:     geom.Pos2P{X: 500, Y: 500},
 		}}
 
 		bot, _ := newTestPlayer("Bot")
 		inst.AddPlayer(bot)
-		bot.posX, bot.posY, bot.plane = 0, 50, 0
+		bot.Pos = geom.Pos2P{X: 0, Y: 50, Plane: 0}
 		bot.baseSpeed = 288
 
-		inst.startPlayerMove(bot, 0, -50, 0)
+		inst.startPlayerMove(bot, geom.Pos2P{X: 0, Y: -50, Plane: 0})
 
 		inst.lastMovementAdvanceAt = time.Now().Add(-500 * time.Millisecond)
 		inst.flushMovement(time.Now())
@@ -594,14 +598,15 @@ func TestClickMoveTriggersTransition(t *testing.T) {
 func TestNoTransitionOutsideTrapezoid(t *testing.T) {
 	withTransitionNav(t, func(inst *Instance) {
 		inst.transitions = []MapPortalZone{{
-			Quad:    MapQuad{X1: -200, Y1: 50, X2: 200, Y2: 50, X3: 200, Y3: 20, X4: -200, Y4: 20},
-			ToMapId: 2,
-			SpawnX:  500, SpawnY: 500,
+			Quad:      MapQuad{X1: -200, Y1: 50, X2: 200, Y2: 50, X3: 200, Y3: 20, X4: -200, Y4: 20},
+			FromMapId: 3,
+			ToMapId:   2,
+			Spawn:     geom.Pos2P{X: 500, Y: 500},
 		}}
 
 		bot, _ := newTestPlayer("Bot")
 		inst.AddPlayer(bot)
-		bot.posX, bot.posY, bot.plane = 0, 80, 0
+		bot.Pos = geom.Pos2P{X: 0, Y: 80, Plane: 0}
 		bot.baseSpeed = 288
 
 		inst.checkMapTransition(bot)

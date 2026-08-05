@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"gw1/server/crypt"
 	"gw1/server/db"
+	"gw1/server/geom"
 	"gw1/server/packet"
 	Item "gw1/server/item"
 	"net"
@@ -92,7 +93,7 @@ func (conn *GSConn) onMoveToPoint(payload *MoveToPoint) error {
 
 func (conn *GSConn) onMovementUpdate(payload *MovementUpdate) error {
 	if inst := conn.player.connectedInstance; inst != nil {
-		inst.applyDirMovement(conn.player, payload.posX, payload.posY, payload.facingX, payload.facingY, payload.dir)
+		inst.applyDirMovement(conn.player, geom.Pos2P{X: payload.posX, Y: payload.posY}, payload.facingX, payload.facingY, payload.dir)
 	}
 	return nil
 }
@@ -103,7 +104,7 @@ func (conn *GSConn) onRotateAgent(payload *RotateAgent) error {
 
 func (conn *GSConn) onLastPosBeforeMoveCancelled(payload *LastPosBeforeMoveCancelled) error {
 	if inst := conn.player.connectedInstance; inst != nil {
-		inst.applyLastPosCorrection(conn.player, payload.x, payload.y, payload.unk2)
+		inst.applyLastPosCorrection(conn.player, geom.Pos2P{X: payload.x, Y: payload.y, Plane: payload.unk2})
 	}
 	return nil
 }
@@ -389,9 +390,7 @@ func (conn *GSConn) onVerifyClientConnection(payload *VerifyClientConnection) er
 	p.isTransfer = info.IsTransfer
 	if info.HasSpawnPoint {
 		p.hasPendingSpawn = true
-		p.pendingSpawnX = info.SpawnX
-		p.pendingSpawnY = info.SpawnY
-		p.pendingSpawnPlane = info.SpawnPlane
+		p.pendingSpawn = geom.Pos2P{X: info.SpawnX, Y: info.SpawnY, Plane: info.SpawnPlane}
 	}
 	verified := false
 	acc, ok := db.GetFullAccountByUUID(payload.accountUUID[:])

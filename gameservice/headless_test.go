@@ -1,6 +1,7 @@
 package gameservice
 
 import (
+	"gw1/server/geom"
 	"gw1/server/packet"
 	"gw1/server/pathing"
 	"sync"
@@ -185,15 +186,15 @@ func TestStartPlayerMoveBroadcastsMovement(t *testing.T) {
 
 	inst.AddPlayer(bot)
 	inst.AddPlayer(watcher)
-	bot.posX, bot.posY, bot.plane = 0, 50, 0
+	bot.Pos = geom.Pos2P{X: 0, Y: 50, Plane: 0}
 	bot.baseSpeed = 288
 	botSink.reset()
 	watcherSink.reset()
 
-	inst.startPlayerMove(bot, 123.5, 456.25, 0)
+	inst.startPlayerMove(bot, geom.Pos2P{X: 123.5, Y: 456.25, Plane: 0})
 
-	assert.Equal(t, float32(123.5), bot.destX)
-	assert.Equal(t, float32(456.25), bot.destY)
+	assert.Equal(t, float32(123.5), bot.Dest.X)
+	assert.Equal(t, float32(456.25), bot.Dest.Y)
 	assert.True(t, watcherSink.hasOpcode(0x29), "expected MarshalMoveToPointS2C in watcher sink")
 	assert.True(t, botSink.hasOpcode(0x29), "expected MarshalMoveToPointS2C in moving player sink")
 }
@@ -204,16 +205,16 @@ func TestRemovedPlayerNotAdvancedBySim(t *testing.T) {
 
 	inst.AddPlayer(player)
 	inst.RemovePlayer(player)
-	player.posX, player.posY, player.plane = 0, 50, 0
+	player.Pos = geom.Pos2P{X: 0, Y: 50, Plane: 0}
 	player.baseSpeed = 288
-	player.waypoints = []pathing.Waypoint{{X: 0, Y: -50, Plane: 0, TrapID: 1}}
+		player.waypoints = []pathing.Waypoint{{Pos2P: geom.Pos2P{X: 0, Y: -50, Plane: 0}, TrapID: 1}}
 	player.waypointIdx = 1
-	player.destX, player.destY, player.destPlane = 0, -50, 0
+	player.Dest = geom.Pos2P{X: 0, Y: -50, Plane: 0}
 	inst.lastMovementAdvanceAt = time.Now().Add(-500 * time.Millisecond)
 
 	inst.tickMovement()
 
-	assert.Equal(t, float32(50), player.posY)
+	assert.Equal(t, float32(50), player.Pos.Y)
 }
 
 func TestSendChatRecordsPacket(t *testing.T) {
@@ -323,7 +324,7 @@ func TestCommandsRecordPackets(t *testing.T) {
 	assert.NotEmpty(t, sink.opcodes())
 
 	sink.reset()
-	player.posX, player.posY, player.plane = 123.4, 567.8, 2
+	player.Pos = geom.Pos2P{X: 123.4, Y: 567.8, Plane: 2}
 	assert.True(t, handlePosCommand(player, nil))
 	assert.True(t, sink.hasOpcode(0x5c), "expected MarshalChatMessageFromServer")
 }

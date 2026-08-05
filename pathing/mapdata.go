@@ -1,10 +1,7 @@
 // Package pathing reads Guild Wars navmesh data from Gw.dat archives.
 package pathing
 
-type Vec2f struct {
-	X float32
-	Y float32
-}
+import "gw1/server/geom"
 
 // Trapezoid: horizontal walkable cell with sloped edges; corners in order
 // (xtl,yt) (xtr,yt) (xbr,yb) (xbl,yb).
@@ -59,7 +56,7 @@ type Plane struct {
 	PlaneID      uint16
 	NumXNodes    uint32
 	NumYNodes    uint32
-	Vectors      []Vec2f
+	Vectors      []geom.Vec2
 	Trapezoids   []Trapezoid
 	Nodes        []Node
 	RootNode     int // index into Nodes, -1 = none (per-plane entry point)

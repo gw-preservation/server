@@ -3,6 +3,7 @@ package gameservice
 import (
 	"fmt"
 	"gw1/server/db"
+	"gw1/server/geom"
 	"gw1/server/packet"
 	"gw1/server/pathing"
 	"math/rand"
@@ -281,9 +282,7 @@ func newInstance(mapId int, definition instanceDefinition) (*Instance, error) {
 			agentId:             i.NextFreeAgentId(),
 			definitionIndex:     agentDefinition.DefinitionIndex,
 			name:                agentDefinition.Name,
-			posX:                agentToSpawn.SpawnPoint[0],
-			posY:                agentToSpawn.SpawnPoint[1],
-			plane:               int(agentToSpawn.SpawnPoint[2]),
+			Pos:                 geom.Pos2P{X: agentToSpawn.SpawnPoint[0], Y: agentToSpawn.SpawnPoint[1], Plane: int(agentToSpawn.SpawnPoint[2])},
 			facingX:             1.0,
 			facingY:             0.0,
 			baseSpeed:           agentDefinition.Speed,
@@ -405,7 +404,7 @@ func (i *Instance) processPlayer(p *Player) bool {
 
 	if m := p.moveTo; m != nil {
 		p.moveTo = nil
-		i.startPlayerMove(p, m.x, m.y, m.plane)
+		i.startPlayerMove(p, geom.Pos2P{X: m.x, Y: m.y, Plane: m.plane})
 	}
 
 	if p.cancelInteractRequested {
@@ -548,20 +547,18 @@ func (i *Instance) NextFreePlayerId() int {
 	return len(i.players) + 1
 }
 
-func (i *Instance) NextSpawnPoint() (x, y float32, plane int) {
+func (i *Instance) nextSpawnPos() geom.Pos2P {
 	nSpawnPoints := len(i.definition.SpawnPoints)
 	if nSpawnPoints == 0 {
-		x = 0.0
-		y = 0.0
-		plane = 0
-		return
+		return geom.Pos2P{}
 	}
 	randIndex := rand.Intn(nSpawnPoints)
 	spawnPoint := i.definition.SpawnPoints[randIndex]
-	x = randomFloatAround(spawnPoint[0], 100.0)
-	y = randomFloatAround(spawnPoint[1], 100.0)
-	plane = int(spawnPoint[2])
-	return
+	return geom.Pos2P{
+		X:     randomFloatAround(spawnPoint[0], 100.0),
+		Y:     randomFloatAround(spawnPoint[1], 100.0),
+		Plane: int(spawnPoint[2]),
+	}
 }
 
 func parseUTF16HexString(s string) (string, error) {
@@ -605,12 +602,12 @@ func (i *Instance) AddPlayer(player *Player) {
 	}
 	player.EnqueuePacket(MarshalInstanceLoadHead())
 	if player.hasPendingSpawn {
-		spawnX := randomFloatAround(player.pendingSpawnX, 100.0)
-		spawnY := randomFloatAround(player.pendingSpawnY, 100.0)
-		player.posX, player.posY, player.plane = spawnX, spawnY, player.pendingSpawnPlane
+		spawnX := randomFloatAround(player.pendingSpawn.X, 100.0)
+		spawnY := randomFloatAround(player.pendingSpawn.Y, 100.0)
+		player.Pos = geom.Pos2P{X: spawnX, Y: spawnY, Plane: player.pendingSpawn.Plane}
 		player.hasPendingSpawn = false
 	} else {
-		player.posX, player.posY, player.plane = i.NextSpawnPoint()
+		player.Pos = i.nextSpawnPos()
 	}
 	player.sendWorldInstanceHead()
 
@@ -640,7 +637,7 @@ func (i *Instance) SendActiveAgents(to *Player) {
 			agentType,
 			1,
 			9,
-			ag.posX, ag.posY, ag.plane,
+			ag.Pos.X, ag.Pos.Y, ag.Pos.Plane,
 			ag.facingX, ag.facingY,
 			ag.baseSpeed,
 			ag.allegianceFlags,
@@ -683,9 +680,9 @@ func (i *Instance) TransmitPlayer(to *Player, other *Player) {
 		agentType,
 		1,
 		5,
-		other.posX,
-		other.posY,
-		other.plane,
+		other.Pos.X,
+		other.Pos.Y,
+		other.Pos.Plane,
 		other.facingX,
 		other.facingY,
 		other.baseSpeed,
@@ -696,7 +693,7 @@ func (i *Instance) TransmitPlayer(to *Player, other *Player) {
 
 func (i *Instance) broadcastPlayerPos(player *Player) {
 	for _, other := range i.players {
-		other.EnqueuePacket(MarshalAgentUpdatePosition(player.agentId, player.posX, player.posY, player.plane))
+		other.EnqueuePacket(MarshalAgentUpdatePosition(player.agentId, player.Pos.X, player.Pos.Y, player.Pos.Plane))
 	}
 }
 

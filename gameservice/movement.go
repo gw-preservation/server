@@ -5,6 +5,7 @@ import (
 	"math"
 	"time"
 
+	"gw1/server/geom"
 	"gw1/server/pathing"
 )
 
@@ -37,7 +38,7 @@ func (p *Player) applyMovementFacing(fx, fy float32) {
 
 // applyDirMovement handles a keyboard MovementUpdate (0x803c): the mover is
 // client-authoritative, and observers are pointed at the virtual target.
-func (i *Instance) applyDirMovement(p *Player, x, y, fx, fy float32, moveType int) {
+func (i *Instance) applyDirMovement(p *Player, pos geom.Pos2P, fx, fy float32, moveType int) {
 	i.assertActor()
 	p.applyMovementFacing(fx, fy)
 	p.waypoints = nil
@@ -46,10 +47,10 @@ func (i *Instance) applyDirMovement(p *Player, x, y, fx, fy float32, moveType in
 	p.lastDirUpdate = time.Now()
 	p.curMoveType = moveType
 
-	if vec2Length(p.posX-x, p.posY-y) <= dirMoveSnapGuard {
-		p.posX, p.posY = x, y
+	if vec2Length(p.Pos.X-pos.X, p.Pos.Y-pos.Y) <= dirMoveSnapGuard {
+		p.Pos.X, p.Pos.Y = pos.X, pos.Y
 	} else {
-		p.log.Warn().Float32("x", x).Float32("y", y).Msg("keyboard movement sync rejected (teleport guard)")
+		p.log.Warn().Float32("x", pos.X).Float32("y", pos.Y).Msg("keyboard movement sync rejected (teleport guard)")
 	}
 
 	p.setDirTarget()
@@ -64,9 +65,9 @@ func (i *Instance) applyDirMovement(p *Player, x, y, fx, fy float32, moveType in
 }
 
 func (a *Agent) setDirTarget() {
-	a.destX = a.posX + a.facingX*virtualTargetDist
-	a.destY = a.posY + a.facingY*virtualTargetDist
-	a.destPlane = a.plane
+	a.Dest.X = a.Pos.X + a.facingX*virtualTargetDist
+	a.Dest.Y = a.Pos.Y + a.facingY*virtualTargetDist
+	a.Dest.Plane = a.Pos.Plane
 }
 
 func (i *Instance) broadcastMoveToPointOthers(a *Agent, except *Player) {
@@ -74,7 +75,7 @@ func (i *Instance) broadcastMoveToPointOthers(a *Agent, except *Player) {
 		if other == except {
 			continue
 		}
-		other.EnqueuePacket(MarshalMoveToPointS2C(a.agentId, a.destX, a.destY, a.destPlane, a.plane))
+		other.EnqueuePacket(MarshalMoveToPointS2C(a.agentId, a.Dest.X, a.Dest.Y, a.Dest.Plane, a.Pos.Plane))
 	}
 }
 
@@ -94,7 +95,7 @@ func pointInMapQuad(t *MapQuad, x, y float32) bool {
 func (i *Instance) checkMapTransition(p *Player) {
 	for idx := range i.transitions {
 		t := &i.transitions[idx]
-		if pointInMapQuad(&t.Quad, p.posX, p.posY) {
+		if pointInMapQuad(&t.Quad, p.Pos.X, p.Pos.Y) {
 			if t.ToMapId == 0 || t.Spawn.IsEmpty() {
 				p.SendChat(fmt.Sprintf("incomplete portal: portalIndex=%d to: %d x: %f y:%f side=%s, curMapId=%d", t.OriginalPortalIndex, t.ToMapId, t.Spawn.X, t.Spawn.Y, t.ZoneSide, i.mapId), 3)
 			} else {
@@ -109,26 +110,26 @@ func (i *Instance) checkMapTransition(p *Player) {
 }
 
 func (i *Instance) advanceDirClamped(a *Agent, dist float32) {
-	nx := a.posX + a.facingX*dist
-	ny := a.posY + a.facingY*dist
-	if _, ok := i.path.TrapezoidAt(nx, ny, a.plane); ok {
-		a.posX, a.posY = nx, ny
+	nx := a.Pos.X + a.facingX*dist
+	ny := a.Pos.Y + a.facingY*dist
+	if _, ok := i.path.TrapezoidAt(geom.Pos2P{X: nx, Y: ny, Plane: a.Pos.Plane}); ok {
+		a.Pos.X, a.Pos.Y = nx, ny
 		return
 	}
 
 	lo, hi := float32(0), dist
 	for k := 0; k < 12; k++ {
 		mid := (lo + hi) / 2
-		mx := a.posX + a.facingX*mid
-		my := a.posY + a.facingY*mid
-		if _, ok := i.path.TrapezoidAt(mx, my, a.plane); ok {
+		mx := a.Pos.X + a.facingX*mid
+		my := a.Pos.Y + a.facingY*mid
+		if _, ok := i.path.TrapezoidAt(geom.Pos2P{X: mx, Y: my, Plane: a.Pos.Plane}); ok {
 			lo = mid
 		} else {
 			hi = mid
 		}
 	}
-	a.posX += a.facingX * lo
-	a.posY += a.facingY * lo
+	a.Pos.X += a.facingX * lo
+	a.Pos.Y += a.facingY * lo
 }
 
 func (i *Instance) checkDirMoveTimeouts(now time.Time) {
@@ -195,17 +196,17 @@ func (i *Instance) advanceAgent(p *Player, delta float32) {
 	a := &p.Agent
 	if a.dirMove {
 		i.advanceDirClamped(a, delta*a.effectiveSpeed())
-		if vec2Length(a.posX-a.destX, a.posY-a.destY) <= virtualRefreshDist {
+		if vec2Length(a.Pos.X-a.Dest.X, a.Pos.Y-a.Dest.Y) <= virtualRefreshDist {
 			a.setDirTarget()
 			i.broadcastMoveToPointOthers(a, p)
 		}
 	} else if len(a.waypoints) > 0 {
 		dist := delta * a.effectiveSpeed()
-		distToDest := vec2Length(a.posX-a.destX, a.posY-a.destY)
+		distToDest := vec2Length(a.Pos.X-a.Dest.X, a.Pos.Y-a.Dest.Y)
 
 		if distToDest <= dist {
 			dist -= distToDest
-			a.posX, a.posY, a.plane = a.destX, a.destY, a.destPlane
+			a.Pos = a.Dest
 			if a.waypointIdx < len(a.waypoints) {
 				a.setDestination(a.waypoints[a.waypointIdx])
 				a.waypointIdx++
@@ -216,11 +217,11 @@ func (i *Instance) advanceAgent(p *Player, delta float32) {
 		}
 
 		if dist > 0 {
-			a.posX += a.facingX * dist
-			a.posY += a.facingY * dist
+			a.Pos.X += a.facingX * dist
+			a.Pos.Y += a.facingY * dist
 		}
 
-		if a.plane == a.destPlane && a.posX == a.destX && a.posY == a.destY {
+		if a.Pos.Plane == a.Dest.Plane && a.Pos.X == a.Dest.X && a.Pos.Y == a.Dest.Y {
 			a.waypoints = nil
 			a.waypointIdx = 0
 		}
@@ -231,7 +232,7 @@ func (i *Instance) advanceAgent(p *Player, delta float32) {
 
 // startPlayerMove: A* over the navmesh is the sole validator; movers off the
 // navmesh (spawn areas) walk straight to the target.
-func (i *Instance) startPlayerMove(p *Player, x, y float32, plane int) bool {
+func (i *Instance) startPlayerMove(p *Player, dst geom.Pos2P) bool {
 	i.assertActor()
 
 	i.flushMovement(time.Now())
@@ -241,14 +242,14 @@ func (i *Instance) startPlayerMove(p *Player, x, y float32, plane int) bool {
 	p.waypointIdx = 0
 	p.resetMovementType()
 
-	waypoints, ok := i.path.FindPath(p.posX, p.posY, p.plane, x, y, plane)
+	waypoints, ok := i.path.FindPath(p.Pos, dst)
 	if !ok {
-		if _, onGrid := i.path.TrapezoidAt(p.posX, p.posY, p.plane); !onGrid {
-			waypoints = []pathing.Waypoint{{X: x, Y: y, Plane: plane}}
+		if _, onGrid := i.path.TrapezoidAt(p.Pos); !onGrid {
+			waypoints = []pathing.Waypoint{{Pos2P: dst}}
 		} else {
-			i.log.Warn().Float32("x", x).Float32("y", y).Int("plane", plane).Msg("no path to requested target")
+			i.log.Warn().Float32("x", dst.X).Float32("y", dst.Y).Int("plane", dst.Plane).Msg("no path to requested target")
 			i.broadcastPlayerPos(p)
-			p.EnqueuePacket(MarshalMoveToPointS2C(p.agentId, p.posX, p.posY, p.plane, p.plane))
+			p.EnqueuePacket(MarshalMoveToPointS2C(p.agentId, p.Pos.X, p.Pos.Y, p.Pos.Plane, p.Pos.Plane))
 			return false
 		}
 	}
@@ -256,7 +257,7 @@ func (i *Instance) startPlayerMove(p *Player, x, y float32, plane int) bool {
 	p.waypoints = waypoints
 	p.setDestination(waypoints[0])
 	p.waypointIdx = 1
-	i.log.Info().Float32("x", x).Float32("y", y).Int("plane", plane).Int("waypoints", len(waypoints)).Msg("accepted move request")
+	i.log.Info().Float32("x", dst.X).Float32("y", dst.Y).Int("plane", dst.Plane).Int("waypoints", len(waypoints)).Msg("accepted move request")
 	i.broadcastMoveToPoint(&p.Agent)
 	return true
 }
@@ -271,23 +272,23 @@ func (i *Instance) cancelPlayerMovement(p *Player) {
 	i.BroadcastGeneric(MarshalAgentStopMoving(p.agentId))
 }
 
-func (i *Instance) applyLastPosCorrection(p *Player, x, y float32, plane int) bool {
+func (i *Instance) applyLastPosCorrection(p *Player, dst geom.Pos2P) bool {
 	i.assertActor()
 	limit := float32(maxMovementCorrection)
 	if p.dirMove {
 		limit = float32(dirMoveSnapGuard)
 	}
-	if plane != p.plane || limit < vec2Length(p.posX-x, p.posY-y) {
+	if dst.Plane != p.Pos.Plane || limit < vec2Length(p.Pos.X-dst.X, p.Pos.Y-dst.Y) {
 		i.log.Warn().Msg("player tried to correct position by more than allowed")
 		return false
 	}
-	p.posX, p.posY, p.plane = x, y, plane
+	p.Pos = dst
 	i.cancelPlayerMovement(p)
 	return true
 }
 
 func (i *Instance) broadcastMoveToPoint(a *Agent) {
 	for _, other := range i.players {
-		other.EnqueuePacket(MarshalMoveToPointS2C(a.agentId, a.destX, a.destY, a.destPlane, a.plane))
+		other.EnqueuePacket(MarshalMoveToPointS2C(a.agentId, a.Dest.X, a.Dest.Y, a.Dest.Plane, a.Pos.Plane))
 	}
 }

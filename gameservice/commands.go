@@ -140,16 +140,16 @@ func handleTeleCommand(p *Player, args []string) bool {
 		p.SendChatWarning("Usage: /tele <x>,<y>")
 		return false
 	}
-	p.posX = x
-	p.posY = y
-	p.plane = 0
+	p.Pos.X = x
+	p.Pos.Y = y
+	p.Pos.Plane = 0
 	p.connectedInstance.broadcastPlayerPos(p)
 	p.SendChatInfo(fmt.Sprintf("Teleported to %.1f, %.1f", x, y))
 	return true
 }
 
 func handlePosCommand(p *Player, args []string) bool {
-	p.SendChatInfo(fmt.Sprintf("Position: %.1f, %.1f plane=%d", p.posX, p.posY, p.plane))
-	p.log.Info().Float32("x", p.posX).Float32("y", p.posY).Int("plane", p.plane).Msg("player position")
+	p.SendChatInfo(fmt.Sprintf("Position: %.1f, %.1f plane=%d", p.Pos.X, p.Pos.Y, p.Pos.Plane))
+	p.log.Info().Float32("x", p.Pos.X).Float32("y", p.Pos.Y).Int("plane", p.Pos.Plane).Msg("player position")
 	return true
 }

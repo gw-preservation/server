@@ -1,6 +1,9 @@
 package pathing
 
-import "testing"
+import (
+	"gw1/server/geom"
+	"testing"
+)
 
 var (
 	sinkInt  int
@@ -11,7 +14,7 @@ func BenchmarkTrapezoidAtHit(b *testing.B) {
 	d := testPathData()
 
 	for b.Loop() {
-		sinkInt, sinkBool = d.TrapezoidAt(0, 50, 0)
+		sinkInt, sinkBool = d.TrapezoidAt(geom.Pos2P{X: 0, Y: 50, Plane: 0})
 	}
 }
 
@@ -19,7 +22,7 @@ func BenchmarkTrapezoidAtMiss(b *testing.B) {
 	d := testPathData()
 	b.ResetTimer()
 	for b.Loop() {
-		sinkInt, sinkBool = d.TrapezoidAt(0, 250, 0)
+		sinkInt, sinkBool = d.TrapezoidAt(geom.Pos2P{X: 0, Y: 250, Plane: 0})
 	}
 }
 
@@ -27,7 +30,7 @@ func BenchmarkLineOfSightSameTrap(b *testing.B) {
 	d := testPathData()
 	b.ResetTimer()
 	for b.Loop() {
-		sinkBool = d.LineOfSight(-50, 20, 80, 40, 0)
+		sinkBool = d.LineOfSight(geom.Pos2P{X: -50, Y: 20, Plane: 0}, geom.Pos2P{X: 80, Y: 40, Plane: 0})
 	}
 }
 
@@ -35,7 +38,7 @@ func BenchmarkLineOfSightDownCorridor(b *testing.B) {
 	d := testPathData()
 	b.ResetTimer()
 	for b.Loop() {
-		sinkBool = d.LineOfSight(0, 50, 0, -250, 0)
+		sinkBool = d.LineOfSight(geom.Pos2P{X: 0, Y: 50, Plane: 0}, geom.Pos2P{X: 0, Y: -250, Plane: 0})
 	}
 }
 
@@ -43,7 +46,7 @@ func BenchmarkLineOfSightBlocked(b *testing.B) {
 	d := testPathData()
 	b.ResetTimer()
 	for b.Loop() {
-		sinkBool = d.LineOfSight(0, 50, 400, 50, 0)
+		sinkBool = d.LineOfSight(geom.Pos2P{X: 0, Y: 50, Plane: 0}, geom.Pos2P{X: 400, Y: 50, Plane: 0})
 	}
 }
 
@@ -51,7 +54,7 @@ func BenchmarkReachableAcrossPortal(b *testing.B) {
 	d := portalData()
 	b.ResetTimer()
 	for b.Loop() {
-		sinkBool = d.Reachable(0, 50, 0, 0, 50, 1)
+		sinkBool = d.Reachable(geom.Pos2P{X: 0, Y: 50, Plane: 0}, geom.Pos2P{X: 0, Y: 50, Plane: 1})
 	}
 }
 
@@ -59,7 +62,7 @@ func BenchmarkReachableUnreachable(b *testing.B) {
 	d := portalData()
 	b.ResetTimer()
 	for b.Loop() {
-		sinkBool = d.Reachable(0, 50, 0, 0, 50, 2)
+		sinkBool = d.Reachable(geom.Pos2P{X: 0, Y: 50, Plane: 0}, geom.Pos2P{X: 0, Y: 50, Plane: 2})
 	}
 }
 
@@ -98,7 +101,7 @@ func BenchmarkTrapezoidAtLarge(b *testing.B) {
 	d := gridData(100, 100, 10, 10)
 	b.ResetTimer()
 	for b.Loop() {
-		sinkInt, sinkBool = d.TrapezoidAt(995, 5, 0)
+		sinkInt, sinkBool = d.TrapezoidAt(geom.Pos2P{X: 995, Y: 5, Plane: 0})
 	}
 }
 
@@ -106,7 +109,7 @@ func BenchmarkLineOfSightLarge(b *testing.B) {
 	d := gridData(100, 100, 10, 10)
 	b.ResetTimer()
 	for b.Loop() {
-		sinkBool = d.LineOfSight(5, 995, 995, 5, 0)
+		sinkBool = d.LineOfSight(geom.Pos2P{X: 5, Y: 995, Plane: 0}, geom.Pos2P{X: 995, Y: 5, Plane: 0})
 	}
 }
 
@@ -114,6 +117,6 @@ func BenchmarkReachableLarge(b *testing.B) {
 	d := gridData(100, 100, 10, 10)
 	b.ResetTimer()
 	for b.Loop() {
-		sinkBool = d.Reachable(5, 995, 0, 995, 5, 0)
+		sinkBool = d.Reachable(geom.Pos2P{X: 5, Y: 995, Plane: 0}, geom.Pos2P{X: 995, Y: 5, Plane: 0})
 	}
 }
